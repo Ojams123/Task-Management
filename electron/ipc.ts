@@ -3,9 +3,15 @@ import * as reminders from './db/repos/reminders'
 import * as goals from './db/repos/goals'
 import * as budget from './db/repos/budget'
 import * as canvasRepo from './db/repos/canvas'
+import * as calendarRepo from './db/repos/calendar'
+import * as fitness from './db/repos/fitness'
+import * as chat from './db/repos/chat'
 import { getSecret, setSecret, deleteSecret } from './db/repos/settings'
 import { fetchAssignments } from './integrations/canvas'
-import { fetchUnreadDigest, runOAuthFlow } from './integrations/gmail'
+import { fetchUnreadDigest } from './integrations/gmail'
+import { fetchUpcomingEvents } from './integrations/calendar'
+import { runOAuthFlow } from './integrations/googleAuth'
+import { runAssistantTurn } from './integrations/assistant'
 import type { CanvasSettings, NotificationDigest } from '../src/shared/types'
 
 const CANVAS_DOMAIN_KEY = 'canvas.domain'
@@ -15,6 +21,9 @@ const GOOGLE_CLIENT_SECRET_KEY = 'google.clientSecret'
 const GOOGLE_REFRESH_TOKEN_KEY = 'google.refreshToken'
 const GOOGLE_EMAIL_KEY = 'google.email'
 const LAST_NOTIFICATION_CHECK_KEY = 'notifications.lastCheck'
+const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
+const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
+const DEFAULT_CALORIE_TARGET = 2000
 
 function getCanvasSettings(): CanvasSettings | null {
   const domain = getSecret(CANVAS_DOMAIN_KEY)
@@ -106,6 +115,58 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('notifications:getDigest', () => buildDigest())
   ipcMain.handle('notifications:refreshDigest', () => buildDigest())
+
+  // Calendar
+  async function syncCalendar() {
+    const clientId = getSecret(GOOGLE_CLIENT_ID_KEY)
+    const clientSecret = getSecret(GOOGLE_CLIENT_SECRET_KEY)
+    const refreshToken = getSecret(GOOGLE_REFRESH_TOKEN_KEY)
+    if (!clientId || !clientSecret || !refreshToken) return []
+    const events = await fetchUpcomingEvents(clientId, clientSecret, refreshToken)
+    calendarRepo.replaceCachedEvents(events)
+    return events
+  }
+  ipcMain.handle('calendar:getEvents', () => calendarRepo.listCachedEvents())
+  ipcMain.handle('calendar:refreshEvents', () => syncCalendar())
+
+  // Fitness
+  ipcMain.handle('fitness:listFood', (_e, date) => fitness.listFood(date))
+  ipcMain.handle('fitness:createFood', (_e, input) => fitness.createFood(input))
+  ipcMain.handle('fitness:removeFood', (_e, id) => fitness.removeFood(id))
+  ipcMain.handle('fitness:listExercise', (_e, date) => fitness.listExercise(date))
+  ipcMain.handle('fitness:createExercise', (_e, input) => fitness.createExercise(input))
+  ipcMain.handle('fitness:removeExercise', (_e, id) => fitness.removeExercise(id))
+  ipcMain.handle('fitness:getCalorieTarget', () => {
+    const stored = getSecret(CALORIE_TARGET_KEY)
+    return stored ? Number(stored) : DEFAULT_CALORIE_TARGET
+  })
+  ipcMain.handle('fitness:setCalorieTarget', (_e, target: number) => {
+    setSecret(CALORIE_TARGET_KEY, String(target))
+  })
+  ipcMain.handle('fitness:dailySummary', (_e, date?: string) => {
+    const targetDate = date ?? new Date().toISOString().slice(0, 10)
+    const { consumed, burned } = fitness.dailyTotals(targetDate)
+    const stored = getSecret(CALORIE_TARGET_KEY)
+    const target = stored ? Number(stored) : DEFAULT_CALORIE_TARGET
+    return { date: targetDate, consumed, burned, target, net: consumed - burned }
+  })
+
+  // Assistant
+  ipcMain.handle('assistant:getStatus', () => ({ configured: !!getSecret(ANTHROPIC_API_KEY) }))
+  ipcMain.handle('assistant:saveApiKey', (_e, apiKey: string) => {
+    setSecret(ANTHROPIC_API_KEY, apiKey)
+  })
+  ipcMain.handle('assistant:getHistory', () => chat.listMessages())
+  ipcMain.handle('assistant:sendMessage', async (_e, content: string) => {
+    const apiKey = getSecret(ANTHROPIC_API_KEY)
+    if (!apiKey) throw new Error('Add your Anthropic API key in Settings to enable the assistant.')
+    const history = chat.listMessages()
+    chat.addMessage('user', content)
+    const reply = await runAssistantTurn(apiKey, history, content)
+    chat.addMessage('assistant', reply)
+    return chat.listMessages()
+  })
+  ipcMain.handle('assistant:clearHistory', () => chat.clearMessages())
 
   // System
   ipcMain.handle('system:notify', (_e, title: string, body: string) => {

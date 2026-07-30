@@ -22,6 +22,15 @@ export function removeCategory(id: string) {
   db.prepare('DELETE FROM budget_categories WHERE id = ?').run(id)
 }
 
+export function findOrCreateCategory(name: string, kind: 'expense' | 'income'): BudgetCategory {
+  const db = getDb()
+  const existing = db
+    .prepare('SELECT * FROM budget_categories WHERE name = ? COLLATE NOCASE')
+    .get(name) as BudgetCategory | undefined
+  if (existing) return existing
+  return createCategory({ name, monthlyLimit: 0, kind })
+}
+
 export function listTransactions(month?: string): Transaction[] {
   const db = getDb()
   if (month) {

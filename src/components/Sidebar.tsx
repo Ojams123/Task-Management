@@ -4,7 +4,10 @@ export type Page =
   | 'goals'
   | 'budget'
   | 'assignments'
+  | 'calendar'
+  | 'fitness'
   | 'notifications'
+  | 'assistant'
   | 'settings'
 
 const NAV_ITEMS: { id: Page; label: string }[] = [
@@ -12,8 +15,11 @@ const NAV_ITEMS: { id: Page; label: string }[] = [
   { id: 'reminders', label: 'Reminders' },
   { id: 'goals', label: 'Goals & Progress' },
   { id: 'budget', label: 'Budget' },
+  { id: 'fitness', label: 'Fitness' },
   { id: 'assignments', label: 'Assignments' },
+  { id: 'calendar', label: 'Calendar' },
   { id: 'notifications', label: 'Notifications' },
+  { id: 'assistant', label: 'Assistant' },
   { id: 'settings', label: 'Settings' },
 ]
 

@@ -104,6 +104,14 @@ export function goalHistory(id: string): GoalLogEntry[] {
     .all(id) as GoalLogEntry[]
 }
 
+export function findGoalByTitle(title: string): Goal | undefined {
+  const db = getDb()
+  const row = db
+    .prepare('SELECT * FROM goals WHERE archived = 0 AND title LIKE ? COLLATE NOCASE ORDER BY createdAt DESC LIMIT 1')
+    .get(`%${title}%`) as GoalRow | undefined
+  return row ? toGoal(row) : undefined
+}
+
 export function removeGoal(id: string) {
   const db = getDb()
   db.prepare('DELETE FROM goals WHERE id = ?').run(id)

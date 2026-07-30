@@ -29,6 +29,11 @@ export type NewGoal = Omit<Goal, 'id' | 'createdAt' | 'currentValue' | 'archived
   currentValue?: number
 }
 
+// Suggested categories shown in the UI — goals aren't restricted to these,
+// it's just how "athletic progress" and "work progress" map onto the same
+// generic goal-tracking model instead of duplicating it.
+export const GOAL_CATEGORIES = ['fitness', 'work', 'personal', 'finance', 'education', 'general'] as const
+
 export interface GoalLogEntry {
   id: string
   goalId: string
@@ -101,6 +106,56 @@ export interface AppSettings {
   lastNotificationCheck: string | null
 }
 
+export interface CalendarEvent {
+  id: string
+  title: string
+  start: string // ISO datetime
+  end: string | null
+  allDay: boolean
+  location: string | null
+  htmlLink: string | null
+}
+
+export interface FoodEntry {
+  id: string
+  name: string
+  calories: number
+  protein: number | null
+  carbs: number | null
+  fat: number | null
+  consumedAt: string
+  createdAt: string
+}
+
+export type NewFoodEntry = Omit<FoodEntry, 'id' | 'createdAt'>
+
+export interface ExerciseEntry {
+  id: string
+  activity: string
+  durationMinutes: number | null
+  caloriesBurned: number | null
+  notes: string | null
+  occurredAt: string
+  createdAt: string
+}
+
+export type NewExerciseEntry = Omit<ExerciseEntry, 'id' | 'createdAt'>
+
+export interface DailyFitnessSummary {
+  date: string
+  consumed: number
+  burned: number
+  target: number
+  net: number
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  createdAt: string
+}
+
 export interface VoiceCommandResult {
   transcript: string
   action: string
@@ -151,6 +206,28 @@ export interface DeviceHubApi {
     disconnectGoogle(): Promise<void>
     getDigest(): Promise<NotificationDigest>
     refreshDigest(): Promise<NotificationDigest>
+  }
+  calendar: {
+    getEvents(): Promise<CalendarEvent[]>
+    refreshEvents(): Promise<CalendarEvent[]>
+  }
+  fitness: {
+    listFood(date?: string): Promise<FoodEntry[]>
+    createFood(input: NewFoodEntry): Promise<FoodEntry>
+    removeFood(id: string): Promise<void>
+    listExercise(date?: string): Promise<ExerciseEntry[]>
+    createExercise(input: NewExerciseEntry): Promise<ExerciseEntry>
+    removeExercise(id: string): Promise<void>
+    dailySummary(date?: string): Promise<DailyFitnessSummary>
+    getCalorieTarget(): Promise<number>
+    setCalorieTarget(target: number): Promise<void>
+  }
+  assistant: {
+    getStatus(): Promise<{ configured: boolean }>
+    saveApiKey(apiKey: string): Promise<void>
+    getHistory(): Promise<ChatMessage[]>
+    sendMessage(content: string): Promise<ChatMessage[]>
+    clearHistory(): Promise<void>
   }
   system: {
     notify(title: string, body: string): Promise<void>

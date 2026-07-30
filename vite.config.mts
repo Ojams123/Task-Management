@@ -17,7 +17,7 @@ export default defineConfig({
           build: {
             outDir: 'dist-electron',
             rolldownOptions: {
-              external: ['better-sqlite3', 'googleapis', 'electron'],
+              external: ['better-sqlite3', 'googleapis', 'electron', '@anthropic-ai/sdk'],
             },
           },
         },

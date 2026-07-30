@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { Page } from '../components/Sidebar'
-import type { CanvasAssignment, Goal, NotificationDigest, Reminder } from '../shared/types'
+import type {
+  CalendarEvent,
+  CanvasAssignment,
+  DailyFitnessSummary,
+  Goal,
+  NotificationDigest,
+  Reminder,
+} from '../shared/types'
 
 function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -16,24 +23,31 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   const [canvasConfigured, setCanvasConfigured] = useState(false)
   const [digest, setDigest] = useState<NotificationDigest | null>(null)
   const [googleConnected, setGoogleConnected] = useState(false)
+  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [fitness, setFitness] = useState<DailyFitnessSummary | null>(null)
 
   useEffect(() => {
     async function load() {
-      const [r, g, b, canvasSettings, googleStatus] = await Promise.all([
+      const [r, g, b, canvasSettings, googleStatus, fitnessSummary] = await Promise.all([
         window.api.reminders.list(),
         window.api.goals.list(),
         window.api.budget.summary(),
         window.api.canvas.getSettings(),
         window.api.notifications.getGoogleAuthStatus(),
+        window.api.fitness.dailySummary(),
       ])
       setReminders(r)
       setGoals(g)
       setBudgetSummary(b)
       setCanvasConfigured(!!canvasSettings)
       setGoogleConnected(googleStatus.connected)
+      setFitness(fitnessSummary)
 
       if (canvasSettings) setAssignments(await window.api.canvas.listCached())
-      if (googleStatus.connected) setDigest(await window.api.notifications.getDigest())
+      if (googleStatus.connected) {
+        setDigest(await window.api.notifications.getDigest())
+        setEvents(await window.api.calendar.getEvents())
+      }
     }
     load()
   }, [])
@@ -41,6 +55,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   const upcomingReminders = reminders.filter((r) => !r.completed).slice(0, 5)
   const activeGoals = goals.filter((g) => !g.archived).slice(0, 4)
   const upcomingAssignments = assignments.filter((a) => !a.submitted).slice(0, 5)
+  const upcomingEvents = events.slice(0, 4)
 
   return (
     <div className="grid grid-2">
@@ -164,6 +179,71 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3>
+          Upcoming events
+          <button className="link" onClick={() => onNavigate('calendar')}>
+            View all
+          </button>
+        </h3>
+        {!googleConnected ? (
+          <div className="empty-state">Connect Google in Settings to see calendar events here.</div>
+        ) : upcomingEvents.length === 0 ? (
+          <div className="empty-state">Nothing synced — sync from Calendar to check for updates.</div>
+        ) : (
+          <div className="list">
+            {upcomingEvents.map((e) => (
+              <div className="list-row" key={e.id}>
+                <div className="list-row-main">
+                  <div className="list-row-title">{e.title}</div>
+                  <div className="list-row-sub">
+                    {e.allDay
+                      ? new Date(e.start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                      : new Date(e.start).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3>
+          Fitness today
+          <button className="link" onClick={() => onNavigate('fitness')}>
+            View all
+          </button>
+        </h3>
+        {fitness ? (
+          <div className="grid grid-3">
+            <div className="stat">
+              <span className="stat-label">Consumed</span>
+              <span className="stat-value" style={{ fontSize: 18 }}>
+                {fitness.consumed}
+              </span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Burned</span>
+              <span className="stat-value" style={{ fontSize: 18, color: 'var(--success)' }}>
+                {fitness.burned}
+              </span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Net / target</span>
+              <span
+                className="stat-value"
+                style={{ fontSize: 18, color: fitness.net > fitness.target ? 'var(--danger)' : undefined }}
+              >
+                {fitness.net}/{fitness.target}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="empty-state">No fitness data yet.</div>
         )}
       </div>
 

@@ -6,8 +6,11 @@ import { Dashboard } from './pages/Dashboard'
 import { Reminders } from './pages/Reminders'
 import { Goals } from './pages/Goals'
 import { Budget } from './pages/Budget'
+import { Fitness } from './pages/Fitness'
 import { Assignments } from './pages/Assignments'
+import { Calendar } from './pages/Calendar'
 import { Notifications } from './pages/Notifications'
+import { Assistant } from './pages/Assistant'
 import { Settings } from './pages/Settings'
 
 const PAGE_TITLES: Record<Page, string> = {
@@ -15,8 +18,11 @@ const PAGE_TITLES: Record<Page, string> = {
   reminders: 'Reminders',
   goals: 'Goals & Progress',
   budget: 'Budget',
+  fitness: 'Fitness',
   assignments: 'Assignments',
+  calendar: 'Calendar',
   notifications: 'Notifications',
+  assistant: 'Assistant',
   settings: 'Settings',
 }
 
@@ -36,8 +42,11 @@ function App() {
           {page === 'reminders' && <Reminders />}
           {page === 'goals' && <Goals />}
           {page === 'budget' && <Budget />}
+          {page === 'fitness' && <Fitness />}
           {page === 'assignments' && <Assignments onNavigate={setPage} />}
+          {page === 'calendar' && <Calendar onNavigate={setPage} />}
           {page === 'notifications' && <Notifications onNavigate={setPage} />}
+          {page === 'assistant' && <Assistant onNavigate={setPage} />}
           {page === 'settings' && <Settings />}
         </div>
       </div>

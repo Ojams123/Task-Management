@@ -40,6 +40,28 @@ const api: DeviceHubApi = {
     getDigest: () => ipcRenderer.invoke('notifications:getDigest'),
     refreshDigest: () => ipcRenderer.invoke('notifications:refreshDigest'),
   },
+  calendar: {
+    getEvents: () => ipcRenderer.invoke('calendar:getEvents'),
+    refreshEvents: () => ipcRenderer.invoke('calendar:refreshEvents'),
+  },
+  fitness: {
+    listFood: (date) => ipcRenderer.invoke('fitness:listFood', date),
+    createFood: (input) => ipcRenderer.invoke('fitness:createFood', input),
+    removeFood: (id) => ipcRenderer.invoke('fitness:removeFood', id),
+    listExercise: (date) => ipcRenderer.invoke('fitness:listExercise', date),
+    createExercise: (input) => ipcRenderer.invoke('fitness:createExercise', input),
+    removeExercise: (id) => ipcRenderer.invoke('fitness:removeExercise', id),
+    dailySummary: (date) => ipcRenderer.invoke('fitness:dailySummary', date),
+    getCalorieTarget: () => ipcRenderer.invoke('fitness:getCalorieTarget'),
+    setCalorieTarget: (target) => ipcRenderer.invoke('fitness:setCalorieTarget', target),
+  },
+  assistant: {
+    getStatus: () => ipcRenderer.invoke('assistant:getStatus'),
+    saveApiKey: (apiKey) => ipcRenderer.invoke('assistant:saveApiKey', apiKey),
+    getHistory: () => ipcRenderer.invoke('assistant:getHistory'),
+    sendMessage: (content) => ipcRenderer.invoke('assistant:sendMessage', content),
+    clearHistory: () => ipcRenderer.invoke('assistant:clearHistory'),
+  },
   system: {
     notify: (title, body) => ipcRenderer.invoke('system:notify', title, body),
   },

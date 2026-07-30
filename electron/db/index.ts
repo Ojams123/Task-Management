@@ -88,6 +88,45 @@ function migrate(database: Database.Database) {
       key TEXT PRIMARY KEY,
       value TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS calendar_events (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      start TEXT NOT NULL,
+      end TEXT,
+      allDay INTEGER NOT NULL DEFAULT 0,
+      location TEXT,
+      htmlLink TEXT,
+      syncedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS food_entries (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      calories REAL NOT NULL,
+      protein REAL,
+      carbs REAL,
+      fat REAL,
+      consumedAt TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS exercise_entries (
+      id TEXT PRIMARY KEY,
+      activity TEXT NOT NULL,
+      durationMinutes REAL,
+      caloriesBurned REAL,
+      notes TEXT,
+      occurredAt TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
   `)
 }
 

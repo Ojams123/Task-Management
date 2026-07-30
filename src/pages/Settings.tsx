@@ -12,6 +12,10 @@ export function Settings() {
   const [connecting, setConnecting] = useState(false)
   const [googleError, setGoogleError] = useState<string | null>(null)
 
+  const [anthropicKey, setAnthropicKey] = useState('')
+  const [assistantConfigured, setAssistantConfigured] = useState(false)
+  const [assistantSaved, setAssistantSaved] = useState(false)
+
   useEffect(() => {
     window.api.canvas.getSettings().then((s) => {
       if (s) {
@@ -20,7 +24,15 @@ export function Settings() {
       }
     })
     window.api.notifications.getGoogleAuthStatus().then(setGoogleStatus)
+    window.api.assistant.getStatus().then((s) => setAssistantConfigured(s.configured))
   }, [])
+
+  async function saveAssistantKey() {
+    await window.api.assistant.saveApiKey(anthropicKey.trim())
+    setAssistantConfigured(true)
+    setAssistantSaved(true)
+    setTimeout(() => setAssistantSaved(false), 2000)
+  }
 
   async function saveCanvas() {
     await window.api.canvas.saveSettings({ domain: canvasDomain.trim(), token: canvasToken.trim() })
@@ -84,11 +96,12 @@ export function Settings() {
       </div>
 
       <div className="card settings-section">
-        <h3>Gmail notifications</h3>
+        <h3>Google (Gmail + Calendar)</h3>
         <p className="muted" style={{ marginBottom: 12 }}>
-          Create an OAuth client (type "Desktop app") in Google Cloud Console with the Gmail API enabled, then
-          paste the client ID and secret below. Your email content stays local — DeviceHub only reads
-          unread-message metadata to build your missed-notifications summary.
+          Create an OAuth client (type "Desktop app") in Google Cloud Console with the Gmail API and Calendar
+          API both enabled, then paste the client ID and secret below. This one connection powers both the
+          missed-notifications summary (unread-message metadata only, never full email bodies) and the Calendar
+          page (upcoming events).
         </p>
         {googleStatus?.connected ? (
           <div>
@@ -124,6 +137,36 @@ export function Settings() {
             )}
           </>
         )}
+      </div>
+
+      <div className="card settings-section">
+        <h3>Built-in assistant</h3>
+        <p className="muted" style={{ marginBottom: 12 }}>
+          The assistant uses your own Anthropic API key — get one at{' '}
+          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer">
+            console.anthropic.com
+          </a>
+          . It's stored encrypted, only used to call the Claude API directly from your device, and can create
+          reminders, goals, transactions, and fitness entries when you ask it to.
+        </p>
+        {assistantConfigured && (
+          <p className="muted" style={{ marginBottom: 10 }}>
+            An API key is currently saved.
+          </p>
+        )}
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>Anthropic API key</label>
+          <input
+            type="password"
+            value={anthropicKey}
+            onChange={(e) => setAnthropicKey(e.target.value)}
+            placeholder="sk-ant-…"
+          />
+        </div>
+        <button className="btn btn-primary" onClick={saveAssistantKey}>
+          Save API key
+        </button>
+        {assistantSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
       </div>
     </div>
   )

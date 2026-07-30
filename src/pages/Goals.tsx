@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Goal } from '../shared/types'
+import { GOAL_CATEGORIES, type Goal } from '../shared/types'
 
 export function Goals() {
   const [goals, setGoals] = useState<Goal[]>([])
@@ -9,6 +9,7 @@ export function Goals() {
   const [targetValue, setTargetValue] = useState(10)
   const [unit, setUnit] = useState('sessions')
   const [logInputs, setLogInputs] = useState<Record<string, string>>({})
+  const [filter, setFilter] = useState<string>('all')
 
   async function refresh() {
     setGoals(await window.api.goals.list())
@@ -50,7 +51,7 @@ export function Goals() {
     await refresh()
   }
 
-  const active = goals.filter((g) => !g.archived)
+  const active = goals.filter((g) => !g.archived && (filter === 'all' || g.category.toLowerCase() === filter))
   const archived = goals.filter((g) => g.archived)
 
   return (
@@ -64,7 +65,17 @@ export function Goals() {
           </div>
           <div className="field">
             <label>Category</label>
-            <input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="health, career…" />
+            <input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="fitness, work, personal…"
+              list="goal-categories"
+            />
+            <datalist id="goal-categories">
+              {GOAL_CATEGORIES.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
           </div>
           <div className="field">
             <label>Target</label>
@@ -83,6 +94,18 @@ export function Goals() {
             Add goal
           </button>
         </div>
+      </div>
+
+      <div className="tag-row" style={{ marginBottom: 16 }}>
+        {['all', ...GOAL_CATEGORIES].map((c) => (
+          <button
+            key={c}
+            className={`btn btn-sm${filter === c ? ' btn-primary' : ''}`}
+            onClick={() => setFilter(c)}
+          >
+            {c[0].toUpperCase() + c.slice(1)}
+          </button>
+        ))}
       </div>
 
       {loading ? (
