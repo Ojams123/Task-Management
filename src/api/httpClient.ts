@@ -1,0 +1,122 @@
+import type { DeviceHubApi } from '../shared/types'
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    method,
+    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+
+  if (res.status === 401) {
+    window.dispatchEvent(new CustomEvent('devicehub:unauthorized'))
+    throw new Error('Not authenticated')
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}) as { error?: string })
+    throw new Error(data.error || `Request failed (${res.status})`)
+  }
+  if (res.status === 204) return undefined as T
+  return res.json() as Promise<T>
+}
+
+function query(params: Record<string, string | undefined>): string {
+  const entries = Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]
+  if (entries.length === 0) return ''
+  return `?${new URLSearchParams(entries).toString()}`
+}
+
+async function requestNotificationPermissionIfNeeded(): Promise<boolean> {
+  if (!('Notification' in window)) return false
+  if (Notification.permission === 'granted') return true
+  if (Notification.permission === 'denied') return false
+  const result = await Notification.requestPermission()
+  return result === 'granted'
+}
+
+/** Polls the server for reminders that fired since `sinceIso` — used only in
+ * browser mode, where there's no background process to show native
+ * notifications the way the Electron scheduler does. Not part of the shared
+ * DeviceHubApi surface since Electron doesn't need it. */
+export async function pollFiredReminders(sinceIso: string): Promise<{ id: string; title: string; notes: string | null }[]> {
+  return request('GET', `/reminders/fired-since${query({ since: sinceIso })}`)
+}
+
+export function createHttpClient(): DeviceHubApi {
+  return {
+    reminders: {
+      list: () => request('GET', '/reminders'),
+      create: (input) => request('POST', '/reminders', input),
+      update: (id, updates) => request('PATCH', `/reminders/${id}`, updates),
+      remove: (id) => request('DELETE', `/reminders/${id}`),
+    },
+    goals: {
+      list: () => request('GET', '/goals'),
+      create: (input) => request('POST', '/goals', input),
+      update: (id, updates) => request('PATCH', `/goals/${id}`, updates),
+      logProgress: (id, delta, note) => request('POST', `/goals/${id}/log`, { delta, note }),
+      history: (id) => request('GET', `/goals/${id}/history`),
+      remove: (id) => request('DELETE', `/goals/${id}`),
+    },
+    budget: {
+      listCategories: () => request('GET', '/budget/categories'),
+      createCategory: (input) => request('POST', '/budget/categories', input),
+      removeCategory: (id) => request('DELETE', `/budget/categories/${id}`),
+      listTransactions: (month) => request('GET', `/budget/transactions${query({ month })}`),
+      createTransaction: (input) => request('POST', '/budget/transactions', input),
+      removeTransaction: (id) => request('DELETE', `/budget/transactions/${id}`),
+      summary: (month) => request('GET', `/budget/summary${query({ month })}`),
+    },
+    canvas: {
+      getSettings: () => request('GET', '/canvas/settings'),
+      saveSettings: (settings) => request('POST', '/canvas/settings', settings),
+      sync: () => request('POST', '/canvas/sync'),
+      listCached: () => request('GET', '/canvas/cached'),
+    },
+    notifications: {
+      getGoogleAuthStatus: () => request('GET', '/notifications/google-status'),
+      saveGoogleCredentials: (clientId, clientSecret) =>
+        request('POST', '/notifications/google-credentials', { clientId, clientSecret }),
+      connectGoogle: async () => {
+        const { url } = await request<{ url: string }>('GET', '/google/connect')
+        window.location.href = url
+        // The page is navigating away to Google's consent screen; this
+        // promise deliberately never resolves in the browser build. The
+        // Settings page picks the result back up from the redirect it lands
+        // on (?google=connected / ?google=error) after the round trip.
+        return new Promise(() => {})
+      },
+      disconnectGoogle: () => request('POST', '/notifications/disconnect-google'),
+      getDigest: () => request('GET', '/notifications/digest'),
+      refreshDigest: () => request('POST', '/notifications/refresh-digest'),
+    },
+    calendar: {
+      getEvents: () => request('GET', '/calendar/events'),
+      refreshEvents: () => request('POST', '/calendar/refresh'),
+    },
+    fitness: {
+      listFood: (date) => request('GET', `/fitness/food${query({ date })}`),
+      createFood: (input) => request('POST', '/fitness/food', input),
+      removeFood: (id) => request('DELETE', `/fitness/food/${id}`),
+      listExercise: (date) => request('GET', `/fitness/exercise${query({ date })}`),
+      createExercise: (input) => request('POST', '/fitness/exercise', input),
+      removeExercise: (id) => request('DELETE', `/fitness/exercise/${id}`),
+      dailySummary: (date) => request('GET', `/fitness/daily-summary${query({ date })}`),
+      getCalorieTarget: () => request('GET', '/fitness/calorie-target'),
+      setCalorieTarget: (target) => request('POST', '/fitness/calorie-target', { target }),
+    },
+    assistant: {
+      getStatus: () => request('GET', '/assistant/status'),
+      saveApiKey: (apiKey) => request('POST', '/assistant/api-key', { apiKey }),
+      getHistory: () => request('GET', '/assistant/history'),
+      sendMessage: (content) => request('POST', '/assistant/message', { content }),
+      clearHistory: () => request('DELETE', '/assistant/history'),
+    },
+    system: {
+      notify: async (title, body) => {
+        if (await requestNotificationPermissionIfNeeded()) {
+          new Notification(title, { body })
+        }
+      },
+    },
+  }
+}

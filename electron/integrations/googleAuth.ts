@@ -2,15 +2,7 @@ import http from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { google } from 'googleapis'
 import { shell } from 'electron'
-
-const SCOPES = [
-  'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/calendar.events',
-]
-
-function createOAuthClient(clientId: string, clientSecret: string, redirectUri: string) {
-  return new google.auth.OAuth2(clientId, clientSecret, redirectUri)
-}
+import { createOAuthClient, GOOGLE_SCOPES } from '../../core/integrations/googleClient'
 
 /**
  * Runs the OAuth "loopback" flow used by installed/desktop apps: opens the
@@ -30,7 +22,7 @@ export async function runOAuthFlow(
   const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: SCOPES,
+    scope: GOOGLE_SCOPES,
   })
 
   const codePromise = new Promise<string>((resolve, reject) => {
@@ -68,10 +60,4 @@ export async function runOAuthFlow(
   const profile = await oauth2.userinfo.get()
 
   return { refreshToken: tokens.refresh_token, email: profile.data.email ?? 'unknown' }
-}
-
-export function clientFor(clientId: string, clientSecret: string, refreshToken: string) {
-  const oauth2Client = createOAuthClient(clientId, clientSecret, 'urn:ietf:wg:oauth:2.0:oob')
-  oauth2Client.setCredentials({ refresh_token: refreshToken })
-  return oauth2Client
 }

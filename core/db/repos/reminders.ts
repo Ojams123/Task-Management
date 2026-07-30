@@ -79,3 +79,12 @@ export function getDueUnfired(nowIso: string): (Reminder & { lastFiredAt: string
     .all(nowIso) as (ReminderRow & { lastFiredAt: string | null })[]
   return rows.map((r) => ({ ...toReminder(r), lastFiredAt: r.lastFiredAt }))
 }
+
+/** Reminders whose scheduler fire time falls after `sinceIso` — used by browser clients to show a Web Notification for reminders that fired while the tab was open or since their last poll. */
+export function listFiredSince(sinceIso: string): Reminder[] {
+  const db = getDb()
+  const rows = db
+    .prepare('SELECT * FROM reminders WHERE lastFiredAt IS NOT NULL AND lastFiredAt >= ? ORDER BY lastFiredAt ASC')
+    .all(sinceIso) as ReminderRow[]
+  return rows.map(toReminder)
+}

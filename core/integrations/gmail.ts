@@ -1,5 +1,5 @@
 import { google } from 'googleapis'
-import { clientFor } from './googleAuth'
+import { clientFor } from './googleClient'
 import type { EmailSummaryItem } from '../../src/shared/types'
 
 export async function fetchUnreadDigest(

@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import './App.css'
+import { IS_ELECTRON } from './bootstrap'
 import { Sidebar, type Page } from './components/Sidebar'
 import { VoiceBar } from './components/VoiceBar'
+import { AuthGate } from './components/AuthGate'
+import { useBrowserReminderNotifications } from './hooks/useBrowserReminderNotifications'
 import { Dashboard } from './pages/Dashboard'
 import { Reminders } from './pages/Reminders'
 import { Goals } from './pages/Goals'
@@ -28,8 +31,9 @@ const PAGE_TITLES: Record<Page, string> = {
 
 function App() {
   const [page, setPage] = useState<Page>('dashboard')
+  useBrowserReminderNotifications(!IS_ELECTRON)
 
-  return (
+  const shell = (
     <div className="app-shell">
       <Sidebar page={page} onNavigate={setPage} />
       <div className="main-area">
@@ -52,6 +56,8 @@ function App() {
       </div>
     </div>
   )
+
+  return IS_ELECTRON ? shell : <AuthGate>{shell}</AuthGate>
 }
 
 export default App

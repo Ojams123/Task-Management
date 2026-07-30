@@ -1,14 +1,14 @@
 import Database from 'better-sqlite3'
-import { app } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
+import { getDataDir } from '../adapters'
 
 let db: Database.Database | null = null
 
 export function getDb(): Database.Database {
   if (db) return db
 
-  const userDataPath = app.getPath('userData')
+  const userDataPath = getDataDir()
   fs.mkdirSync(userDataPath, { recursive: true })
   const dbPath = path.join(userDataPath, 'devicehub.sqlite3')
 
@@ -87,6 +87,12 @@ function migrate(database: Database.Database) {
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      tokenHash TEXT PRIMARY KEY,
+      createdAt TEXT NOT NULL,
+      expiresAt TEXT NOT NULL
     );
 
     CREATE TABLE IF NOT EXISTS calendar_events (

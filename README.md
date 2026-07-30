@@ -1,14 +1,25 @@
 # DeviceHub
 
-A desktop app that pulls your day into one place: reminders, personal goals
+An app that pulls your day into one place: reminders, personal goals
 (including fitness and work progress), a monthly budget, calorie/exercise
 tracking, your Canvas assignments, your Google Calendar, a summary of what
 you missed in Gmail, a built-in Claude assistant, and voice commands to
 drive it all hands-free.
 
-All data lives locally in a SQLite database in your OS user-data folder —
-nothing is synced to a server except the direct API calls you configure
-(Canvas, Google, Anthropic).
+It runs two ways from the same codebase:
+
+- **Desktop app** (Electron) — macOS/Windows/Linux, data stored purely
+  locally in SQLite. See "Getting started" below.
+- **Web app / PWA** — a small Node server you host yourself (on a home
+  computer, LAN, or a small cloud box), reachable from any browser
+  including **iPad and iPhone Safari**, installable via "Add to Home
+  Screen". See "Running as a web app" below. This is what you want if you're
+  trying to get DeviceHub onto an iPad — Electron apps cannot run on
+  iPadOS at all.
+
+Either way, nothing is synced to a third party except the direct API calls
+you configure (Canvas, Google, Anthropic) — nothing here calls "our" servers
+because there aren't any; the web app is one you host yourself.
 
 ## Features
 
@@ -82,23 +93,34 @@ directly to your Canvas domain.
 Google requires you to register your own OAuth client — this app doesn't
 ship with one baked in, so your data is only ever accessed under
 credentials you control. One connection covers both Gmail (missed
-notifications) and Calendar.
+notifications) and Calendar. **The desktop app and the web app need
+different OAuth client types** — set up the one that matches how you're
+running DeviceHub (you can have both if you use both).
+
+**Desktop (Electron) app:**
 
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/),
    create (or pick) a project.
-2. Enable both the **Gmail API** and the **Google Calendar API** under
-   "APIs & Services".
-3. Under "OAuth consent screen", set it up (External is fine; add yourself
-   as a test user if it stays in Testing mode).
-4. Under "Credentials", create an **OAuth client ID** of type **Desktop
-   app**.
-5. Copy the client ID and client secret into DeviceHub's Settings page and
-   click **Connect Google account** — this opens the consent screen in your
-   system browser and completes the flow automatically.
-6. Go to **Calendar** and click **Sync calendar**, or **Notifications** and
-   click **Refresh**.
+2. Enable both the **Gmail API** and the **Google Calendar API**.
+3. Set up the "OAuth consent screen" (External is fine; add yourself as a
+   test user if it stays in Testing mode).
+4. Create an **OAuth client ID** of type **Desktop app**.
+5. Paste the client ID/secret into Settings and click **Connect Google
+   account** — this opens your system browser and completes the flow
+   automatically.
 
-Only unread-message metadata (sender, subject, snippet, date) is read from
+**Web app / PWA:** same steps 1–3, but:
+
+4. Create an **OAuth client ID** of type **Web application** (not Desktop
+   app), and add an Authorized redirect URI of exactly
+   `<your PUBLIC_URL>/api/google/callback` (Settings shows you the exact
+   value once the server is running).
+5. Paste the client ID/secret into Settings and click **Connect Google
+   account** — this redirects your browser tab to Google and back.
+
+Either way: go to **Calendar** and click **Sync calendar**, or
+**Notifications** and click **Refresh**, once connected. Only
+unread-message metadata (sender, subject, snippet, date) is read from
 Gmail — full message bodies are never fetched.
 
 ## Connecting the assistant
@@ -109,6 +131,79 @@ Gmail — full message bodies are never fetched.
    reminders/goals/budget/assignments/calendar before answering, and can
    take action (e.g. "log a workout: running, 30 minutes, 300 calories")
    using the same underlying functions as the rest of the app.
+
+## Running as a web app (for iPad, iPhone, or any browser)
+
+This serves the same React app plus a small Express API + SQLite database
+from one Node process, gated by a passcode since it's now reachable over a
+network instead of being a local-only desktop app.
+
+### 1. Pick where it runs
+
+The server needs to run somewhere that stays on — a spare computer, a
+home server, a small VPS, or even the same machine you use daily. Your
+iPad just needs network access to it. Three practical options:
+
+- **Same Wi-Fi network**: use the host computer's LAN IP (e.g.
+  `192.168.1.50`). Simplest, but only works while both devices are on that
+  network, and Safari will complain about the lack of HTTPS for some
+  features (notifications, "Add to Home Screen" still works over plain
+  HTTP on a local network).
+- **Cloudflare Tunnel or ngrok (recommended)**: free, gives you a real
+  HTTPS URL reachable from anywhere (not just home Wi-Fi), and takes about
+  five minutes: install `cloudflared`, run
+  `cloudflared tunnel --url http://localhost:4000`, and it prints a
+  `https://something.trycloudflare.com` URL. Use that as `PUBLIC_URL`.
+- **A small cloud VPS**: full control, costs a few dollars a month, works
+  from anywhere, needs the most setup (a domain + TLS cert, e.g. via
+  Caddy or nginx + Let's Encrypt).
+
+### 2. Run the server
+
+```bash
+npm install
+export PUBLIC_URL=https://your-chosen-url   # from step 1; defaults to http://localhost:4000
+export PORT=4000                             # optional, defaults to 4000
+npm run start:web
+```
+
+This builds the frontend, compiles the server, and starts it. Data is
+stored in `~/.devicehub` by default (override with `DATA_DIR`). A random
+encryption key for secrets (API tokens) is generated on first run and saved
+to `~/.devicehub/secret.key` — back that up if you care about not having to
+reconnect Canvas/Google/Anthropic later, or set your own via
+`DEVICEHUB_SECRET=$(openssl rand -hex 32)`.
+
+To keep it running in the background, use `pm2`, a `systemd` service, or
+just `nohup npm run server & disown` after the first build.
+
+### 3. First visit: set a passcode
+
+Open `PUBLIC_URL` in a browser. The first visit asks you to create a
+passcode — this is the only thing standing between anyone who can reach
+that URL and your data, so don't skip it and don't reuse a throwaway one.
+Each browser/device that logs in stays signed in for 30 days.
+
+### 4. Install it on your iPad
+
+1. Open `PUBLIC_URL` in **Safari** on the iPad (must be Safari, not
+   Chrome, for "Add to Home Screen" to create a standalone app).
+2. Tap the Share icon → **Add to Home Screen**.
+3. Launch DeviceHub from the home screen icon it creates — it opens
+   full-screen, no browser chrome, like any other app.
+
+### What's different from the desktop app
+
+- **Notifications**: no background process can fire native notifications
+  when the app isn't open (that's true of any web app, not a DeviceHub
+  limitation). While the tab/PWA is open, it polls for due reminders every
+  30 seconds and shows a Web Notification (you'll be asked to allow
+  notifications on first load).
+- **Auth**: gated by the passcode from step 3, since this is now reachable
+  over a network.
+- **Google OAuth**: uses a "Web application" client type with a fixed
+  redirect URI instead of the desktop loopback flow — see the Google
+  section above.
 
 ## Voice commands
 
@@ -143,8 +238,23 @@ why those are the integrations it offers.
 
 ## Tech stack
 
-Electron + React + TypeScript, bundled with Vite (`vite-plugin-electron`).
-Local storage is SQLite via `better-sqlite3`. Canvas is called directly via
-its REST API; Gmail and Calendar via `googleapis` with a desktop OAuth
-loopback flow; the assistant via `@anthropic-ai/sdk` with tool use wired to
-the app's own reminder/goal/budget/fitness functions.
+React + TypeScript frontend (bundled with Vite), shared unchanged between
+two hosts:
+
+- `electron/` — the desktop app (`vite-plugin-electron`), talking to
+  `core/` directly via IPC. Secrets encrypted via Electron's `safeStorage`.
+- `server/` — an Express server exposing the same functionality as a REST
+  API over HTTP, for the web/PWA build. Secrets encrypted with a
+  server-side AES-256-GCM key; a passcode + session-cookie gate replaces
+  "physical access to the device" as the access control.
+- `core/` — framework-agnostic: SQLite (`better-sqlite3`) schema and
+  repositories, Canvas REST calls, Google OAuth + Gmail/Calendar via
+  `googleapis`, and the assistant (`@anthropic-ai/sdk` with tool use wired
+  to the app's own reminder/goal/budget/fitness functions). Neither
+  Electron nor Express-specific code lives here — both hosts inject a
+  small adapter (encryption, data directory) at startup.
+- `src/` — the React UI. `src/bootstrap.ts` detects whether `window.api`
+  was already injected by the Electron preload script; if not, it installs
+  a fetch-based implementation of the same interface (`src/api/httpClient.ts`)
+  talking to the Express API. Every page component is unaware of which one
+  it's talking to.

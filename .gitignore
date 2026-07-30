@@ -11,12 +11,14 @@ node_modules
 dist
 dist-ssr
 dist-electron
+dist-server
 release
 *.local
 *.sqlite3
 *.sqlite3-journal
 *.sqlite3-wal
 *.sqlite3-shm
+secret.key
 
 # Editor directories and files
 .vscode/*

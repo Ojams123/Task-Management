@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'node:path'
+import { configureElectronAdapters } from './adapters'
 import { registerIpcHandlers } from './ipc'
 import { startReminderScheduler, stopReminderScheduler } from './scheduler'
 
@@ -50,6 +51,7 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(() => {
+  configureElectronAdapters()
   registerIpcHandlers()
   startReminderScheduler()
   createWindow()

@@ -8,7 +8,10 @@
     "build": "tsc -b && vite build",
     "package": "npm run build && electron-builder",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:server": "tsc -p tsconfig.server.json",
+    "server": "node dist-server/server/index.js",
+    "start:web": "npm run build && npm run build:server && npm run server"
   },
   "build": {
     "appId": "com.devicehub.app",
@@ -41,6 +44,8 @@
     "@anthropic-ai/sdk": "^0.115.0",
     "better-sqlite3": "^13.0.2",
     "chrono-node": "^2.10.1",
+    "cookie-parser": "^1.4.7",
+    "express": "^5.2.1",
     "googleapis": "^173.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
@@ -48,6 +53,8 @@
   "devDependencies": {
     "@electron/rebuild": "^4.2.0",
     "@types/better-sqlite3": "^7.6.13",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { IS_ELECTRON } from '../bootstrap'
 import type { GoogleAuthStatus } from '../shared/types'
 
 export function Settings() {
@@ -25,6 +26,19 @@ export function Settings() {
     })
     window.api.notifications.getGoogleAuthStatus().then(setGoogleStatus)
     window.api.assistant.getStatus().then((s) => setAssistantConfigured(s.configured))
+
+    // Browser mode: Google redirects back here after the consent screen
+    // (?google=connected or ?google=error) rather than resolving a promise.
+    const params = new URLSearchParams(window.location.search)
+    const googleResult = params.get('google')
+    if (googleResult) {
+      window.history.replaceState({}, '', window.location.pathname)
+      if (googleResult === 'error') {
+        setGoogleError('Google connection failed — check your client ID/secret and redirect URI, then try again.')
+      } else {
+        window.api.notifications.getGoogleAuthStatus().then(setGoogleStatus)
+      }
+    }
   }, [])
 
   async function saveAssistantKey() {
@@ -97,12 +111,22 @@ export function Settings() {
 
       <div className="card settings-section">
         <h3>Google (Gmail + Calendar)</h3>
-        <p className="muted" style={{ marginBottom: 12 }}>
-          Create an OAuth client (type "Desktop app") in Google Cloud Console with the Gmail API and Calendar
-          API both enabled, then paste the client ID and secret below. This one connection powers both the
-          missed-notifications summary (unread-message metadata only, never full email bodies) and the Calendar
-          page (upcoming events).
-        </p>
+        {IS_ELECTRON ? (
+          <p className="muted" style={{ marginBottom: 12 }}>
+            Create an OAuth client (type "Desktop app") in Google Cloud Console with the Gmail API and Calendar
+            API both enabled, then paste the client ID and secret below. This one connection powers both the
+            missed-notifications summary (unread-message metadata only, never full email bodies) and the
+            Calendar page (upcoming events).
+          </p>
+        ) : (
+          <p className="muted" style={{ marginBottom: 12 }}>
+            Create an OAuth client (type <strong>"Web application"</strong>, not "Desktop app") in Google Cloud
+            Console with the Gmail API and Calendar API both enabled. Add this exact Authorized redirect URI:{' '}
+            <code>{window.location.origin}/api/google/callback</code>. Then paste the client ID and secret
+            below. This one connection powers both the missed-notifications summary (unread-message metadata
+            only, never full email bodies) and the Calendar page (upcoming events).
+          </p>
+        )}
         {googleStatus?.connected ? (
           <div>
             <p>
