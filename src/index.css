@@ -1,27 +1,56 @@
 :root {
   color-scheme: light dark;
-  --bg: #0f1216;
-  --bg-elevated: #171b21;
-  --bg-card: #1c2129;
-  --border: #2a3038;
-  --text: #e8eaed;
-  --text-muted: #9aa4b2;
-  --accent: #6ea8fe;
-  --accent-strong: #4f8cf0;
-  --danger: #f2555a;
-  --success: #4dd08a;
-  --warning: #f2b84b;
-  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+
+  --bg: #0a0c11;
+  --bg-elevated: #12151c;
+  --bg-card: #171b24;
+  --bg-card-hover: #1c212c;
+  --border: #242a36;
+  --border-strong: #333c4d;
+  --text: #edf0f6;
+  --text-muted: #8991a3;
+
+  --accent: #7c6fff;
+  --accent-strong: #6355e8;
+  --accent-soft: rgba(124, 111, 255, 0.16);
+  --on-accent: #0b0d14;
+
+  --danger: #ff5c72;
+  --success: #2fd9a8;
+  --warning: #ffb648;
+  --info: #3fc6ff;
+
+  /* module accent hues, cycled across bento tiles */
+  --hue-1: #7c6fff;
+  --hue-2: #3fc6ff;
+  --hue-3: #2fd9a8;
+  --hue-4: #ff9d4d;
+  --hue-5: #ff5c9d;
+  --hue-6: #ffd166;
+
+  --radius-lg: 20px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+
+  --font-display: -apple-system, 'SF Pro Display', 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans-serif;
+  --font-body: -apple-system, 'SF Pro Text', 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans-serif;
+
+  font-family: var(--font-body);
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f4f6f9;
+    --bg: #f4f2fb;
     --bg-elevated: #ffffff;
     --bg-card: #ffffff;
-    --border: #dde2e8;
-    --text: #1a1f27;
-    --text-muted: #5b6472;
+    --bg-card-hover: #faf9ff;
+    --border: #e5e1f2;
+    --border-strong: #d3cced;
+    --text: #191b23;
+    --text-muted: #656f82;
+    --accent: #6a5bf5;
+    --accent-strong: #5646e0;
+    --accent-soft: rgba(106, 91, 245, 0.1);
   }
 }
 
@@ -33,11 +62,18 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
   height: 100vh;
   overflow: hidden;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  text-wrap: balance;
 }
 
 button {
@@ -56,6 +92,13 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--border-strong);
   border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }

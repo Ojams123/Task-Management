@@ -10,17 +10,17 @@ export type Page =
   | 'assistant'
   | 'settings'
 
-const NAV_ITEMS: { id: Page; label: string }[] = [
-  { id: 'dashboard', label: 'Dashboard' },
-  { id: 'reminders', label: 'Reminders' },
-  { id: 'goals', label: 'Goals & Progress' },
-  { id: 'budget', label: 'Budget' },
-  { id: 'fitness', label: 'Fitness' },
-  { id: 'assignments', label: 'Assignments' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'assistant', label: 'Assistant' },
-  { id: 'settings', label: 'Settings' },
+const NAV_ITEMS: { id: Page; label: string; dot: string }[] = [
+  { id: 'dashboard', label: 'Dashboard', dot: 'var(--hue-1)' },
+  { id: 'reminders', label: 'Reminders', dot: 'var(--hue-2)' },
+  { id: 'goals', label: 'Goals & Progress', dot: 'var(--hue-3)' },
+  { id: 'budget', label: 'Budget', dot: 'var(--hue-4)' },
+  { id: 'fitness', label: 'Fitness', dot: 'var(--hue-5)' },
+  { id: 'assignments', label: 'Assignments', dot: 'var(--hue-6)' },
+  { id: 'calendar', label: 'Calendar', dot: 'var(--hue-2)' },
+  { id: 'notifications', label: 'Notifications', dot: 'var(--hue-6)' },
+  { id: 'assistant', label: 'Assistant', dot: 'var(--hue-1)' },
+  { id: 'settings', label: 'Settings', dot: 'var(--text-muted)' },
 ]
 
 export function Sidebar({ page, onNavigate }: { page: Page; onNavigate: (p: Page) => void }) {
@@ -35,6 +35,7 @@ export function Sidebar({ page, onNavigate }: { page: Page; onNavigate: (p: Page
           className={`nav-item${page === item.id ? ' active' : ''}`}
           onClick={() => onNavigate(item.id)}
         >
+          <span className="nav-dot" style={{ background: item.dot }} />
           {item.label}
         </button>
       ))}
