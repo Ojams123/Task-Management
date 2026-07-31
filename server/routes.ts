@@ -7,11 +7,13 @@ import * as canvasRepo from '../core/db/repos/canvas'
 import * as calendarRepo from '../core/db/repos/calendar'
 import * as fitness from '../core/db/repos/fitness'
 import * as chat from '../core/db/repos/chat'
+import * as ouraRepo from '../core/db/repos/oura'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
 import { fetchUnreadDigest } from '../core/integrations/gmail'
 import { fetchUpcomingEvents } from '../core/integrations/calendar'
 import { runAssistantTurn } from '../core/integrations/assistant'
+import { fetchOuraSummary } from '../core/integrations/oura'
 import { buildAuthUrl, exchangeCode } from './googleOAuth'
 import { requireAuth } from './auth'
 import type { CanvasSettings, NotificationDigest } from '../src/shared/types'
@@ -25,6 +27,7 @@ const GOOGLE_EMAIL_KEY = 'google.email'
 const LAST_NOTIFICATION_CHECK_KEY = 'notifications.lastCheck'
 const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
+const OURA_TOKEN_KEY = 'oura.token'
 const DEFAULT_CALORIE_TARGET = 2000
 
 function getCanvasSettings(): CanvasSettings | null {
@@ -230,6 +233,27 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     chat.clearMessages()
     res.json({ ok: true })
   })
+
+  // Oura
+  api.get('/oura/status', (_req, res) => res.json({ configured: !!getSecret(OURA_TOKEN_KEY) }))
+  api.post('/oura/token', (req, res) => {
+    setSecret(OURA_TOKEN_KEY, req.body.token)
+    res.json({ ok: true })
+  })
+  api.post(
+    '/oura/sync',
+    asyncHandler(async (_req, res) => {
+      const token = getSecret(OURA_TOKEN_KEY)
+      if (!token) {
+        res.status(400).json({ error: 'Add your Oura personal access token in Settings first.' })
+        return
+      }
+      const days = await fetchOuraSummary(token)
+      ouraRepo.replaceCachedOuraDays(days)
+      res.json(ouraRepo.listCachedOuraDays())
+    })
+  )
+  api.get('/oura/cached', (_req, res) => res.json(ouraRepo.listCachedOuraDays()))
 
   // Google's redirect lands here after consent — registered before the
   // requireAuth-gated router below so it's never blocked by that middleware;

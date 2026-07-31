@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react'
-import type { DailyFitnessSummary, ExerciseEntry, FoodEntry, Goal } from '../shared/types'
+import type { DailyFitnessSummary, ExerciseEntry, FoodEntry, Goal, OuraDailySummary } from '../shared/types'
+import type { Page } from '../components/Sidebar'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-export function Fitness() {
+export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const [summary, setSummary] = useState<DailyFitnessSummary | null>(null)
   const [food, setFood] = useState<FoodEntry[]>([])
   const [exercise, setExercise] = useState<ExerciseEntry[]>([])
   const [fitnessGoals, setFitnessGoals] = useState<Goal[]>([])
   const [targetInput, setTargetInput] = useState('2000')
+
+  const [ouraConfigured, setOuraConfigured] = useState<boolean | null>(null)
+  const [ouraDays, setOuraDays] = useState<OuraDailySummary[]>([])
+  const [ouraSyncing, setOuraSyncing] = useState(false)
+  const [ouraError, setOuraError] = useState<string | null>(null)
 
   const [foodName, setFoodName] = useState('')
   const [foodCalories, setFoodCalories] = useState('')
@@ -21,18 +27,33 @@ export function Fitness() {
 
   async function refresh() {
     const date = today()
-    const [sum, foodList, exerciseList, goals, target] = await Promise.all([
+    const [sum, foodList, exerciseList, goals, target, ouraStatus] = await Promise.all([
       window.api.fitness.dailySummary(date),
       window.api.fitness.listFood(date),
       window.api.fitness.listExercise(date),
       window.api.goals.list(),
       window.api.fitness.getCalorieTarget(),
+      window.api.oura.getStatus(),
     ])
     setSummary(sum)
     setFood(foodList)
     setExercise(exerciseList)
     setFitnessGoals(goals.filter((g) => !g.archived && g.category.toLowerCase() === 'fitness'))
     setTargetInput(String(target))
+    setOuraConfigured(ouraStatus.configured)
+    if (ouraStatus.configured) setOuraDays(await window.api.oura.listCached())
+  }
+
+  async function syncOura() {
+    setOuraSyncing(true)
+    setOuraError(null)
+    try {
+      setOuraDays(await window.api.oura.sync())
+    } catch (e) {
+      setOuraError(e instanceof Error ? e.message : 'Sync failed')
+    } finally {
+      setOuraSyncing(false)
+    }
   }
 
   useEffect(() => {
@@ -221,6 +242,52 @@ export function Fitness() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h3>
+          Oura Ring
+          {ouraConfigured && (
+            <button className="btn btn-sm" onClick={syncOura} disabled={ouraSyncing}>
+              {ouraSyncing ? 'Syncing…' : 'Sync'}
+            </button>
+          )}
+        </h3>
+        {ouraConfigured === false ? (
+          <div className="empty-state">
+            Add your Oura personal access token in Settings to see sleep, readiness, and activity scores here.{' '}
+            <button className="link" onClick={() => onNavigate?.('settings')}>
+              Go to Settings
+            </button>
+          </div>
+        ) : ouraError ? (
+          <p className="muted" style={{ color: 'var(--danger)' }}>
+            {ouraError}
+          </p>
+        ) : ouraDays.length === 0 ? (
+          <div className="empty-state">No data synced yet — click "Sync".</div>
+        ) : (
+          <div className="list">
+            {ouraDays.slice(0, 7).map((d) => (
+              <div className="list-row" key={d.date}>
+                <div className="list-row-main">
+                  <div className="list-row-title">
+                    {new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                  </div>
+                  <div className="list-row-sub">
+                    {d.totalSleepMinutes != null && `${Math.floor(d.totalSleepMinutes / 60)}h ${d.totalSleepMinutes % 60}m sleep`}
+                    {d.steps != null && ` · ${d.steps.toLocaleString()} steps`}
+                  </div>
+                </div>
+                <div className="list-row-actions">
+                  {d.sleepScore != null && <span className="badge">Sleep {d.sleepScore}</span>}
+                  {d.readinessScore != null && <span className="badge">Readiness {d.readinessScore}</span>}
+                  {d.activityScore != null && <span className="badge">Activity {d.activityScore}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card">

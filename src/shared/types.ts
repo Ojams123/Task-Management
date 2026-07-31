@@ -156,6 +156,16 @@ export interface ChatMessage {
   createdAt: string
 }
 
+export interface OuraDailySummary {
+  date: string // YYYY-MM-DD
+  sleepScore: number | null
+  readinessScore: number | null
+  activityScore: number | null
+  totalSleepMinutes: number | null
+  steps: number | null
+  activeCalories: number | null
+}
+
 export interface VoiceCommandResult {
   transcript: string
   action: string
@@ -228,6 +238,12 @@ export interface DeviceHubApi {
     getHistory(): Promise<ChatMessage[]>
     sendMessage(content: string): Promise<ChatMessage[]>
     clearHistory(): Promise<void>
+  }
+  oura: {
+    getStatus(): Promise<{ configured: boolean }>
+    saveToken(token: string): Promise<void>
+    sync(): Promise<OuraDailySummary[]>
+    listCached(): Promise<OuraDailySummary[]>
   }
   system: {
     notify(title: string, body: string): Promise<void>

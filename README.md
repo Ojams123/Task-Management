@@ -32,7 +32,8 @@ because there aren't any; the web app is one you host yourself.
   "ship Q3 report") both use this same model instead of separate features.
 - **Fitness** — daily calorie tracking (food log + calorie target) and an
   exercise log (activity, duration, calories burned), plus a view of your
-  fitness-tagged goals for longer-term athletic targets.
+  fitness-tagged goals for longer-term athletic targets. Optionally syncs
+  Oura Ring sleep, readiness, and activity scores alongside it.
 - **Budget** — expense/income categories with monthly limits, transactions,
   a running monthly income/expense/balance snapshot.
 - **Canvas assignments** — syncs assignments across your active courses so
@@ -131,6 +132,15 @@ Gmail — full message bodies are never fetched.
    reminders/goals/budget/assignments/calendar before answering, and can
    take action (e.g. "log a workout: running, 30 minutes, 300 calories")
    using the same underlying functions as the rest of the app.
+
+## Connecting Oura Ring
+
+1. Go to [cloud.ouraring.com/personal-access-tokens](https://cloud.ouraring.com/personal-access-tokens)
+   and sign in with your Oura account.
+2. Click **Create New Personal Access Token**, give it a name, and copy it.
+3. Paste it into Settings under "Oura Ring".
+4. Go to **Fitness** and click **Sync** to pull in the last two weeks of
+   sleep, readiness, and activity scores.
 
 ## Running as a web app (for iPad, iPhone, or any browser)
 

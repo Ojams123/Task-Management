@@ -17,6 +17,10 @@ export function Settings() {
   const [assistantConfigured, setAssistantConfigured] = useState(false)
   const [assistantSaved, setAssistantSaved] = useState(false)
 
+  const [ouraToken, setOuraToken] = useState('')
+  const [ouraConfigured, setOuraConfigured] = useState(false)
+  const [ouraSaved, setOuraSaved] = useState(false)
+
   useEffect(() => {
     window.api.canvas.getSettings().then((s) => {
       if (s) {
@@ -26,6 +30,7 @@ export function Settings() {
     })
     window.api.notifications.getGoogleAuthStatus().then(setGoogleStatus)
     window.api.assistant.getStatus().then((s) => setAssistantConfigured(s.configured))
+    window.api.oura.getStatus().then((s) => setOuraConfigured(s.configured))
 
     // Browser mode: Google redirects back here after the consent screen
     // (?google=connected or ?google=error) rather than resolving a promise.
@@ -46,6 +51,13 @@ export function Settings() {
     setAssistantConfigured(true)
     setAssistantSaved(true)
     setTimeout(() => setAssistantSaved(false), 2000)
+  }
+
+  async function saveOuraToken() {
+    await window.api.oura.saveToken(ouraToken.trim())
+    setOuraConfigured(true)
+    setOuraSaved(true)
+    setTimeout(() => setOuraSaved(false), 2000)
   }
 
   async function saveCanvas() {
@@ -191,6 +203,36 @@ export function Settings() {
           Save API key
         </button>
         {assistantSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
+      </div>
+
+      <div className="card settings-section">
+        <h3>Oura Ring</h3>
+        <p className="muted" style={{ marginBottom: 12 }}>
+          Get a personal access token at{' '}
+          <a href="https://cloud.ouraring.com/personal-access-tokens" target="_blank" rel="noreferrer">
+            cloud.ouraring.com/personal-access-tokens
+          </a>{' '}
+          (sign in with your Oura account, click "Create New Personal Access Token"). Paste it below to pull in
+          your sleep, readiness, and activity scores on the Fitness page.
+        </p>
+        {ouraConfigured && (
+          <p className="muted" style={{ marginBottom: 10 }}>
+            A token is currently saved.
+          </p>
+        )}
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>Personal access token</label>
+          <input
+            type="password"
+            value={ouraToken}
+            onChange={(e) => setOuraToken(e.target.value)}
+            placeholder="Paste your Oura personal access token"
+          />
+        </div>
+        <button className="btn btn-primary" onClick={saveOuraToken}>
+          Save Oura token
+        </button>
+        {ouraSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
       </div>
     </div>
   )

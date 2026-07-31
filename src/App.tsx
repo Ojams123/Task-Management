@@ -46,7 +46,7 @@ function App() {
           {page === 'reminders' && <Reminders />}
           {page === 'goals' && <Goals />}
           {page === 'budget' && <Budget />}
-          {page === 'fitness' && <Fitness />}
+          {page === 'fitness' && <Fitness onNavigate={setPage} />}
           {page === 'assignments' && <Assignments onNavigate={setPage} />}
           {page === 'calendar' && <Calendar onNavigate={setPage} />}
           {page === 'notifications' && <Notifications onNavigate={setPage} />}

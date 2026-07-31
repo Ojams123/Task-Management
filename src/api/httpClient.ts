@@ -111,6 +111,12 @@ export function createHttpClient(): DeviceHubApi {
       sendMessage: (content) => request('POST', '/assistant/message', { content }),
       clearHistory: () => request('DELETE', '/assistant/history'),
     },
+    oura: {
+      getStatus: () => request('GET', '/oura/status'),
+      saveToken: (token) => request('POST', '/oura/token', { token }),
+      sync: () => request('POST', '/oura/sync'),
+      listCached: () => request('GET', '/oura/cached'),
+    },
     system: {
       notify: async (title, body) => {
         if (await requestNotificationPermissionIfNeeded()) {

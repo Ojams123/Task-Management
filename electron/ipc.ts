@@ -6,12 +6,14 @@ import * as canvasRepo from '../core/db/repos/canvas'
 import * as calendarRepo from '../core/db/repos/calendar'
 import * as fitness from '../core/db/repos/fitness'
 import * as chat from '../core/db/repos/chat'
+import * as ouraRepo from '../core/db/repos/oura'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
 import { fetchUnreadDigest } from '../core/integrations/gmail'
 import { fetchUpcomingEvents } from '../core/integrations/calendar'
 import { runOAuthFlow } from './integrations/googleAuth'
 import { runAssistantTurn } from '../core/integrations/assistant'
+import { fetchOuraSummary } from '../core/integrations/oura'
 import type { CanvasSettings, NotificationDigest } from '../src/shared/types'
 
 const CANVAS_DOMAIN_KEY = 'canvas.domain'
@@ -23,6 +25,7 @@ const GOOGLE_EMAIL_KEY = 'google.email'
 const LAST_NOTIFICATION_CHECK_KEY = 'notifications.lastCheck'
 const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
+const OURA_TOKEN_KEY = 'oura.token'
 const DEFAULT_CALORIE_TARGET = 2000
 
 function getCanvasSettings(): CanvasSettings | null {
@@ -167,6 +170,20 @@ export function registerIpcHandlers() {
     return chat.listMessages()
   })
   ipcMain.handle('assistant:clearHistory', () => chat.clearMessages())
+
+  // Oura
+  ipcMain.handle('oura:getStatus', () => ({ configured: !!getSecret(OURA_TOKEN_KEY) }))
+  ipcMain.handle('oura:saveToken', (_e, token: string) => {
+    setSecret(OURA_TOKEN_KEY, token)
+  })
+  ipcMain.handle('oura:sync', async () => {
+    const token = getSecret(OURA_TOKEN_KEY)
+    if (!token) throw new Error('Add your Oura personal access token in Settings first.')
+    const days = await fetchOuraSummary(token)
+    ouraRepo.replaceCachedOuraDays(days)
+    return ouraRepo.listCachedOuraDays()
+  })
+  ipcMain.handle('oura:listCached', () => ouraRepo.listCachedOuraDays())
 
   // System
   ipcMain.handle('system:notify', (_e, title: string, body: string) => {

@@ -133,6 +133,17 @@ function migrate(database: Database.Database) {
       content TEXT NOT NULL,
       createdAt TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS oura_daily (
+      date TEXT PRIMARY KEY,
+      sleepScore REAL,
+      readinessScore REAL,
+      activityScore REAL,
+      totalSleepMinutes REAL,
+      steps REAL,
+      activeCalories REAL,
+      syncedAt TEXT NOT NULL
+    );
   `)
 }
 

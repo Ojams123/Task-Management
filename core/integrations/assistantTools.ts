@@ -5,6 +5,7 @@ import * as budget from '../db/repos/budget'
 import * as fitness from '../db/repos/fitness'
 import * as canvasRepo from '../db/repos/canvas'
 import * as calendarRepo from '../db/repos/calendar'
+import * as ouraRepo from '../db/repos/oura'
 import type { Reminder } from '../../src/shared/types'
 
 export const ASSISTANT_TOOLS: Anthropic.Tool[] = [
@@ -98,7 +99,7 @@ export const ASSISTANT_TOOLS: Anthropic.Tool[] = [
   {
     name: 'get_overview',
     description:
-      "Fetch the user's current reminders, active goals, this month's budget summary, upcoming Canvas assignments, and upcoming calendar events. Use this before answering questions about what's due, owed, or in progress.",
+      "Fetch the user's current reminders, active goals, this month's budget summary, upcoming Canvas assignments, upcoming calendar events, and recent Oura sleep/readiness/activity scores. Use this before answering questions about what's due, owed, in progress, or how they've been sleeping/recovering.",
     input_schema: { type: 'object', properties: {} },
   },
 ]
@@ -184,6 +185,7 @@ export function executeTool(name: string, input: Record<string, unknown>): unkno
         assignments: canvasRepo.listCachedAssignments().filter((a) => !a.submitted).slice(0, 15),
         calendarEvents: calendarRepo.listCachedEvents().slice(0, 15),
         fitnessToday: fitness.dailyTotals(today),
+        ouraRecent: ouraRepo.listCachedOuraDays().slice(0, 7),
       }
     }
     default:

@@ -62,6 +62,12 @@ const api: DeviceHubApi = {
     sendMessage: (content) => ipcRenderer.invoke('assistant:sendMessage', content),
     clearHistory: () => ipcRenderer.invoke('assistant:clearHistory'),
   },
+  oura: {
+    getStatus: () => ipcRenderer.invoke('oura:getStatus'),
+    saveToken: (token) => ipcRenderer.invoke('oura:saveToken', token),
+    sync: () => ipcRenderer.invoke('oura:sync'),
+    listCached: () => ipcRenderer.invoke('oura:listCached'),
+  },
   system: {
     notify: (title, body) => ipcRenderer.invoke('system:notify', title, body),
   },
