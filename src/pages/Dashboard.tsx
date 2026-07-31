@@ -13,7 +13,20 @@ function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 }
 
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+function greetingForHour(hour: number): string {
+  if (hour < 5) return 'Working late'
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  if (hour < 21) return 'Good evening'
+  return 'Good evening'
+}
+
 export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) {
+  const [name, setName] = useState('')
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
   const [budgetSummary, setBudgetSummary] = useState<{ income: number; expenses: number; balance: number } | null>(
@@ -28,7 +41,8 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
 
   useEffect(() => {
     async function load() {
-      const [r, g, b, canvasSettings, googleStatus, fitnessSummary] = await Promise.all([
+      const [profileName, r, g, b, canvasSettings, googleStatus, fitnessSummary] = await Promise.all([
+        window.api.profile.getName(),
         window.api.reminders.list(),
         window.api.goals.list(),
         window.api.budget.summary(),
@@ -36,6 +50,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         window.api.notifications.getGoogleAuthStatus(),
         window.api.fitness.dailySummary(),
       ])
+      setName(profileName ?? '')
       setReminders(r)
       setGoals(g)
       setBudgetSummary(b)
@@ -52,13 +67,62 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
     load()
   }, [])
 
+  const now = new Date()
   const upcomingReminders = reminders.filter((r) => !r.completed).slice(0, 5)
   const activeGoals = goals.filter((g) => !g.archived).slice(0, 4)
   const upcomingAssignments = assignments.filter((a) => !a.submitted).slice(0, 5)
   const upcomingEvents = events.slice(0, 4)
 
+  const dueTodayOrOverdue = reminders.filter((r) => !r.completed && new Date(r.dueAt) <= new Date(now.getTime() + 24 * 60 * 60 * 1000)).length
+  const assignmentsDueSoon = assignments.filter(
+    (a) => !a.submitted && a.dueAt && new Date(a.dueAt) <= new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
+  ).length
+  const eventsToday = events.filter((e) => isSameDay(new Date(e.start), now)).length
+
+  const priorityChips: { label: string; hue: string }[] = []
+  if (dueTodayOrOverdue > 0) {
+    priorityChips.push({ label: `${dueTodayOrOverdue} reminder${dueTodayOrOverdue === 1 ? '' : 's'} due`, hue: 'var(--hue-1)' })
+  }
+  if (canvasConfigured && assignmentsDueSoon > 0) {
+    priorityChips.push({ label: `${assignmentsDueSoon} assignment${assignmentsDueSoon === 1 ? '' : 's'} due soon`, hue: 'var(--hue-6)' })
+  }
+  if (googleConnected && eventsToday > 0) {
+    priorityChips.push({ label: `${eventsToday} event${eventsToday === 1 ? '' : 's'} today`, hue: 'var(--hue-2)' })
+  }
+  if (budgetSummary) {
+    priorityChips.push({ label: `${formatMoney(budgetSummary.balance)} left this month`, hue: 'var(--hue-3)' })
+  }
+
+  const initial = name.trim() ? name.trim()[0].toUpperCase() : 'D'
+  const dateLabel = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+
   return (
-    <div className="grid grid-2">
+    <>
+      <div className="greeting-hero">
+        <div className="greeting-hero-top">
+          <div className="avatar-circle">{initial}</div>
+          <div>
+            <h1 className="greeting-title">
+              {greetingForHour(now.getHours())}
+              {name.trim() ? `, ${name.trim()}` : ''}
+            </h1>
+            <p className="greeting-subtitle">{dateLabel}</p>
+          </div>
+        </div>
+        {priorityChips.length > 0 ? (
+          <div className="priority-chips">
+            {priorityChips.map((chip) => (
+              <span key={chip.label} className="priority-chip" style={{ ['--chip-hue' as string]: chip.hue }}>
+                {chip.label}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="greeting-subtitle">Nothing urgent — enjoy the calm.</p>
+        )}
+      </div>
+
+      <div className="grid grid-2">
       <div className="card">
         <h3>
           Today's reminders
@@ -266,6 +330,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
           <div className="empty-state">You're all caught up.</div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   )
 }

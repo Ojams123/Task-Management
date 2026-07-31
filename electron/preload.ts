@@ -68,6 +68,10 @@ const api: DeviceHubApi = {
     sync: () => ipcRenderer.invoke('oura:sync'),
     listCached: () => ipcRenderer.invoke('oura:listCached'),
   },
+  profile: {
+    getName: () => ipcRenderer.invoke('profile:getName'),
+    setName: (name) => ipcRenderer.invoke('profile:setName', name),
+  },
   system: {
     notify: (title, body) => ipcRenderer.invoke('system:notify', title, body),
   },

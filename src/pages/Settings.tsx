@@ -4,6 +4,9 @@ import type { GoogleAuthStatus } from '../shared/types'
 import { CanvasIcon, ClaudeIcon, GmailIcon, GoogleCalendarIcon, OuraIcon } from '../components/icons'
 
 export function Settings() {
+  const [name, setName] = useState('')
+  const [nameSaved, setNameSaved] = useState(false)
+
   const [canvasDomain, setCanvasDomain] = useState('')
   const [canvasToken, setCanvasToken] = useState('')
   const [canvasSaved, setCanvasSaved] = useState(false)
@@ -23,6 +26,7 @@ export function Settings() {
   const [ouraSaved, setOuraSaved] = useState(false)
 
   useEffect(() => {
+    window.api.profile.getName().then((n) => setName(n ?? ''))
     window.api.canvas.getSettings().then((s) => {
       if (s) {
         setCanvasDomain(s.domain)
@@ -46,6 +50,12 @@ export function Settings() {
       }
     }
   }, [])
+
+  async function saveName() {
+    await window.api.profile.setName(name.trim())
+    setNameSaved(true)
+    setTimeout(() => setNameSaved(false), 2000)
+  }
 
   async function saveAssistantKey() {
     await window.api.assistant.saveApiKey(anthropicKey.trim())
@@ -92,6 +102,21 @@ export function Settings() {
 
   return (
     <div>
+      <div className="card settings-section">
+        <h3>Profile</h3>
+        <p className="muted" style={{ marginBottom: 12 }}>
+          Used for the greeting on your Dashboard (e.g. "Good morning, {name || 'Name'}").
+        </p>
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>Your name</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Oscar" />
+        </div>
+        <button className="btn btn-primary" onClick={saveName}>
+          Save name
+        </button>
+        {nameSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
+      </div>
+
       <div className="card settings-section">
         <h3>
           <span className="heading-with-icon">

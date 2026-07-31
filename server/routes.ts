@@ -28,6 +28,7 @@ const LAST_NOTIFICATION_CHECK_KEY = 'notifications.lastCheck'
 const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
 const OURA_TOKEN_KEY = 'oura.token'
+const PROFILE_NAME_KEY = 'profile.name'
 const DEFAULT_CALORIE_TARGET = 2000
 
 function getCanvasSettings(): CanvasSettings | null {
@@ -254,6 +255,13 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     })
   )
   api.get('/oura/cached', (_req, res) => res.json(ouraRepo.listCachedOuraDays()))
+
+  // Profile
+  api.get('/profile/name', (_req, res) => res.json(getSecret(PROFILE_NAME_KEY)))
+  api.post('/profile/name', (req, res) => {
+    setSecret(PROFILE_NAME_KEY, req.body.name)
+    res.json({ ok: true })
+  })
 
   // Google's redirect lands here after consent — registered before the
   // requireAuth-gated router below so it's never blocked by that middleware;

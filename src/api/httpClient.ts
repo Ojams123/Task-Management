@@ -117,6 +117,10 @@ export function createHttpClient(): DeviceHubApi {
       sync: () => request('POST', '/oura/sync'),
       listCached: () => request('GET', '/oura/cached'),
     },
+    profile: {
+      getName: () => request('GET', '/profile/name'),
+      setName: (name) => request('POST', '/profile/name', { name }),
+    },
     system: {
       notify: async (title, body) => {
         if (await requestNotificationPermissionIfNeeded()) {

@@ -26,6 +26,7 @@ const LAST_NOTIFICATION_CHECK_KEY = 'notifications.lastCheck'
 const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
 const OURA_TOKEN_KEY = 'oura.token'
+const PROFILE_NAME_KEY = 'profile.name'
 const DEFAULT_CALORIE_TARGET = 2000
 
 function getCanvasSettings(): CanvasSettings | null {
@@ -184,6 +185,12 @@ export function registerIpcHandlers() {
     return ouraRepo.listCachedOuraDays()
   })
   ipcMain.handle('oura:listCached', () => ouraRepo.listCachedOuraDays())
+
+  // Profile
+  ipcMain.handle('profile:getName', () => getSecret(PROFILE_NAME_KEY))
+  ipcMain.handle('profile:setName', (_e, name: string) => {
+    setSecret(PROFILE_NAME_KEY, name)
+  })
 
   // System
   ipcMain.handle('system:notify', (_e, title: string, body: string) => {

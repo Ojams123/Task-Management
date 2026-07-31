@@ -245,6 +245,10 @@ export interface DeviceHubApi {
     sync(): Promise<OuraDailySummary[]>
     listCached(): Promise<OuraDailySummary[]>
   }
+  profile: {
+    getName(): Promise<string | null>
+    setName(name: string): Promise<void>
+  }
   system: {
     notify(title: string, body: string): Promise<void>
   }
