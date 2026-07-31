@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { BudgetCategory, Transaction } from '../shared/types'
+import { usePlaidLink } from 'react-plaid-link'
+import type { BudgetCategory, PlaidAccount, PlaidItem, PlaidTransaction, Transaction } from '../shared/types'
+import { PlaidIcon } from '../components/icons'
 
 function currentMonth(): string {
   return new Date().toISOString().slice(0, 7)
@@ -9,7 +11,61 @@ function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 }
 
+function ConnectBankButton({ onConnected }: { onConnected: () => void }) {
+  const [linkToken, setLinkToken] = useState<string | null>(null)
+  const [fetching, setFetching] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess: async (publicToken, metadata) => {
+      if (!publicToken) return
+      await window.api.plaid.exchangePublicToken(publicToken, metadata.institution?.name ?? null)
+      setLinkToken(null)
+      onConnected()
+    },
+    onExit: () => setLinkToken(null),
+  })
+
+  useEffect(() => {
+    if (linkToken && ready) open()
+  }, [linkToken, ready, open])
+
+  async function startConnect() {
+    setFetching(true)
+    setError(null)
+    try {
+      const { linkToken: token } = await window.api.plaid.createLinkToken()
+      setLinkToken(token)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not start Plaid Link')
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  return (
+    <div>
+      <button className="btn btn-primary" onClick={startConnect} disabled={fetching}>
+        {fetching ? 'Connecting…' : '+ Connect a bank account'}
+      </button>
+      {error && (
+        <p className="muted" style={{ color: 'var(--danger)', marginTop: 8 }}>
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
 export function Budget() {
+  const [plaidConfigured, setPlaidConfigured] = useState<boolean | null>(null)
+  const [plaidItems, setPlaidItems] = useState<PlaidItem[]>([])
+  const [plaidAccounts, setPlaidAccounts] = useState<PlaidAccount[]>([])
+  const [plaidTransactions, setPlaidTransactions] = useState<PlaidTransaction[]>([])
+  const [plaidSyncing, setPlaidSyncing] = useState(false)
+  const [plaidError, setPlaidError] = useState<string | null>(null)
+
   const [categories, setCategories] = useState<BudgetCategory[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [summary, setSummary] = useState<{
@@ -29,21 +85,56 @@ export function Budget() {
   const [txDesc, setTxDesc] = useState('')
 
   async function refresh() {
-    const [cats, txs, sum] = await Promise.all([
+    const [cats, txs, sum, plaidStatus] = await Promise.all([
       window.api.budget.listCategories(),
       window.api.budget.listTransactions(month),
       window.api.budget.summary(month),
+      window.api.plaid.getSettings(),
     ])
     setCategories(cats)
     setTransactions(txs)
     setSummary(sum)
     if (!txCategoryId && cats.length > 0) setTxCategoryId(cats[0].id)
+    setPlaidConfigured(plaidStatus.configured)
+    if (plaidStatus.configured) {
+      const [items, accounts, bankTxs] = await Promise.all([
+        window.api.plaid.listItems(),
+        window.api.plaid.listAccounts(),
+        window.api.plaid.listTransactions(),
+      ])
+      setPlaidItems(items)
+      setPlaidAccounts(accounts)
+      setPlaidTransactions(bankTxs)
+    }
   }
 
   useEffect(() => {
     refresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  async function syncPlaid() {
+    setPlaidSyncing(true)
+    setPlaidError(null)
+    try {
+      const { accounts, transactions: bankTxs } = await window.api.plaid.sync()
+      setPlaidAccounts(accounts)
+      setPlaidTransactions(bankTxs)
+    } catch (e) {
+      setPlaidError(e instanceof Error ? e.message : 'Sync failed')
+    } finally {
+      setPlaidSyncing(false)
+    }
+  }
+
+  async function disconnectItem(itemId: string) {
+    await window.api.plaid.removeItem(itemId)
+    await refresh()
+  }
+
+  function institutionName(itemId: string): string {
+    return plaidItems.find((i) => i.id === itemId)?.institutionName ?? 'Bank'
+  }
 
   async function addCategory() {
     if (!catName.trim()) return
@@ -105,6 +196,101 @@ export function Budget() {
           </div>
         </div>
       </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h3>
+          <span className="heading-with-icon">
+            <PlaidIcon size={20} />
+            Bank accounts
+          </span>
+          {plaidConfigured && plaidItems.length > 0 && (
+            <button className="btn btn-sm" onClick={syncPlaid} disabled={plaidSyncing}>
+              {plaidSyncing ? 'Syncing…' : 'Sync'}
+            </button>
+          )}
+        </h3>
+        {plaidConfigured === false ? (
+          <div className="empty-state">
+            Add your Plaid client ID and secret in Settings to link a bank account (Rocket Money itself has no
+            public API, but Plaid — the same aggregator it uses under the hood — does).
+          </div>
+        ) : (
+          <>
+            {plaidError && (
+              <p className="muted" style={{ color: 'var(--danger)', marginBottom: 10 }}>
+                {plaidError}
+              </p>
+            )}
+            {plaidAccounts.length === 0 ? (
+              <div className="empty-state" style={{ marginBottom: 14 }}>
+                No bank accounts linked yet.
+              </div>
+            ) : (
+              <div className="list" style={{ marginBottom: 14 }}>
+                {plaidAccounts.map((a) => (
+                  <div className="list-row" key={a.id}>
+                    <div className="list-row-main">
+                      <div className="list-row-title">
+                        {a.name}
+                        {a.mask && ` ····${a.mask}`}
+                      </div>
+                      <div className="list-row-sub">
+                        {institutionName(a.itemId)} · {a.subtype ?? a.type ?? 'account'}
+                      </div>
+                    </div>
+                    <div className="list-row-actions">
+                      <span className="badge">
+                        {a.currentBalance != null ? formatMoney(a.currentBalance) : '—'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {plaidItems.length > 0 && (
+              <div className="tag-row" style={{ marginBottom: 14 }}>
+                {plaidItems.map((item) => (
+                  <span key={item.id} className="badge">
+                    {item.institutionName ?? 'Bank'}
+                    <button
+                      className="link"
+                      style={{ marginLeft: 6 }}
+                      onClick={() => disconnectItem(item.id)}
+                    >
+                      Disconnect
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <ConnectBankButton onConnected={refresh} />
+          </>
+        )}
+      </div>
+
+      {plaidConfigured && plaidTransactions.length > 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h3>Bank transactions</h3>
+          <div className="list">
+            {plaidTransactions.slice(0, 15).map((t) => (
+              <div className="list-row" key={t.id}>
+                <div className="list-row-main">
+                  <div className="list-row-title">{t.merchantName || t.name}</div>
+                  <div className="list-row-sub">
+                    {t.category ?? 'Uncategorized'} · {new Date(t.date).toLocaleDateString()}
+                    {t.pending && ' · pending'}
+                  </div>
+                </div>
+                <div className="list-row-actions">
+                  <span className={`badge${t.amount > 0 ? ' danger' : ' success'}`}>
+                    {formatMoney(Math.abs(t.amount))}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-2" style={{ marginBottom: 20 }}>
         <div className="card">

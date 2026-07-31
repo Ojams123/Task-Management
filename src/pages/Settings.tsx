@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IS_ELECTRON } from '../bootstrap'
 import type { GoogleAuthStatus } from '../shared/types'
-import { CanvasIcon, ClaudeIcon, GmailIcon, GoogleCalendarIcon, OuraIcon } from '../components/icons'
+import { CanvasIcon, ClaudeIcon, GmailIcon, GoogleCalendarIcon, OuraIcon, PlaidIcon } from '../components/icons'
 
 export function Settings() {
   const [name, setName] = useState('')
@@ -25,6 +25,12 @@ export function Settings() {
   const [ouraConfigured, setOuraConfigured] = useState(false)
   const [ouraSaved, setOuraSaved] = useState(false)
 
+  const [plaidClientId, setPlaidClientId] = useState('')
+  const [plaidSecret, setPlaidSecret] = useState('')
+  const [plaidEnvironment, setPlaidEnvironment] = useState('sandbox')
+  const [plaidConfigured, setPlaidConfigured] = useState(false)
+  const [plaidSaved, setPlaidSaved] = useState(false)
+
   useEffect(() => {
     window.api.profile.getName().then((n) => setName(n ?? ''))
     window.api.canvas.getSettings().then((s) => {
@@ -36,6 +42,10 @@ export function Settings() {
     window.api.notifications.getGoogleAuthStatus().then(setGoogleStatus)
     window.api.assistant.getStatus().then((s) => setAssistantConfigured(s.configured))
     window.api.oura.getStatus().then((s) => setOuraConfigured(s.configured))
+    window.api.plaid.getSettings().then((s) => {
+      setPlaidConfigured(s.configured)
+      setPlaidEnvironment(s.environment)
+    })
 
     // Browser mode: Google redirects back here after the consent screen
     // (?google=connected or ?google=error) rather than resolving a promise.
@@ -69,6 +79,17 @@ export function Settings() {
     setOuraConfigured(true)
     setOuraSaved(true)
     setTimeout(() => setOuraSaved(false), 2000)
+  }
+
+  async function savePlaidSettings() {
+    await window.api.plaid.saveSettings({
+      clientId: plaidClientId.trim(),
+      secret: plaidSecret.trim(),
+      environment: plaidEnvironment,
+    })
+    setPlaidConfigured(true)
+    setPlaidSaved(true)
+    setTimeout(() => setPlaidSaved(false), 2000)
   }
 
   async function saveCanvas() {
@@ -280,6 +301,54 @@ export function Settings() {
           Save Oura token
         </button>
         {ouraSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
+      </div>
+
+      <div className="card settings-section">
+        <h3>
+          <span className="heading-with-icon">
+            <PlaidIcon size={20} />
+            Bank accounts (via Plaid)
+          </span>
+        </h3>
+        <p className="muted" style={{ marginBottom: 12 }}>
+          Rocket Money doesn't have a public API, but Plaid — the same bank-data aggregator Rocket Money uses
+          under the hood — does. Create a free app at{' '}
+          <a href="https://dashboard.plaid.com/signup" target="_blank" rel="noreferrer">
+            dashboard.plaid.com
+          </a>
+          , copy your client ID and secret for the environment you want, and paste them below. Then go to{' '}
+          <strong>Budget</strong> to connect a bank account.
+        </p>
+        {plaidConfigured && (
+          <p className="muted" style={{ marginBottom: 10 }}>
+            Plaid credentials are currently saved.
+          </p>
+        )}
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>Client ID</label>
+          <input value={plaidClientId} onChange={(e) => setPlaidClientId(e.target.value)} placeholder="6123abc..." />
+        </div>
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>Secret</label>
+          <input
+            type="password"
+            value={plaidSecret}
+            onChange={(e) => setPlaidSecret(e.target.value)}
+            placeholder="Paste your Plaid secret"
+          />
+        </div>
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>Environment</label>
+          <select value={plaidEnvironment} onChange={(e) => setPlaidEnvironment(e.target.value)}>
+            <option value="sandbox">Sandbox (test data)</option>
+            <option value="development">Development (real accounts)</option>
+            <option value="production">Production</option>
+          </select>
+        </div>
+        <button className="btn btn-primary" onClick={savePlaidSettings}>
+          Save Plaid settings
+        </button>
+        {plaidSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
       </div>
     </div>
   )

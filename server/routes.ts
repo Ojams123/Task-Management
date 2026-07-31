@@ -8,12 +8,15 @@ import * as calendarRepo from '../core/db/repos/calendar'
 import * as fitness from '../core/db/repos/fitness'
 import * as chat from '../core/db/repos/chat'
 import * as ouraRepo from '../core/db/repos/oura'
+import * as plaidRepo from '../core/db/repos/plaid'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
 import { fetchUnreadDigest } from '../core/integrations/gmail'
 import { fetchUpcomingEvents } from '../core/integrations/calendar'
 import { runAssistantTurn } from '../core/integrations/assistant'
 import { fetchOuraSummary } from '../core/integrations/oura'
+import * as plaid from '../core/integrations/plaid'
+import type { PlaidEnvironment } from '../core/integrations/plaid'
 import { buildAuthUrl, exchangeCode } from './googleOAuth'
 import { requireAuth } from './auth'
 import type { CanvasSettings, NotificationDigest } from '../src/shared/types'
@@ -29,6 +32,9 @@ const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
 const OURA_TOKEN_KEY = 'oura.token'
 const PROFILE_NAME_KEY = 'profile.name'
+const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
+const PLAID_SECRET_KEY = 'plaid.secret'
+const PLAID_ENV_KEY = 'plaid.environment'
 const DEFAULT_CALORIE_TARGET = 2000
 
 function getCanvasSettings(): CanvasSettings | null {
@@ -36,6 +42,27 @@ function getCanvasSettings(): CanvasSettings | null {
   const token = getSecret(CANVAS_TOKEN_KEY)
   if (!domain || !token) return null
   return { domain, token }
+}
+
+function getPlaidCreds(): { clientId: string; secret: string; environment: PlaidEnvironment } | null {
+  const clientId = getSecret(PLAID_CLIENT_ID_KEY)
+  const secret = getSecret(PLAID_SECRET_KEY)
+  const environment = (getSecret(PLAID_ENV_KEY) as PlaidEnvironment | null) ?? 'sandbox'
+  if (!clientId || !secret) return null
+  return { clientId, secret, environment }
+}
+
+async function syncAllPlaidItems() {
+  const creds = getPlaidCreds()
+  if (!creds) throw new Error('Add your Plaid client ID and secret in Settings first.')
+  const items = plaidRepo.listItemsWithTokens()
+  for (const item of items) {
+    const accounts = await plaid.fetchAccounts(creds, item.accessToken)
+    plaidRepo.replaceCachedAccounts(item.id, accounts)
+    const transactions = await plaid.fetchTransactions(creds, item.accessToken)
+    plaidRepo.replaceCachedTransactions(item.id, transactions)
+  }
+  return { accounts: plaidRepo.listCachedAccounts(), transactions: plaidRepo.listCachedTransactions() }
 }
 
 function asyncHandler(fn: (req: import('express').Request, res: import('express').Response) => Promise<unknown>) {
@@ -262,6 +289,61 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     setSecret(PROFILE_NAME_KEY, req.body.name)
     res.json({ ok: true })
   })
+
+  // Plaid
+  api.get('/plaid/settings', (_req, res) => {
+    const creds = getPlaidCreds()
+    res.json({ configured: !!creds, environment: creds?.environment ?? 'sandbox' })
+  })
+  api.post('/plaid/settings', (req, res) => {
+    setSecret(PLAID_CLIENT_ID_KEY, req.body.clientId)
+    setSecret(PLAID_SECRET_KEY, req.body.secret)
+    setSecret(PLAID_ENV_KEY, req.body.environment)
+    res.json({ ok: true })
+  })
+  api.post(
+    '/plaid/link-token',
+    asyncHandler(async (_req, res) => {
+      const creds = getPlaidCreds()
+      if (!creds) {
+        res.status(400).json({ error: 'Add your Plaid client ID and secret in Settings first.' })
+        return
+      }
+      const linkToken = await plaid.createLinkToken(creds, 'devicehub-user')
+      res.json({ linkToken })
+    })
+  )
+  api.post(
+    '/plaid/exchange',
+    asyncHandler(async (req, res) => {
+      const creds = getPlaidCreds()
+      if (!creds) {
+        res.status(400).json({ error: 'Add your Plaid client ID and secret in Settings first.' })
+        return
+      }
+      const { accessToken, itemId } = await plaid.exchangePublicToken(creds, req.body.publicToken)
+      plaidRepo.saveItem(itemId, accessToken, req.body.institutionName ?? null)
+      res.json({ ok: true })
+    })
+  )
+  api.post('/plaid/sync', asyncHandler(async (_req, res) => res.json(await syncAllPlaidItems())))
+  api.get('/plaid/items', (_req, res) => res.json(plaidRepo.listItems()))
+  api.get('/plaid/accounts', (_req, res) => res.json(plaidRepo.listCachedAccounts()))
+  api.get('/plaid/transactions', (_req, res) => res.json(plaidRepo.listCachedTransactions()))
+  api.delete(
+    '/plaid/items/:id',
+    asyncHandler(async (req, res) => {
+      const itemId = String(req.params.id)
+      const creds = getPlaidCreds()
+      const items = plaidRepo.listItemsWithTokens()
+      const item = items.find((i) => i.id === itemId)
+      if (creds && item) {
+        await plaid.removeItem(creds, item.accessToken).catch(() => {})
+      }
+      plaidRepo.removeItem(itemId)
+      res.json({ ok: true })
+    })
+  )
 
   // Google's redirect lands here after consent — registered before the
   // requireAuth-gated router below so it's never blocked by that middleware;

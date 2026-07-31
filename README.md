@@ -35,7 +35,9 @@ because there aren't any; the web app is one you host yourself.
   fitness-tagged goals for longer-term athletic targets. Optionally syncs
   Oura Ring sleep, readiness, and activity scores alongside it.
 - **Budget** — expense/income categories with monthly limits, transactions,
-  a running monthly income/expense/balance snapshot.
+  a running monthly income/expense/balance snapshot. Optionally link real
+  bank accounts via Plaid (the aggregator behind Rocket Money) for live
+  balances and transactions.
 - **Canvas assignments** — syncs assignments across your active courses so
   you can see what's upcoming or overdue without opening Canvas.
 - **Calendar** — syncs upcoming Google Calendar events for the next two
@@ -141,6 +143,32 @@ Gmail — full message bodies are never fetched.
 3. Paste it into Settings under "Oura Ring".
 4. Go to **Fitness** and click **Sync** to pull in the last two weeks of
    sleep, readiness, and activity scores.
+
+## Connecting bank accounts (via Plaid)
+
+Rocket Money doesn't publish a public API, so DeviceHub can't connect to it
+directly — but Plaid, the bank-data aggregator Rocket Money itself uses
+under the hood, does. Linking a bank through Plaid gets you the same
+underlying balances and transactions.
+
+1. Sign up for a free developer account at
+   [dashboard.plaid.com/signup](https://dashboard.plaid.com/signup).
+2. From the dashboard, copy your **Client ID** and the **secret** for the
+   environment you want to use — **Sandbox** for fake test-bank data (good
+   for trying this out), or **Development** for your real bank accounts
+   (free for up to 100 linked items).
+3. Paste both, plus the matching environment, into Settings under "Bank
+   accounts (via Plaid)".
+4. Go to **Budget** and click **+ Connect a bank account** — this opens
+   Plaid Link, where you search for and log into your bank the same way you
+   would inside Rocket Money or any other finance app.
+5. Click **Sync** on the Bank accounts card any time to refresh balances and
+   pull in the last 30 days of transactions.
+
+Your Plaid access tokens are encrypted at rest the same way every other API
+credential in DeviceHub is. Disconnect a bank any time from the Bank
+accounts card on Budget — this revokes DeviceHub's access via Plaid and
+deletes the cached accounts/transactions for that bank.
 
 ## Running as a web app (for iPad, iPhone, or any browser)
 

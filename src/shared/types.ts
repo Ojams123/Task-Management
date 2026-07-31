@@ -166,6 +166,37 @@ export interface OuraDailySummary {
   activeCalories: number | null
 }
 
+export interface PlaidItem {
+  id: string
+  institutionName: string | null
+  createdAt: string
+}
+
+export interface PlaidAccount {
+  id: string
+  itemId: string
+  name: string
+  mask: string | null
+  type: string | null
+  subtype: string | null
+  currentBalance: number | null
+  availableBalance: number | null
+  isoCurrencyCode: string | null
+}
+
+export interface PlaidTransaction {
+  id: string
+  accountId: string
+  itemId: string
+  amount: number
+  isoCurrencyCode: string | null
+  category: string | null
+  merchantName: string | null
+  name: string
+  pending: boolean
+  date: string
+}
+
 export interface VoiceCommandResult {
   transcript: string
   action: string
@@ -248,6 +279,17 @@ export interface DeviceHubApi {
   profile: {
     getName(): Promise<string | null>
     setName(name: string): Promise<void>
+  }
+  plaid: {
+    getSettings(): Promise<{ configured: boolean; environment: string }>
+    saveSettings(input: { clientId: string; secret: string; environment: string }): Promise<void>
+    createLinkToken(): Promise<{ linkToken: string }>
+    exchangePublicToken(publicToken: string, institutionName: string | null): Promise<void>
+    sync(): Promise<{ accounts: PlaidAccount[]; transactions: PlaidTransaction[] }>
+    listItems(): Promise<PlaidItem[]>
+    listAccounts(): Promise<PlaidAccount[]>
+    listTransactions(): Promise<PlaidTransaction[]>
+    removeItem(itemId: string): Promise<void>
   }
   system: {
     notify(title: string, body: string): Promise<void>

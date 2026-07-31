@@ -72,6 +72,18 @@ const api: DeviceHubApi = {
     getName: () => ipcRenderer.invoke('profile:getName'),
     setName: (name) => ipcRenderer.invoke('profile:setName', name),
   },
+  plaid: {
+    getSettings: () => ipcRenderer.invoke('plaid:getSettings'),
+    saveSettings: (input) => ipcRenderer.invoke('plaid:saveSettings', input),
+    createLinkToken: () => ipcRenderer.invoke('plaid:createLinkToken'),
+    exchangePublicToken: (publicToken, institutionName) =>
+      ipcRenderer.invoke('plaid:exchangePublicToken', publicToken, institutionName),
+    sync: () => ipcRenderer.invoke('plaid:sync'),
+    listItems: () => ipcRenderer.invoke('plaid:listItems'),
+    listAccounts: () => ipcRenderer.invoke('plaid:listAccounts'),
+    listTransactions: () => ipcRenderer.invoke('plaid:listTransactions'),
+    removeItem: (itemId) => ipcRenderer.invoke('plaid:removeItem', itemId),
+  },
   system: {
     notify: (title, body) => ipcRenderer.invoke('system:notify', title, body),
   },

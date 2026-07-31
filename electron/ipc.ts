@@ -7,6 +7,7 @@ import * as calendarRepo from '../core/db/repos/calendar'
 import * as fitness from '../core/db/repos/fitness'
 import * as chat from '../core/db/repos/chat'
 import * as ouraRepo from '../core/db/repos/oura'
+import * as plaidRepo from '../core/db/repos/plaid'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
 import { fetchUnreadDigest } from '../core/integrations/gmail'
@@ -14,6 +15,8 @@ import { fetchUpcomingEvents } from '../core/integrations/calendar'
 import { runOAuthFlow } from './integrations/googleAuth'
 import { runAssistantTurn } from '../core/integrations/assistant'
 import { fetchOuraSummary } from '../core/integrations/oura'
+import * as plaid from '../core/integrations/plaid'
+import type { PlaidEnvironment } from '../core/integrations/plaid'
 import type { CanvasSettings, NotificationDigest } from '../src/shared/types'
 
 const CANVAS_DOMAIN_KEY = 'canvas.domain'
@@ -27,7 +30,31 @@ const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
 const OURA_TOKEN_KEY = 'oura.token'
 const PROFILE_NAME_KEY = 'profile.name'
+const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
+const PLAID_SECRET_KEY = 'plaid.secret'
+const PLAID_ENV_KEY = 'plaid.environment'
 const DEFAULT_CALORIE_TARGET = 2000
+
+function getPlaidCreds(): { clientId: string; secret: string; environment: PlaidEnvironment } | null {
+  const clientId = getSecret(PLAID_CLIENT_ID_KEY)
+  const secret = getSecret(PLAID_SECRET_KEY)
+  const environment = (getSecret(PLAID_ENV_KEY) as PlaidEnvironment | null) ?? 'sandbox'
+  if (!clientId || !secret) return null
+  return { clientId, secret, environment }
+}
+
+async function syncAllPlaidItems() {
+  const creds = getPlaidCreds()
+  if (!creds) throw new Error('Add your Plaid client ID and secret in Settings first.')
+  const items = plaidRepo.listItemsWithTokens()
+  for (const item of items) {
+    const accounts = await plaid.fetchAccounts(creds, item.accessToken)
+    plaidRepo.replaceCachedAccounts(item.id, accounts)
+    const transactions = await plaid.fetchTransactions(creds, item.accessToken)
+    plaidRepo.replaceCachedTransactions(item.id, transactions)
+  }
+  return { accounts: plaidRepo.listCachedAccounts(), transactions: plaidRepo.listCachedTransactions() }
+}
 
 function getCanvasSettings(): CanvasSettings | null {
   const domain = getSecret(CANVAS_DOMAIN_KEY)
@@ -190,6 +217,42 @@ export function registerIpcHandlers() {
   ipcMain.handle('profile:getName', () => getSecret(PROFILE_NAME_KEY))
   ipcMain.handle('profile:setName', (_e, name: string) => {
     setSecret(PROFILE_NAME_KEY, name)
+  })
+
+  // Plaid
+  ipcMain.handle('plaid:getSettings', () => {
+    const creds = getPlaidCreds()
+    return { configured: !!creds, environment: creds?.environment ?? 'sandbox' }
+  })
+  ipcMain.handle('plaid:saveSettings', (_e, input: { clientId: string; secret: string; environment: string }) => {
+    setSecret(PLAID_CLIENT_ID_KEY, input.clientId)
+    setSecret(PLAID_SECRET_KEY, input.secret)
+    setSecret(PLAID_ENV_KEY, input.environment)
+  })
+  ipcMain.handle('plaid:createLinkToken', async () => {
+    const creds = getPlaidCreds()
+    if (!creds) throw new Error('Add your Plaid client ID and secret in Settings first.')
+    const linkToken = await plaid.createLinkToken(creds, 'devicehub-user')
+    return { linkToken }
+  })
+  ipcMain.handle('plaid:exchangePublicToken', async (_e, publicToken: string, institutionName: string | null) => {
+    const creds = getPlaidCreds()
+    if (!creds) throw new Error('Add your Plaid client ID and secret in Settings first.')
+    const { accessToken, itemId } = await plaid.exchangePublicToken(creds, publicToken)
+    plaidRepo.saveItem(itemId, accessToken, institutionName)
+  })
+  ipcMain.handle('plaid:sync', () => syncAllPlaidItems())
+  ipcMain.handle('plaid:listItems', () => plaidRepo.listItems())
+  ipcMain.handle('plaid:listAccounts', () => plaidRepo.listCachedAccounts())
+  ipcMain.handle('plaid:listTransactions', () => plaidRepo.listCachedTransactions())
+  ipcMain.handle('plaid:removeItem', async (_e, itemId: string) => {
+    const creds = getPlaidCreds()
+    const items = plaidRepo.listItemsWithTokens()
+    const item = items.find((i) => i.id === itemId)
+    if (creds && item) {
+      await plaid.removeItem(creds, item.accessToken).catch(() => {})
+    }
+    plaidRepo.removeItem(itemId)
   })
 
   // System

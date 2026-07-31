@@ -144,6 +144,40 @@ function migrate(database: Database.Database) {
       activeCalories REAL,
       syncedAt TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS plaid_items (
+      id TEXT PRIMARY KEY,
+      accessToken TEXT NOT NULL,
+      institutionName TEXT,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS plaid_accounts (
+      id TEXT PRIMARY KEY,
+      itemId TEXT NOT NULL REFERENCES plaid_items(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      mask TEXT,
+      type TEXT,
+      subtype TEXT,
+      currentBalance REAL,
+      availableBalance REAL,
+      isoCurrencyCode TEXT,
+      syncedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS plaid_transactions (
+      id TEXT PRIMARY KEY,
+      accountId TEXT NOT NULL REFERENCES plaid_accounts(id) ON DELETE CASCADE,
+      itemId TEXT NOT NULL,
+      amount REAL NOT NULL,
+      isoCurrencyCode TEXT,
+      category TEXT,
+      merchantName TEXT,
+      name TEXT NOT NULL,
+      pending INTEGER NOT NULL DEFAULT 0,
+      date TEXT NOT NULL,
+      syncedAt TEXT NOT NULL
+    );
   `)
 }
 

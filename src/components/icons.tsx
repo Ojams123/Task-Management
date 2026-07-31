@@ -141,3 +141,15 @@ export function OuraIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function PlaidIcon(props: IconProps) {
+  // Not a reproduction of Plaid's trademarked wordmark — a simple bank-link
+  // glyph in their brand navy, representing the underlying bank connection.
+  return (
+    <Line {...props} className={props.className}>
+      <path d="M4 10.5 12 5l8 5.5" stroke="#0A1E42" fill="none" />
+      <rect x="5.5" y="10.5" width="13" height="8" rx="1.2" stroke="#0A1E42" fill="none" />
+      <path d="M9 14v2M12 14v2M15 14v2" stroke="#0A1E42" />
+    </Line>
+  )
+}
