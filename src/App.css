@@ -47,13 +47,19 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.nav-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
-  opacity: 0.65;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.nav-item:hover .nav-icon {
+  opacity: 1;
 }
 
 .nav-item:hover {
@@ -68,10 +74,8 @@
   box-shadow: 0 6px 16px -6px var(--accent-soft);
 }
 
-.nav-item.active .nav-dot {
-  background: var(--on-accent) !important;
+.nav-item.active .nav-icon {
   opacity: 1;
-  transform: scale(1.15);
 }
 
 .sidebar-footer {
@@ -175,6 +179,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.heading-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .card h3 a,

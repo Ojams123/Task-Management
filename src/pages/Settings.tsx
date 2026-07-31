@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IS_ELECTRON } from '../bootstrap'
 import type { GoogleAuthStatus } from '../shared/types'
+import { CanvasIcon, ClaudeIcon, GmailIcon, GoogleCalendarIcon, OuraIcon } from '../components/icons'
 
 export function Settings() {
   const [canvasDomain, setCanvasDomain] = useState('')
@@ -92,7 +93,12 @@ export function Settings() {
   return (
     <div>
       <div className="card settings-section">
-        <h3>Canvas LMS</h3>
+        <h3>
+          <span className="heading-with-icon">
+            <CanvasIcon size={20} />
+            Canvas LMS
+          </span>
+        </h3>
         <p className="muted" style={{ marginBottom: 12 }}>
           Find your domain in the browser address bar when logged into Canvas (e.g.{' '}
           <code>yourschool.instructure.com</code>). Generate an access token under Account → Settings → New
@@ -122,7 +128,13 @@ export function Settings() {
       </div>
 
       <div className="card settings-section">
-        <h3>Google (Gmail + Calendar)</h3>
+        <h3>
+          <span className="heading-with-icon">
+            <GmailIcon size={20} />
+            <GoogleCalendarIcon size={20} />
+            Google (Gmail + Calendar)
+          </span>
+        </h3>
         {IS_ELECTRON ? (
           <p className="muted" style={{ marginBottom: 12 }}>
             Create an OAuth client (type "Desktop app") in Google Cloud Console with the Gmail API and Calendar
@@ -176,7 +188,12 @@ export function Settings() {
       </div>
 
       <div className="card settings-section">
-        <h3>Built-in assistant</h3>
+        <h3>
+          <span className="heading-with-icon">
+            <ClaudeIcon size={20} />
+            Built-in assistant
+          </span>
+        </h3>
         <p className="muted" style={{ marginBottom: 12 }}>
           The assistant uses your own Anthropic API key — get one at{' '}
           <a href="https://console.anthropic.com" target="_blank" rel="noreferrer">
@@ -206,7 +223,12 @@ export function Settings() {
       </div>
 
       <div className="card settings-section">
-        <h3>Oura Ring</h3>
+        <h3>
+          <span className="heading-with-icon">
+            <OuraIcon size={20} />
+            Oura Ring
+          </span>
+        </h3>
         <p className="muted" style={{ marginBottom: 12 }}>
           Get a personal access token at{' '}
           <a href="https://cloud.ouraring.com/personal-access-tokens" target="_blank" rel="noreferrer">

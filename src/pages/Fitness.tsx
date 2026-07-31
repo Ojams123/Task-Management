@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { DailyFitnessSummary, ExerciseEntry, FoodEntry, Goal, OuraDailySummary } from '../shared/types'
 import type { Page } from '../components/Sidebar'
+import { OuraIcon } from '../components/icons'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -246,7 +247,10 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
 
       <div className="card" style={{ marginBottom: 20 }}>
         <h3>
-          Oura Ring
+          <span className="heading-with-icon">
+            <OuraIcon size={20} />
+            Oura Ring
+          </span>
           {ouraConfigured && (
             <button className="btn btn-sm" onClick={syncOura} disabled={ouraSyncing}>
               {ouraSyncing ? 'Syncing…' : 'Sync'}
