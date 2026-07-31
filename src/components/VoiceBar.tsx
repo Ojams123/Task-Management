@@ -1,13 +1,8 @@
 import { useCallback, useState } from 'react'
 import { useSpeechRecognition } from '../voice/useSpeechRecognition'
 import { parseVoiceCommand } from '../voice/commandParser'
+import { speak } from '../voice/speak'
 import type { Page } from './Sidebar'
-
-function speak(text: string) {
-  if (!('speechSynthesis' in window)) return
-  const utterance = new SpeechSynthesisUtterance(text)
-  window.speechSynthesis.speak(utterance)
-}
 
 export function VoiceBar({ onNavigate }: { onNavigate: (page: Page) => void }) {
   const [feedback, setFeedback] = useState('')

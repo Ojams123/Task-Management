@@ -264,6 +264,17 @@ Click the mic button and speak. Supported patterns:
 Voice recognition uses the Web Speech API, so it needs network access and
 microphone permission.
 
+### Spoken replies
+
+Voice-command confirmations and the assistant's chat replies (Assistant
+page) are read aloud using a British English female voice, picked
+automatically from whichever voices your OS/browser already has installed
+(e.g. Siri's "Serena" or "Martha" on iOS/macOS, "Hazel" on Windows). Which
+exact voice you get depends on your device — DeviceHub can't add a voice
+that isn't already installed, only pick the best match from what's there.
+Toggle spoken replies off any time from the button at the top of the
+Assistant page.
+
 ## A note on what this can't do
 
 No app — this one included — can read another app's text messages, or any

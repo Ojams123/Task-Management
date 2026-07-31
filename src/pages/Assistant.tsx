@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ChatMessage } from '../shared/types'
 import type { Page } from '../components/Sidebar'
+import { isVoiceMuted, setVoiceMuted, speak } from '../voice/speak'
 
 export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const [configured, setConfigured] = useState<boolean | null>(null)
@@ -8,12 +9,20 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [voiceMuted, setVoiceMutedState] = useState(() => isVoiceMuted())
   const scrollRef = useRef<HTMLDivElement>(null)
+  const spokenIdsRef = useRef<Set<string>>(new Set())
 
   async function refresh() {
     const status = await window.api.assistant.getStatus()
     setConfigured(status.configured)
-    if (status.configured) setMessages(await window.api.assistant.getHistory())
+    if (status.configured) {
+      const history = await window.api.assistant.getHistory()
+      setMessages(history)
+      spokenIdsRef.current = new Set(history.map((m) => m.id))
+    }
+    setHistoryLoaded(true)
   }
 
   useEffect(() => {
@@ -23,6 +32,21 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    if (!historyLoaded) return
+    const last = messages[messages.length - 1]
+    if (last && last.role === 'assistant' && !spokenIdsRef.current.has(last.id)) {
+      spokenIdsRef.current.add(last.id)
+      speak(last.content)
+    }
+  }, [messages, historyLoaded])
+
+  function toggleVoice() {
+    const next = !voiceMuted
+    setVoiceMutedState(next)
+    setVoiceMuted(next)
+  }
 
   async function send() {
     const content = input.trim()
@@ -67,6 +91,12 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+        <button className="btn btn-sm" onClick={toggleVoice}>
+          {voiceMuted ? 'Voice replies: off' : 'Voice replies: on'}
+        </button>
+      </div>
+
       <div
         ref={scrollRef}
         className="card"
