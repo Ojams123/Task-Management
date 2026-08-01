@@ -195,6 +195,14 @@ credential in DeviceHub is. Disconnect a bank any time from the Bank
 accounts card on Budget — this revokes DeviceHub's access via Plaid and
 deletes the cached accounts/transactions for that bank.
 
+Every sync also auto-files new bank transactions into a matching budget
+category (by keyword match against merchant name/Plaid category), so the
+category spent-vs-limit bars stay live without manual entry — the same idea
+Rocket Money's automatic tracking uses. Nothing is dropped: unmatched
+transactions land in an "Uncategorized" category. Reassign any transaction
+to the right category any time from the "Recent transactions" list, and
+edit a category's name or monthly limit any time via its **Edit** button.
+
 ## Connecting Weather
 
 1. Get a free API key at [openweathermap.org/api](https://openweathermap.org/api)

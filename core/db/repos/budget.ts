@@ -1,6 +1,12 @@
 import { randomUUID } from 'node:crypto'
 import { getDb } from '../index'
-import type { BudgetCategory, NewBudgetCategory, NewTransaction, Transaction } from '../../../src/shared/types'
+import type {
+  BudgetCategory,
+  BudgetCategoryUpdate,
+  NewBudgetCategory,
+  NewTransaction,
+  Transaction,
+} from '../../../src/shared/types'
 
 export function listCategories(): BudgetCategory[] {
   const db = getDb()
@@ -15,6 +21,18 @@ export function createCategory(input: NewBudgetCategory): BudgetCategory {
     'INSERT INTO budget_categories (id, name, monthlyLimit, kind, createdAt) VALUES (?, ?, ?, ?, ?)'
   ).run(id, input.name, input.monthlyLimit, input.kind, createdAt)
   return { id, createdAt, ...input }
+}
+
+export function updateCategory(id: string, updates: BudgetCategoryUpdate): BudgetCategory {
+  const db = getDb()
+  const current = db.prepare('SELECT * FROM budget_categories WHERE id = ?').get(id) as BudgetCategory
+  const next = { ...current, ...updates }
+  db.prepare('UPDATE budget_categories SET name = ?, monthlyLimit = ? WHERE id = ?').run(
+    next.name,
+    next.monthlyLimit,
+    id
+  )
+  return next
 }
 
 export function removeCategory(id: string) {
@@ -46,14 +64,28 @@ export function createTransaction(input: NewTransaction): Transaction {
   const id = randomUUID()
   const createdAt = new Date().toISOString()
   db.prepare(
-    'INSERT INTO transactions (id, categoryId, amount, description, occurredAt, createdAt) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(id, input.categoryId, input.amount, input.description ?? null, input.occurredAt, createdAt)
-  return { id, createdAt, ...input }
+    'INSERT INTO transactions (id, categoryId, amount, description, occurredAt, createdAt, plaidTransactionId) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, input.categoryId, input.amount, input.description ?? null, input.occurredAt, createdAt, input.plaidTransactionId ?? null)
+  return { id, createdAt, plaidTransactionId: null, ...input }
 }
 
 export function removeTransaction(id: string) {
   const db = getDb()
   db.prepare('DELETE FROM transactions WHERE id = ?').run(id)
+}
+
+export function updateTransactionCategory(id: string, categoryId: string): Transaction {
+  const db = getDb()
+  db.prepare('UPDATE transactions SET categoryId = ? WHERE id = ?').run(categoryId, id)
+  return db.prepare('SELECT * FROM transactions WHERE id = ?').get(id) as Transaction
+}
+
+export function linkedPlaidTransactionIds(): Set<string> {
+  const db = getDb()
+  const rows = db
+    .prepare("SELECT plaidTransactionId FROM transactions WHERE plaidTransactionId IS NOT NULL")
+    .all() as { plaidTransactionId: string }[]
+  return new Set(rows.map((r) => r.plaidTransactionId))
 }
 
 export function summary(month?: string) {

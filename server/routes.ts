@@ -21,6 +21,7 @@ import { fetchUpcomingEvents, createCalendarEvent, deleteCalendarEvent } from '.
 import { runAssistantTurn } from '../core/integrations/assistant'
 import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
+import { autoCategorizePlaidTransactions } from '../core/integrations/budgetAutoSync'
 import type { PlaidEnvironment } from '../core/integrations/plaid'
 import { fetchWeather } from '../core/integrations/weather'
 import {
@@ -134,6 +135,7 @@ async function syncAllPlaidItems() {
     const transactions = await plaid.fetchTransactions(creds, item.accessToken)
     plaidRepo.replaceCachedTransactions(item.id, transactions)
   }
+  autoCategorizePlaidTransactions()
   return { accounts: plaidRepo.listCachedAccounts(), transactions: plaidRepo.listCachedTransactions() }
 }
 
@@ -178,6 +180,7 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
   // Budget
   api.get('/budget/categories', (_req, res) => res.json(budget.listCategories()))
   api.post('/budget/categories', (req, res) => res.json(budget.createCategory(req.body)))
+  api.put('/budget/categories/:id', (req, res) => res.json(budget.updateCategory(req.params.id, req.body)))
   api.delete('/budget/categories/:id', (req, res) => {
     budget.removeCategory(req.params.id)
     res.json({ ok: true })
@@ -186,6 +189,9 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     res.json(budget.listTransactions(req.query.month ? String(req.query.month) : undefined))
   )
   api.post('/budget/transactions', (req, res) => res.json(budget.createTransaction(req.body)))
+  api.put('/budget/transactions/:id', (req, res) =>
+    res.json(budget.updateTransactionCategory(req.params.id, req.body.categoryId))
+  )
   api.delete('/budget/transactions/:id', (req, res) => {
     budget.removeTransaction(req.params.id)
     res.json({ ok: true })

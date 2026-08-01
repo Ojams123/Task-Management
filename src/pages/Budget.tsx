@@ -80,6 +80,10 @@ export function Budget() {
   const [catKind, setCatKind] = useState<'expense' | 'income'>('expense')
   const [catLimit, setCatLimit] = useState(200)
 
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editLimit, setEditLimit] = useState(0)
+
   const [txCategoryId, setTxCategoryId] = useState('')
   const [txAmount, setTxAmount] = useState('')
   const [txDesc, setTxDesc] = useState('')
@@ -146,6 +150,24 @@ export function Budget() {
 
   async function removeCategory(id: string) {
     await window.api.budget.removeCategory(id)
+    await refresh()
+  }
+
+  function startEditCategory(id: string, name: string, limit: number) {
+    setEditingCategoryId(id)
+    setEditName(name)
+    setEditLimit(limit)
+  }
+
+  async function saveEditCategory(id: string) {
+    if (!editName.trim()) return
+    await window.api.budget.updateCategory(id, { name: editName.trim(), monthlyLimit: editLimit })
+    setEditingCategoryId(null)
+    await refresh()
+  }
+
+  async function reassignTransaction(id: string, categoryId: string) {
+    await window.api.budget.updateTransactionCategory(id, categoryId)
     await refresh()
   }
 
@@ -271,6 +293,10 @@ export function Budget() {
       {plaidConfigured && plaidTransactions.length > 0 && (
         <div className="card" style={{ marginBottom: 20 }}>
           <h3>Bank transactions</h3>
+          <p className="muted" style={{ marginTop: -6, marginBottom: 12 }}>
+            Every sync automatically files new transactions into a matching budget category below — reassign any
+            that get miscategorized from the "Recent transactions" list.
+          </p>
           <div className="list">
             {plaidTransactions.slice(0, 15).map((t) => (
               <div className="list-row" key={t.id}>
@@ -321,26 +347,56 @@ export function Budget() {
               {summary.byCategory.map((c) => {
                 const pct = c.limit > 0 ? Math.min(100, (c.spent / c.limit) * 100) : 0
                 const over = c.limit > 0 && c.spent > c.limit
+                const isEditing = editingCategoryId === c.categoryId
                 return (
                   <div key={c.categoryId} style={{ padding: '6px 0' }}>
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}
-                    >
-                      <span>{c.name}</span>
-                      <span className="muted">
-                        {formatMoney(c.spent)} {c.limit > 0 ? `/ ${formatMoney(c.limit)}` : ''}
-                      </span>
-                    </div>
-                    <div className="progress-bar">
-                      <div className={`progress-bar-fill${over ? ' over' : ''}`} style={{ width: `${pct}%` }} />
-                    </div>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      style={{ marginTop: 6 }}
-                      onClick={() => removeCategory(c.categoryId)}
-                    >
-                      Remove category
-                    </button>
+                    {isEditing ? (
+                      <div className="form-grid" style={{ marginBottom: 8 }}>
+                        <div className="field">
+                          <label>Name</label>
+                          <input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                        </div>
+                        <div className="field">
+                          <label>Monthly limit</label>
+                          <input
+                            type="number"
+                            value={editLimit}
+                            onChange={(e) => setEditLimit(Number(e.target.value))}
+                          />
+                        </div>
+                        <button className="btn btn-sm btn-primary" onClick={() => saveEditCategory(c.categoryId)}>
+                          Save
+                        </button>
+                        <button className="btn btn-sm" onClick={() => setEditingCategoryId(null)}>
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div
+                          style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}
+                        >
+                          <span>{c.name}</span>
+                          <span className="muted">
+                            {formatMoney(c.spent)} {c.limit > 0 ? `/ ${formatMoney(c.limit)}` : ''}
+                          </span>
+                        </div>
+                        <div className="progress-bar">
+                          <div className={`progress-bar-fill${over ? ' over' : ''}`} style={{ width: `${pct}%` }} />
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => startEditCategory(c.categoryId, c.name, c.limit)}
+                          >
+                            Edit
+                          </button>
+                          <button className="btn btn-sm btn-danger" onClick={() => removeCategory(c.categoryId)}>
+                            Remove category
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )
               })}
@@ -384,9 +440,27 @@ export function Budget() {
               {transactions.map((t) => (
                 <div className="list-row" key={t.id}>
                   <div className="list-row-main">
-                    <div className="list-row-title">{t.description || categoryName(t.categoryId)}</div>
-                    <div className="list-row-sub">
-                      {categoryName(t.categoryId)} · {new Date(t.occurredAt).toLocaleDateString()}
+                    <div className="list-row-title">
+                      {t.description || categoryName(t.categoryId)}
+                      {t.plaidTransactionId && (
+                        <span className="badge" style={{ marginLeft: 6, fontSize: 10 }} title="Auto-synced from your bank">
+                          synced
+                        </span>
+                      )}
+                    </div>
+                    <div className="list-row-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <select
+                        value={t.categoryId}
+                        onChange={(e) => reassignTransaction(t.id, e.target.value)}
+                        style={{ fontSize: 12, padding: '2px 4px' }}
+                      >
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <span>· {new Date(t.occurredAt).toLocaleDateString()}</span>
                     </div>
                   </div>
                   <div className="list-row-actions">

@@ -21,6 +21,7 @@ import { runOAuthFlow } from './integrations/googleAuth'
 import { runAssistantTurn } from '../core/integrations/assistant'
 import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
+import { autoCategorizePlaidTransactions } from '../core/integrations/budgetAutoSync'
 import type { PlaidEnvironment } from '../core/integrations/plaid'
 import { fetchWeather } from '../core/integrations/weather'
 import {
@@ -121,6 +122,7 @@ async function syncAllPlaidItems() {
     const transactions = await plaid.fetchTransactions(creds, item.accessToken)
     plaidRepo.replaceCachedTransactions(item.id, transactions)
   }
+  autoCategorizePlaidTransactions()
   return { accounts: plaidRepo.listCachedAccounts(), transactions: plaidRepo.listCachedTransactions() }
 }
 
@@ -153,9 +155,11 @@ export function registerIpcHandlers() {
   // Budget
   ipcMain.handle('budget:listCategories', () => budget.listCategories())
   ipcMain.handle('budget:createCategory', (_e, input) => budget.createCategory(input))
+  ipcMain.handle('budget:updateCategory', (_e, id, updates) => budget.updateCategory(id, updates))
   ipcMain.handle('budget:removeCategory', (_e, id) => budget.removeCategory(id))
   ipcMain.handle('budget:listTransactions', (_e, month) => budget.listTransactions(month))
   ipcMain.handle('budget:createTransaction', (_e, input) => budget.createTransaction(input))
+  ipcMain.handle('budget:updateTransactionCategory', (_e, id, categoryId) => budget.updateTransactionCategory(id, categoryId))
   ipcMain.handle('budget:removeTransaction', (_e, id) => budget.removeTransaction(id))
   ipcMain.handle('budget:summary', (_e, month) => budget.summary(month))
 

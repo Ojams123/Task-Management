@@ -59,9 +59,17 @@ export interface Transaction {
   description: string | null
   occurredAt: string
   createdAt: string
+  // Set when this transaction was auto-created from a synced Plaid bank
+  // transaction, so re-syncing never double-counts it.
+  plaidTransactionId?: string | null
 }
 
 export type NewTransaction = Omit<Transaction, 'id' | 'createdAt'>
+
+export interface BudgetCategoryUpdate {
+  name?: string
+  monthlyLimit?: number
+}
 
 export interface CanvasSettings {
   domain: string
@@ -340,9 +348,11 @@ export interface DeviceHubApi {
   budget: {
     listCategories(): Promise<BudgetCategory[]>
     createCategory(input: NewBudgetCategory): Promise<BudgetCategory>
+    updateCategory(id: string, updates: BudgetCategoryUpdate): Promise<BudgetCategory>
     removeCategory(id: string): Promise<void>
     listTransactions(month?: string): Promise<Transaction[]>
     createTransaction(input: NewTransaction): Promise<Transaction>
+    updateTransactionCategory(id: string, categoryId: string): Promise<Transaction>
     removeTransaction(id: string): Promise<void>
     summary(month?: string): Promise<{
       income: number

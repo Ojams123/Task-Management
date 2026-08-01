@@ -229,6 +229,11 @@ function migrate(database: Database.Database) {
       syncedAt TEXT NOT NULL
     );
   `)
+
+  const transactionColumns = database.prepare("PRAGMA table_info(transactions)").all() as { name: string }[]
+  if (!transactionColumns.some((c) => c.name === 'plaidTransactionId')) {
+    database.exec('ALTER TABLE transactions ADD COLUMN plaidTransactionId TEXT')
+  }
 }
 
 export function closeDb() {
