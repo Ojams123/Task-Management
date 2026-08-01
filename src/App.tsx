@@ -12,6 +12,11 @@ import { Budget } from './pages/Budget'
 import { Fitness } from './pages/Fitness'
 import { Assignments } from './pages/Assignments'
 import { Calendar } from './pages/Calendar'
+import { Weather } from './pages/Weather'
+import { Spotify } from './pages/Spotify'
+import { Strava } from './pages/Strava'
+import { Microsoft } from './pages/Microsoft'
+import { LinkedIn } from './pages/LinkedIn'
 import { Notifications } from './pages/Notifications'
 import { Assistant } from './pages/Assistant'
 import { Settings } from './pages/Settings'
@@ -24,6 +29,11 @@ const PAGE_TITLES: Record<Page, string> = {
   fitness: 'Fitness',
   assignments: 'Assignments',
   calendar: 'Calendar',
+  weather: 'Weather',
+  spotify: 'Spotify',
+  strava: 'Strava',
+  microsoft: 'Microsoft 365',
+  linkedin: 'LinkedIn',
   notifications: 'Notifications',
   assistant: 'Assistant',
   settings: 'Settings',
@@ -49,6 +59,11 @@ function App() {
           {page === 'fitness' && <Fitness onNavigate={setPage} />}
           {page === 'assignments' && <Assignments onNavigate={setPage} />}
           {page === 'calendar' && <Calendar onNavigate={setPage} />}
+          {page === 'weather' && <Weather onNavigate={setPage} />}
+          {page === 'spotify' && <Spotify onNavigate={setPage} />}
+          {page === 'strava' && <Strava onNavigate={setPage} />}
+          {page === 'microsoft' && <Microsoft onNavigate={setPage} />}
+          {page === 'linkedin' && <LinkedIn onNavigate={setPage} />}
           {page === 'notifications' && <Notifications onNavigate={setPage} />}
           {page === 'assistant' && <Assistant onNavigate={setPage} />}
           {page === 'settings' && <Settings />}

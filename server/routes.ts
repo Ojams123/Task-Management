@@ -9,6 +9,11 @@ import * as fitness from '../core/db/repos/fitness'
 import * as chat from '../core/db/repos/chat'
 import * as ouraRepo from '../core/db/repos/oura'
 import * as plaidRepo from '../core/db/repos/plaid'
+import * as weatherRepo from '../core/db/repos/weather'
+import * as spotifyRepo from '../core/db/repos/spotify'
+import * as stravaRepo from '../core/db/repos/strava'
+import * as microsoftRepo from '../core/db/repos/microsoft'
+import * as linkedinRepo from '../core/db/repos/linkedin'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
 import { fetchUnreadDigest } from '../core/integrations/gmail'
@@ -17,6 +22,11 @@ import { runAssistantTurn } from '../core/integrations/assistant'
 import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
 import type { PlaidEnvironment } from '../core/integrations/plaid'
+import { fetchWeather } from '../core/integrations/weather'
+import { buildSpotifyAuthUrl, exchangeSpotifyCode, fetchSpotifySnapshot, type SpotifyCreds } from '../core/integrations/spotify'
+import { buildStravaAuthUrl, exchangeStravaCode, fetchStravaSnapshot, type StravaCreds } from '../core/integrations/strava'
+import { buildMicrosoftAuthUrl, exchangeMicrosoftCode, fetchMicrosoftSnapshot, type MicrosoftCreds } from '../core/integrations/microsoft'
+import { buildLinkedInAuthUrl, exchangeLinkedInCode, fetchLinkedInProfile, type LinkedInCreds } from '../core/integrations/linkedin'
 import { buildAuthUrl, exchangeCode } from './googleOAuth'
 import { requireAuth } from './auth'
 import type { CanvasSettings, NotificationDigest } from '../src/shared/types'
@@ -35,7 +45,48 @@ const PROFILE_NAME_KEY = 'profile.name'
 const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
 const PLAID_SECRET_KEY = 'plaid.secret'
 const PLAID_ENV_KEY = 'plaid.environment'
+const WEATHER_API_KEY = 'weather.apiKey'
+const WEATHER_LOCATION_KEY = 'weather.location'
+const SPOTIFY_CLIENT_ID_KEY = 'spotify.clientId'
+const SPOTIFY_CLIENT_SECRET_KEY = 'spotify.clientSecret'
+const SPOTIFY_REFRESH_TOKEN_KEY = 'spotify.refreshToken'
+const STRAVA_CLIENT_ID_KEY = 'strava.clientId'
+const STRAVA_CLIENT_SECRET_KEY = 'strava.clientSecret'
+const STRAVA_REFRESH_TOKEN_KEY = 'strava.refreshToken'
+const MICROSOFT_CLIENT_ID_KEY = 'microsoft.clientId'
+const MICROSOFT_CLIENT_SECRET_KEY = 'microsoft.clientSecret'
+const MICROSOFT_REFRESH_TOKEN_KEY = 'microsoft.refreshToken'
+const LINKEDIN_CLIENT_ID_KEY = 'linkedin.clientId'
+const LINKEDIN_CLIENT_SECRET_KEY = 'linkedin.clientSecret'
 const DEFAULT_CALORIE_TARGET = 2000
+
+function getMicrosoftCreds(): MicrosoftCreds | null {
+  const clientId = getSecret(MICROSOFT_CLIENT_ID_KEY)
+  const clientSecret = getSecret(MICROSOFT_CLIENT_SECRET_KEY)
+  if (!clientId || !clientSecret) return null
+  return { clientId, clientSecret }
+}
+
+function getLinkedInCreds(): LinkedInCreds | null {
+  const clientId = getSecret(LINKEDIN_CLIENT_ID_KEY)
+  const clientSecret = getSecret(LINKEDIN_CLIENT_SECRET_KEY)
+  if (!clientId || !clientSecret) return null
+  return { clientId, clientSecret }
+}
+
+function getSpotifyCreds(): SpotifyCreds | null {
+  const clientId = getSecret(SPOTIFY_CLIENT_ID_KEY)
+  const clientSecret = getSecret(SPOTIFY_CLIENT_SECRET_KEY)
+  if (!clientId || !clientSecret) return null
+  return { clientId, clientSecret }
+}
+
+function getStravaCreds(): StravaCreds | null {
+  const clientId = getSecret(STRAVA_CLIENT_ID_KEY)
+  const clientSecret = getSecret(STRAVA_CLIENT_SECRET_KEY)
+  if (!clientId || !clientSecret) return null
+  return { clientId, clientSecret }
+}
 
 function getCanvasSettings(): CanvasSettings | null {
   const domain = getSecret(CANVAS_DOMAIN_KEY)
@@ -345,6 +396,173 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     })
   )
 
+  // Weather
+  api.get('/weather/settings', (_req, res) => {
+    res.json({ configured: !!getSecret(WEATHER_API_KEY), location: getSecret(WEATHER_LOCATION_KEY) ?? '' })
+  })
+  api.post('/weather/settings', (req, res) => {
+    setSecret(WEATHER_API_KEY, req.body.apiKey)
+    setSecret(WEATHER_LOCATION_KEY, req.body.location)
+    res.json({ ok: true })
+  })
+  api.post(
+    '/weather/sync',
+    asyncHandler(async (_req, res) => {
+      const apiKey = getSecret(WEATHER_API_KEY)
+      const location = getSecret(WEATHER_LOCATION_KEY)
+      if (!apiKey || !location) {
+        res.status(400).json({ error: 'Add your weather API key and location in Settings first.' })
+        return
+      }
+      const snapshot = await fetchWeather(apiKey, location)
+      weatherRepo.saveSnapshot(snapshot)
+      res.json(snapshot)
+    })
+  )
+  api.get('/weather/cached', (_req, res) => res.json(weatherRepo.getCachedSnapshot()))
+
+  // Spotify
+  api.get('/spotify/status', (_req, res) => {
+    const connected = !!getSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+    const cached = spotifyRepo.getCachedSnapshot()
+    res.json({ connected, displayName: cached?.profile.displayName ?? null })
+  })
+  api.post('/spotify/credentials', (req, res) => {
+    setSecret(SPOTIFY_CLIENT_ID_KEY, req.body.clientId)
+    setSecret(SPOTIFY_CLIENT_SECRET_KEY, req.body.clientSecret)
+    res.json({ ok: true })
+  })
+  api.get('/spotify/connect', (_req, res) => {
+    const creds = getSpotifyCreds()
+    if (!creds) {
+      res.status(400).json({ error: 'Add your Spotify client ID and secret in Settings first.' })
+      return
+    }
+    const redirectUri = `${publicUrl}/api/spotify/callback`
+    res.json({ url: buildSpotifyAuthUrl(creds.clientId, redirectUri) })
+  })
+  api.post('/spotify/disconnect', (_req, res) => {
+    deleteSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+    res.json({ ok: true })
+  })
+  api.post(
+    '/spotify/sync',
+    asyncHandler(async (_req, res) => {
+      const creds = getSpotifyCreds()
+      const refreshToken = getSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+      if (!creds || !refreshToken) {
+        res.status(400).json({ error: 'Connect Spotify in Settings first.' })
+        return
+      }
+      const { profile, recentlyPlayed } = await fetchSpotifySnapshot(creds, refreshToken)
+      spotifyRepo.saveSnapshot(profile, recentlyPlayed)
+      res.json({ profile, recentlyPlayed, syncedAt: new Date().toISOString() })
+    })
+  )
+  api.get('/spotify/cached', (_req, res) => res.json(spotifyRepo.getCachedSnapshot()))
+
+  // Strava
+  api.get('/strava/status', (_req, res) => {
+    const connected = !!getSecret(STRAVA_REFRESH_TOKEN_KEY)
+    const cached = stravaRepo.getCachedSnapshot()
+    res.json({ connected, athleteName: cached?.athleteName ?? null })
+  })
+  api.post('/strava/credentials', (req, res) => {
+    setSecret(STRAVA_CLIENT_ID_KEY, req.body.clientId)
+    setSecret(STRAVA_CLIENT_SECRET_KEY, req.body.clientSecret)
+    res.json({ ok: true })
+  })
+  api.get('/strava/connect', (_req, res) => {
+    const creds = getStravaCreds()
+    if (!creds) {
+      res.status(400).json({ error: 'Add your Strava client ID and secret in Settings first.' })
+      return
+    }
+    const redirectUri = `${publicUrl}/api/strava/callback`
+    res.json({ url: buildStravaAuthUrl(creds.clientId, redirectUri) })
+  })
+  api.post('/strava/disconnect', (_req, res) => {
+    deleteSecret(STRAVA_REFRESH_TOKEN_KEY)
+    res.json({ ok: true })
+  })
+  api.post(
+    '/strava/sync',
+    asyncHandler(async (_req, res) => {
+      const creds = getStravaCreds()
+      const refreshToken = getSecret(STRAVA_REFRESH_TOKEN_KEY)
+      if (!creds || !refreshToken) {
+        res.status(400).json({ error: 'Connect Strava in Settings first.' })
+        return
+      }
+      const result = await fetchStravaSnapshot(creds, refreshToken)
+      setSecret(STRAVA_REFRESH_TOKEN_KEY, result.refreshToken)
+      stravaRepo.saveSnapshot(result.athleteName, result.activities)
+      res.json({ athleteName: result.athleteName, activities: result.activities, syncedAt: new Date().toISOString() })
+    })
+  )
+  api.get('/strava/cached', (_req, res) => res.json(stravaRepo.getCachedSnapshot()))
+
+  // Microsoft (Outlook + Microsoft 365)
+  api.get('/microsoft/status', (_req, res) => {
+    const connected = !!getSecret(MICROSOFT_REFRESH_TOKEN_KEY)
+    const cached = microsoftRepo.getCachedSnapshot()
+    res.json({ connected, displayName: cached?.displayName ?? null })
+  })
+  api.post('/microsoft/credentials', (req, res) => {
+    setSecret(MICROSOFT_CLIENT_ID_KEY, req.body.clientId)
+    setSecret(MICROSOFT_CLIENT_SECRET_KEY, req.body.clientSecret)
+    res.json({ ok: true })
+  })
+  api.get('/microsoft/connect', (_req, res) => {
+    const creds = getMicrosoftCreds()
+    if (!creds) {
+      res.status(400).json({ error: 'Add your Microsoft client ID and secret in Settings first.' })
+      return
+    }
+    const redirectUri = `${publicUrl}/api/microsoft/callback`
+    res.json({ url: buildMicrosoftAuthUrl(creds.clientId, redirectUri) })
+  })
+  api.post('/microsoft/disconnect', (_req, res) => {
+    deleteSecret(MICROSOFT_REFRESH_TOKEN_KEY)
+    res.json({ ok: true })
+  })
+  api.post(
+    '/microsoft/sync',
+    asyncHandler(async (_req, res) => {
+      const creds = getMicrosoftCreds()
+      const refreshToken = getSecret(MICROSOFT_REFRESH_TOKEN_KEY)
+      if (!creds || !refreshToken) {
+        res.status(400).json({ error: 'Connect Microsoft in Settings first.' })
+        return
+      }
+      const snapshot = await fetchMicrosoftSnapshot(creds, refreshToken)
+      microsoftRepo.saveSnapshot(snapshot)
+      res.json({ ...snapshot, syncedAt: new Date().toISOString() })
+    })
+  )
+  api.get('/microsoft/cached', (_req, res) => res.json(microsoftRepo.getCachedSnapshot()))
+
+  // LinkedIn (limited to basic sign-in profile only)
+  api.get('/linkedin/profile', (_req, res) => res.json(linkedinRepo.getProfile()))
+  api.post('/linkedin/credentials', (req, res) => {
+    setSecret(LINKEDIN_CLIENT_ID_KEY, req.body.clientId)
+    setSecret(LINKEDIN_CLIENT_SECRET_KEY, req.body.clientSecret)
+    res.json({ ok: true })
+  })
+  api.get('/linkedin/connect', (_req, res) => {
+    const creds = getLinkedInCreds()
+    if (!creds) {
+      res.status(400).json({ error: 'Add your LinkedIn client ID and secret in Settings first.' })
+      return
+    }
+    const redirectUri = `${publicUrl}/api/linkedin/callback`
+    res.json({ url: buildLinkedInAuthUrl(creds.clientId, redirectUri) })
+  })
+  api.post('/linkedin/disconnect', (_req, res) => {
+    linkedinRepo.clearProfile()
+    res.json({ ok: true })
+  })
+
   // Google's redirect lands here after consent — registered before the
   // requireAuth-gated router below so it's never blocked by that middleware;
   // it's the browser being redirected top-level by Google, not an XHR from
@@ -373,6 +591,118 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
         res.redirect('/settings?google=connected')
       })
       .catch(() => res.redirect('/settings?google=error'))
+  })
+
+  // Spotify's redirect lands here after consent — same reasoning as the
+  // Google callback above: outside requireAuth since it's a top-level
+  // browser redirect from Spotify, not an XHR from our own frontend.
+  app.get('/api/spotify/callback', (req, res) => {
+    const code = String(req.query.code ?? '')
+    const error = req.query.error
+    const redirectUri = `${publicUrl}/api/spotify/callback`
+
+    if (error || !code) {
+      res.redirect('/settings?spotify=error')
+      return
+    }
+
+    const creds = getSpotifyCreds()
+    if (!creds) {
+      res.redirect('/settings?spotify=error')
+      return
+    }
+
+    exchangeSpotifyCode(creds, redirectUri, code)
+      .then(async (token) => {
+        if (!token.refreshToken) throw new Error('Spotify did not return a refresh token.')
+        setSecret(SPOTIFY_REFRESH_TOKEN_KEY, token.refreshToken)
+        const { profile, recentlyPlayed } = await fetchSpotifySnapshot(creds, token.refreshToken)
+        spotifyRepo.saveSnapshot(profile, recentlyPlayed)
+        res.redirect('/settings?spotify=connected')
+      })
+      .catch(() => res.redirect('/settings?spotify=error'))
+  })
+
+  // Strava's redirect lands here after consent — same reasoning as above.
+  app.get('/api/strava/callback', (req, res) => {
+    const code = String(req.query.code ?? '')
+    const error = req.query.error
+    const redirectUri = `${publicUrl}/api/strava/callback`
+
+    if (error || !code) {
+      res.redirect('/settings?strava=error')
+      return
+    }
+
+    const creds = getStravaCreds()
+    if (!creds) {
+      res.redirect('/settings?strava=error')
+      return
+    }
+
+    exchangeStravaCode(creds, redirectUri, code)
+      .then(async (token) => {
+        if (!token.refreshToken) throw new Error('Strava did not return a refresh token.')
+        const result = await fetchStravaSnapshot(creds, token.refreshToken)
+        setSecret(STRAVA_REFRESH_TOKEN_KEY, result.refreshToken)
+        stravaRepo.saveSnapshot(result.athleteName, result.activities)
+        res.redirect('/settings?strava=connected')
+      })
+      .catch(() => res.redirect('/settings?strava=error'))
+  })
+
+  // Microsoft's redirect lands here after consent — same reasoning as above.
+  app.get('/api/microsoft/callback', (req, res) => {
+    const code = String(req.query.code ?? '')
+    const error = req.query.error
+    const redirectUri = `${publicUrl}/api/microsoft/callback`
+
+    if (error || !code) {
+      res.redirect('/settings?microsoft=error')
+      return
+    }
+
+    const creds = getMicrosoftCreds()
+    if (!creds) {
+      res.redirect('/settings?microsoft=error')
+      return
+    }
+
+    exchangeMicrosoftCode(creds, redirectUri, code)
+      .then(async (token) => {
+        if (!token.refreshToken) throw new Error('Microsoft did not return a refresh token.')
+        setSecret(MICROSOFT_REFRESH_TOKEN_KEY, token.refreshToken)
+        const snapshot = await fetchMicrosoftSnapshot(creds, token.refreshToken)
+        microsoftRepo.saveSnapshot(snapshot)
+        res.redirect('/settings?microsoft=connected')
+      })
+      .catch(() => res.redirect('/settings?microsoft=error'))
+  })
+
+  // LinkedIn's redirect lands here after consent — same reasoning as above.
+  app.get('/api/linkedin/callback', (req, res) => {
+    const code = String(req.query.code ?? '')
+    const error = req.query.error
+    const redirectUri = `${publicUrl}/api/linkedin/callback`
+
+    if (error || !code) {
+      res.redirect('/settings?linkedin=error')
+      return
+    }
+
+    const creds = getLinkedInCreds()
+    if (!creds) {
+      res.redirect('/settings?linkedin=error')
+      return
+    }
+
+    exchangeLinkedInCode(creds, redirectUri, code)
+      .then(async (token) => {
+        const profile = await fetchLinkedInProfile(token.accessToken)
+        linkedinRepo.saveProfile(profile)
+        res.redirect('/settings?linkedin=connected')
+      })
+      .catch(() => res.redirect('/settings?linkedin=error'))
   })
 
   app.use('/api', api)

@@ -197,6 +197,81 @@ export interface PlaidTransaction {
   date: string
 }
 
+export interface WeatherForecastDay {
+  date: string // YYYY-MM-DD
+  highF: number
+  lowF: number
+  condition: string
+  icon: string
+}
+
+export interface WeatherSnapshot {
+  locationName: string
+  tempF: number | null
+  feelsLikeF: number | null
+  condition: string | null
+  icon: string | null
+  humidity: number | null
+  windMph: number | null
+  forecast: WeatherForecastDay[]
+  syncedAt: string
+}
+
+export interface SpotifyRecentTrack {
+  trackName: string
+  artistName: string
+  albumArt: string | null
+  playedAt: string
+}
+
+export interface SpotifySnapshot {
+  profile: { displayName: string; imageUrl: string | null }
+  recentlyPlayed: SpotifyRecentTrack[]
+  syncedAt: string
+}
+
+export interface StravaActivitySummary {
+  id: number
+  name: string
+  type: string
+  distanceMiles: number
+  movingMinutes: number
+  startDate: string
+}
+
+export interface StravaSnapshot {
+  athleteName: string
+  activities: StravaActivitySummary[]
+  syncedAt: string
+}
+
+export interface MicrosoftMailItem {
+  from: string
+  subject: string
+  receivedAt: string
+}
+
+export interface MicrosoftFileItem {
+  name: string
+  webUrl: string
+  modifiedAt: string
+}
+
+export interface MicrosoftSnapshot {
+  displayName: string
+  unreadCount: number
+  unreadItems: MicrosoftMailItem[]
+  recentFiles: MicrosoftFileItem[]
+  syncedAt: string
+}
+
+export interface LinkedInProfile {
+  name: string
+  email: string | null
+  pictureUrl: string | null
+  connectedAt: string
+}
+
 export interface VoiceCommandResult {
   transcript: string
   action: string
@@ -279,6 +354,42 @@ export interface DeviceHubApi {
   profile: {
     getName(): Promise<string | null>
     setName(name: string): Promise<void>
+  }
+  weather: {
+    getSettings(): Promise<{ configured: boolean; location: string }>
+    saveSettings(input: { apiKey: string; location: string }): Promise<void>
+    sync(): Promise<WeatherSnapshot | null>
+    getCached(): Promise<WeatherSnapshot | null>
+  }
+  spotify: {
+    getStatus(): Promise<{ connected: boolean; displayName: string | null }>
+    saveCredentials(clientId: string, clientSecret: string): Promise<void>
+    connect(): Promise<{ connected: boolean; displayName: string | null }>
+    disconnect(): Promise<void>
+    sync(): Promise<SpotifySnapshot>
+    getCached(): Promise<SpotifySnapshot | null>
+  }
+  strava: {
+    getStatus(): Promise<{ connected: boolean; athleteName: string | null }>
+    saveCredentials(clientId: string, clientSecret: string): Promise<void>
+    connect(): Promise<{ connected: boolean; athleteName: string | null }>
+    disconnect(): Promise<void>
+    sync(): Promise<StravaSnapshot>
+    getCached(): Promise<StravaSnapshot | null>
+  }
+  microsoft: {
+    getStatus(): Promise<{ connected: boolean; displayName: string | null }>
+    saveCredentials(clientId: string, clientSecret: string): Promise<void>
+    connect(): Promise<{ connected: boolean; displayName: string | null }>
+    disconnect(): Promise<void>
+    sync(): Promise<MicrosoftSnapshot>
+    getCached(): Promise<MicrosoftSnapshot | null>
+  }
+  linkedin: {
+    getProfile(): Promise<LinkedInProfile | null>
+    saveCredentials(clientId: string, clientSecret: string): Promise<void>
+    connect(): Promise<LinkedInProfile>
+    disconnect(): Promise<void>
   }
   plaid: {
     getSettings(): Promise<{ configured: boolean; environment: string }>

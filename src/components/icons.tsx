@@ -85,6 +85,16 @@ export function DumbbellIcon(props: IconProps) {
   )
 }
 
+export function CloudSunIcon(props: IconProps) {
+  return (
+    <Line {...props}>
+      <circle cx="7.5" cy="7.5" r="2.5" />
+      <path d="M7.5 3v1.2M7.5 10.8V12M11.5 7.5h1.2M2.3 7.5h1.2M10.3 4.7l.85-.85M3.85 11.15l.85-.85M10.3 10.3l.85.85M3.85 3.85l.85.85" />
+      <path d="M9 20h8.5a3.5 3.5 0 0 0 .3-6.98A5 5 0 0 0 8.1 15.5" />
+    </Line>
+  )
+}
+
 export function SlidersIcon(props: IconProps) {
   return (
     <Line {...props}>
@@ -139,6 +149,48 @@ export function OuraIcon(props: IconProps) {
     <svg width={props.size ?? 18} height={props.size ?? 18} viewBox="0 0 24 24" className={props.className} data-brand="true">
       <circle cx="12" cy="12" r="8.5" fill="none" stroke="#5FE0C6" strokeWidth="3.4" />
     </svg>
+  )
+}
+
+export function SpotifyIcon(props: IconProps) {
+  return (
+    <Brand {...props} hex="#1ED760">
+      <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
+    </Brand>
+  )
+}
+
+export function StravaIcon(props: IconProps) {
+  return (
+    <Brand {...props} hex="#FC4C02">
+      <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+    </Brand>
+  )
+}
+
+export function MicrosoftIcon(props: IconProps) {
+  // Not a reproduction of Microsoft's trademarked logo — a generic four-quadrant
+  // motif in the same four brand colors, representing the Microsoft 365 suite.
+  const size = props.size ?? 18
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={props.className} data-brand="true">
+      <rect x="2" y="2" width="9.3" height="9.3" fill="#F25022" />
+      <rect x="12.7" y="2" width="9.3" height="9.3" fill="#7FBA00" />
+      <rect x="2" y="12.7" width="9.3" height="9.3" fill="#00A4EF" />
+      <rect x="12.7" y="12.7" width="9.3" height="9.3" fill="#FFB900" />
+    </svg>
+  )
+}
+
+export function LinkedInIcon(props: IconProps) {
+  // Not a reproduction of LinkedIn's "in" lettermark — a generic profile glyph
+  // in their brand blue, since only basic sign-in (no feed/network data) applies.
+  return (
+    <Line {...props}>
+      <rect x="3" y="3" width="18" height="18" rx="3.5" stroke="#0A66C2" fill="none" />
+      <circle cx="12" cy="10" r="2.6" stroke="#0A66C2" />
+      <path d="M7 18c0-2.8 2.2-4.6 5-4.6s5 1.8 5 4.6" stroke="#0A66C2" />
+    </Line>
   )
 }
 

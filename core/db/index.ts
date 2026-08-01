@@ -178,6 +178,51 @@ function migrate(database: Database.Database) {
       date TEXT NOT NULL,
       syncedAt TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS spotify_cache (
+      id TEXT PRIMARY KEY,
+      displayName TEXT,
+      imageUrl TEXT,
+      recentTracksJson TEXT NOT NULL,
+      syncedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS strava_cache (
+      id TEXT PRIMARY KEY,
+      athleteName TEXT,
+      activitiesJson TEXT NOT NULL,
+      syncedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS microsoft_cache (
+      id TEXT PRIMARY KEY,
+      displayName TEXT,
+      unreadCount INTEGER,
+      unreadItemsJson TEXT NOT NULL,
+      recentFilesJson TEXT NOT NULL,
+      syncedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS linkedin_profile (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      email TEXT,
+      pictureUrl TEXT,
+      connectedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS weather_cache (
+      id TEXT PRIMARY KEY,
+      locationName TEXT NOT NULL,
+      tempF REAL,
+      feelsLikeF REAL,
+      condition TEXT,
+      icon TEXT,
+      humidity REAL,
+      windMph REAL,
+      forecastJson TEXT NOT NULL,
+      syncedAt TEXT NOT NULL
+    );
   `)
 }
 

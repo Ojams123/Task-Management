@@ -8,6 +8,11 @@ import * as fitness from '../core/db/repos/fitness'
 import * as chat from '../core/db/repos/chat'
 import * as ouraRepo from '../core/db/repos/oura'
 import * as plaidRepo from '../core/db/repos/plaid'
+import * as weatherRepo from '../core/db/repos/weather'
+import * as spotifyRepo from '../core/db/repos/spotify'
+import * as stravaRepo from '../core/db/repos/strava'
+import * as microsoftRepo from '../core/db/repos/microsoft'
+import * as linkedinRepo from '../core/db/repos/linkedin'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
 import { fetchUnreadDigest } from '../core/integrations/gmail'
@@ -17,6 +22,15 @@ import { runAssistantTurn } from '../core/integrations/assistant'
 import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
 import type { PlaidEnvironment } from '../core/integrations/plaid'
+import { fetchWeather } from '../core/integrations/weather'
+import { fetchSpotifySnapshot, type SpotifyCreds } from '../core/integrations/spotify'
+import { connectSpotify } from './integrations/spotifyAuth'
+import { fetchStravaSnapshot, type StravaCreds } from '../core/integrations/strava'
+import { connectStrava } from './integrations/stravaAuth'
+import { fetchMicrosoftSnapshot, type MicrosoftCreds } from '../core/integrations/microsoft'
+import { connectMicrosoft } from './integrations/microsoftAuth'
+import type { LinkedInCreds } from '../core/integrations/linkedin'
+import { connectLinkedIn } from './integrations/linkedinAuth'
 import type { CanvasSettings, NotificationDigest } from '../src/shared/types'
 
 const CANVAS_DOMAIN_KEY = 'canvas.domain'
@@ -33,7 +47,48 @@ const PROFILE_NAME_KEY = 'profile.name'
 const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
 const PLAID_SECRET_KEY = 'plaid.secret'
 const PLAID_ENV_KEY = 'plaid.environment'
+const WEATHER_API_KEY = 'weather.apiKey'
+const WEATHER_LOCATION_KEY = 'weather.location'
+const SPOTIFY_CLIENT_ID_KEY = 'spotify.clientId'
+const SPOTIFY_CLIENT_SECRET_KEY = 'spotify.clientSecret'
+const SPOTIFY_REFRESH_TOKEN_KEY = 'spotify.refreshToken'
+const STRAVA_CLIENT_ID_KEY = 'strava.clientId'
+const STRAVA_CLIENT_SECRET_KEY = 'strava.clientSecret'
+const STRAVA_REFRESH_TOKEN_KEY = 'strava.refreshToken'
+const MICROSOFT_CLIENT_ID_KEY = 'microsoft.clientId'
+const MICROSOFT_CLIENT_SECRET_KEY = 'microsoft.clientSecret'
+const MICROSOFT_REFRESH_TOKEN_KEY = 'microsoft.refreshToken'
+const LINKEDIN_CLIENT_ID_KEY = 'linkedin.clientId'
+const LINKEDIN_CLIENT_SECRET_KEY = 'linkedin.clientSecret'
 const DEFAULT_CALORIE_TARGET = 2000
+
+function getMicrosoftCreds(): MicrosoftCreds | null {
+  const clientId = getSecret(MICROSOFT_CLIENT_ID_KEY)
+  const clientSecret = getSecret(MICROSOFT_CLIENT_SECRET_KEY)
+  if (!clientId || !clientSecret) return null
+  return { clientId, clientSecret }
+}
+
+function getLinkedInCreds(): LinkedInCreds | null {
+  const clientId = getSecret(LINKEDIN_CLIENT_ID_KEY)
+  const clientSecret = getSecret(LINKEDIN_CLIENT_SECRET_KEY)
+  if (!clientId || !clientSecret) return null
+  return { clientId, clientSecret }
+}
+
+function getSpotifyCreds(): SpotifyCreds | null {
+  const clientId = getSecret(SPOTIFY_CLIENT_ID_KEY)
+  const clientSecret = getSecret(SPOTIFY_CLIENT_SECRET_KEY)
+  if (!clientId || !clientSecret) return null
+  return { clientId, clientSecret }
+}
+
+function getStravaCreds(): StravaCreds | null {
+  const clientId = getSecret(STRAVA_CLIENT_ID_KEY)
+  const clientSecret = getSecret(STRAVA_CLIENT_SECRET_KEY)
+  if (!clientId || !clientSecret) return null
+  return { clientId, clientSecret }
+}
 
 function getPlaidCreds(): { clientId: string; secret: string; environment: PlaidEnvironment } | null {
   const clientId = getSecret(PLAID_CLIENT_ID_KEY)
@@ -253,6 +308,140 @@ export function registerIpcHandlers() {
       await plaid.removeItem(creds, item.accessToken).catch(() => {})
     }
     plaidRepo.removeItem(itemId)
+  })
+
+  // Weather
+  ipcMain.handle('weather:getSettings', () => ({
+    configured: !!getSecret(WEATHER_API_KEY),
+    location: getSecret(WEATHER_LOCATION_KEY) ?? '',
+  }))
+  ipcMain.handle('weather:saveSettings', (_e, input: { apiKey: string; location: string }) => {
+    setSecret(WEATHER_API_KEY, input.apiKey)
+    setSecret(WEATHER_LOCATION_KEY, input.location)
+  })
+  ipcMain.handle('weather:sync', async () => {
+    const apiKey = getSecret(WEATHER_API_KEY)
+    const location = getSecret(WEATHER_LOCATION_KEY)
+    if (!apiKey || !location) throw new Error('Add your weather API key and location in Settings first.')
+    const snapshot = await fetchWeather(apiKey, location)
+    weatherRepo.saveSnapshot(snapshot)
+    return snapshot
+  })
+  ipcMain.handle('weather:getCached', () => weatherRepo.getCachedSnapshot())
+
+  // Spotify
+  ipcMain.handle('spotify:getStatus', () => {
+    const connected = !!getSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+    const cached = spotifyRepo.getCachedSnapshot()
+    return { connected, displayName: cached?.profile.displayName ?? null }
+  })
+  ipcMain.handle('spotify:saveCredentials', (_e, clientId: string, clientSecret: string) => {
+    setSecret(SPOTIFY_CLIENT_ID_KEY, clientId)
+    setSecret(SPOTIFY_CLIENT_SECRET_KEY, clientSecret)
+  })
+  ipcMain.handle('spotify:connect', async () => {
+    const creds = getSpotifyCreds()
+    if (!creds) throw new Error('Add your Spotify client ID and secret in Settings first.')
+    const { refreshToken } = await connectSpotify(creds)
+    setSecret(SPOTIFY_REFRESH_TOKEN_KEY, refreshToken)
+    const { profile, recentlyPlayed } = await fetchSpotifySnapshot(creds, refreshToken)
+    spotifyRepo.saveSnapshot(profile, recentlyPlayed)
+    return { connected: true, displayName: profile.displayName }
+  })
+  ipcMain.handle('spotify:disconnect', () => {
+    deleteSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+  })
+  ipcMain.handle('spotify:sync', async () => {
+    const creds = getSpotifyCreds()
+    const refreshToken = getSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+    if (!creds || !refreshToken) throw new Error('Connect Spotify in Settings first.')
+    const { profile, recentlyPlayed } = await fetchSpotifySnapshot(creds, refreshToken)
+    spotifyRepo.saveSnapshot(profile, recentlyPlayed)
+    return { profile, recentlyPlayed, syncedAt: new Date().toISOString() }
+  })
+  ipcMain.handle('spotify:getCached', () => spotifyRepo.getCachedSnapshot())
+
+  // Strava
+  ipcMain.handle('strava:getStatus', () => {
+    const connected = !!getSecret(STRAVA_REFRESH_TOKEN_KEY)
+    const cached = stravaRepo.getCachedSnapshot()
+    return { connected, athleteName: cached?.athleteName ?? null }
+  })
+  ipcMain.handle('strava:saveCredentials', (_e, clientId: string, clientSecret: string) => {
+    setSecret(STRAVA_CLIENT_ID_KEY, clientId)
+    setSecret(STRAVA_CLIENT_SECRET_KEY, clientSecret)
+  })
+  ipcMain.handle('strava:connect', async () => {
+    const creds = getStravaCreds()
+    if (!creds) throw new Error('Add your Strava client ID and secret in Settings first.')
+    const { refreshToken } = await connectStrava(creds)
+    const result = await fetchStravaSnapshot(creds, refreshToken)
+    setSecret(STRAVA_REFRESH_TOKEN_KEY, result.refreshToken)
+    stravaRepo.saveSnapshot(result.athleteName, result.activities)
+    return { connected: true, athleteName: result.athleteName }
+  })
+  ipcMain.handle('strava:disconnect', () => {
+    deleteSecret(STRAVA_REFRESH_TOKEN_KEY)
+  })
+  ipcMain.handle('strava:sync', async () => {
+    const creds = getStravaCreds()
+    const refreshToken = getSecret(STRAVA_REFRESH_TOKEN_KEY)
+    if (!creds || !refreshToken) throw new Error('Connect Strava in Settings first.')
+    const result = await fetchStravaSnapshot(creds, refreshToken)
+    setSecret(STRAVA_REFRESH_TOKEN_KEY, result.refreshToken)
+    stravaRepo.saveSnapshot(result.athleteName, result.activities)
+    return { athleteName: result.athleteName, activities: result.activities, syncedAt: new Date().toISOString() }
+  })
+  ipcMain.handle('strava:getCached', () => stravaRepo.getCachedSnapshot())
+
+  // Microsoft (Outlook + Microsoft 365)
+  ipcMain.handle('microsoft:getStatus', () => {
+    const connected = !!getSecret(MICROSOFT_REFRESH_TOKEN_KEY)
+    const cached = microsoftRepo.getCachedSnapshot()
+    return { connected, displayName: cached?.displayName ?? null }
+  })
+  ipcMain.handle('microsoft:saveCredentials', (_e, clientId: string, clientSecret: string) => {
+    setSecret(MICROSOFT_CLIENT_ID_KEY, clientId)
+    setSecret(MICROSOFT_CLIENT_SECRET_KEY, clientSecret)
+  })
+  ipcMain.handle('microsoft:connect', async () => {
+    const creds = getMicrosoftCreds()
+    if (!creds) throw new Error('Add your Microsoft client ID and secret in Settings first.')
+    const { refreshToken } = await connectMicrosoft(creds)
+    setSecret(MICROSOFT_REFRESH_TOKEN_KEY, refreshToken)
+    const snapshot = await fetchMicrosoftSnapshot(creds, refreshToken)
+    microsoftRepo.saveSnapshot(snapshot)
+    return { connected: true, displayName: snapshot.displayName }
+  })
+  ipcMain.handle('microsoft:disconnect', () => {
+    deleteSecret(MICROSOFT_REFRESH_TOKEN_KEY)
+  })
+  ipcMain.handle('microsoft:sync', async () => {
+    const creds = getMicrosoftCreds()
+    const refreshToken = getSecret(MICROSOFT_REFRESH_TOKEN_KEY)
+    if (!creds || !refreshToken) throw new Error('Connect Microsoft in Settings first.')
+    const snapshot = await fetchMicrosoftSnapshot(creds, refreshToken)
+    microsoftRepo.saveSnapshot(snapshot)
+    return { ...snapshot, syncedAt: new Date().toISOString() }
+  })
+  ipcMain.handle('microsoft:getCached', () => microsoftRepo.getCachedSnapshot())
+
+  // LinkedIn (limited to basic sign-in profile — no feed/network data is
+  // available from LinkedIn's API without a restrictive partnership tier)
+  ipcMain.handle('linkedin:getProfile', () => linkedinRepo.getProfile())
+  ipcMain.handle('linkedin:saveCredentials', (_e, clientId: string, clientSecret: string) => {
+    setSecret(LINKEDIN_CLIENT_ID_KEY, clientId)
+    setSecret(LINKEDIN_CLIENT_SECRET_KEY, clientSecret)
+  })
+  ipcMain.handle('linkedin:connect', async () => {
+    const creds = getLinkedInCreds()
+    if (!creds) throw new Error('Add your LinkedIn client ID and secret in Settings first.')
+    const profile = await connectLinkedIn(creds)
+    linkedinRepo.saveProfile(profile)
+    return linkedinRepo.getProfile()
+  })
+  ipcMain.handle('linkedin:disconnect', () => {
+    linkedinRepo.clearProfile()
   })
 
   // System

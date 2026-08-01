@@ -121,6 +121,58 @@ export function createHttpClient(): DeviceHubApi {
       getName: () => request('GET', '/profile/name'),
       setName: (name) => request('POST', '/profile/name', { name }),
     },
+    weather: {
+      getSettings: () => request('GET', '/weather/settings'),
+      saveSettings: (input) => request('POST', '/weather/settings', input),
+      sync: () => request('POST', '/weather/sync'),
+      getCached: () => request('GET', '/weather/cached'),
+    },
+    spotify: {
+      getStatus: () => request('GET', '/spotify/status'),
+      saveCredentials: (clientId, clientSecret) => request('POST', '/spotify/credentials', { clientId, clientSecret }),
+      connect: async () => {
+        const { url } = await request<{ url: string }>('GET', '/spotify/connect')
+        window.location.href = url
+        return new Promise(() => {})
+      },
+      disconnect: () => request('POST', '/spotify/disconnect'),
+      sync: () => request('POST', '/spotify/sync'),
+      getCached: () => request('GET', '/spotify/cached'),
+    },
+    strava: {
+      getStatus: () => request('GET', '/strava/status'),
+      saveCredentials: (clientId, clientSecret) => request('POST', '/strava/credentials', { clientId, clientSecret }),
+      connect: async () => {
+        const { url } = await request<{ url: string }>('GET', '/strava/connect')
+        window.location.href = url
+        return new Promise(() => {})
+      },
+      disconnect: () => request('POST', '/strava/disconnect'),
+      sync: () => request('POST', '/strava/sync'),
+      getCached: () => request('GET', '/strava/cached'),
+    },
+    microsoft: {
+      getStatus: () => request('GET', '/microsoft/status'),
+      saveCredentials: (clientId, clientSecret) => request('POST', '/microsoft/credentials', { clientId, clientSecret }),
+      connect: async () => {
+        const { url } = await request<{ url: string }>('GET', '/microsoft/connect')
+        window.location.href = url
+        return new Promise(() => {})
+      },
+      disconnect: () => request('POST', '/microsoft/disconnect'),
+      sync: () => request('POST', '/microsoft/sync'),
+      getCached: () => request('GET', '/microsoft/cached'),
+    },
+    linkedin: {
+      getProfile: () => request('GET', '/linkedin/profile'),
+      saveCredentials: (clientId, clientSecret) => request('POST', '/linkedin/credentials', { clientId, clientSecret }),
+      connect: async () => {
+        const { url } = await request<{ url: string }>('GET', '/linkedin/connect')
+        window.location.href = url
+        return new Promise(() => {})
+      },
+      disconnect: () => request('POST', '/linkedin/disconnect'),
+    },
     plaid: {
       getSettings: () => request('GET', '/plaid/settings'),
       saveSettings: (input) => request('POST', '/plaid/settings', input),

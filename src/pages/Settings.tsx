@@ -1,7 +1,19 @@
 import { useEffect, useState } from 'react'
 import { IS_ELECTRON } from '../bootstrap'
-import type { GoogleAuthStatus } from '../shared/types'
-import { CanvasIcon, ClaudeIcon, GmailIcon, GoogleCalendarIcon, OuraIcon, PlaidIcon } from '../components/icons'
+import type { GoogleAuthStatus, LinkedInProfile } from '../shared/types'
+import {
+  CanvasIcon,
+  ClaudeIcon,
+  CloudSunIcon,
+  GmailIcon,
+  GoogleCalendarIcon,
+  LinkedInIcon,
+  MicrosoftIcon,
+  OuraIcon,
+  PlaidIcon,
+  SpotifyIcon,
+  StravaIcon,
+} from '../components/icons'
 
 export function Settings() {
   const [name, setName] = useState('')
@@ -25,6 +37,38 @@ export function Settings() {
   const [ouraConfigured, setOuraConfigured] = useState(false)
   const [ouraSaved, setOuraSaved] = useState(false)
 
+  const [weatherApiKey, setWeatherApiKey] = useState('')
+  const [weatherLocation, setWeatherLocation] = useState('')
+  const [weatherConfigured, setWeatherConfigured] = useState(false)
+  const [weatherSaved, setWeatherSaved] = useState(false)
+
+  const [spotifyClientId, setSpotifyClientId] = useState('')
+  const [spotifyClientSecret, setSpotifyClientSecret] = useState('')
+  const [spotifyConnected, setSpotifyConnected] = useState(false)
+  const [spotifyName, setSpotifyName] = useState<string | null>(null)
+  const [spotifyConnecting, setSpotifyConnecting] = useState(false)
+  const [spotifyError, setSpotifyError] = useState<string | null>(null)
+
+  const [stravaClientId, setStravaClientId] = useState('')
+  const [stravaClientSecret, setStravaClientSecret] = useState('')
+  const [stravaConnected, setStravaConnected] = useState(false)
+  const [stravaName, setStravaName] = useState<string | null>(null)
+  const [stravaConnecting, setStravaConnecting] = useState(false)
+  const [stravaError, setStravaError] = useState<string | null>(null)
+
+  const [microsoftClientId, setMicrosoftClientId] = useState('')
+  const [microsoftClientSecret, setMicrosoftClientSecret] = useState('')
+  const [microsoftConnected, setMicrosoftConnected] = useState(false)
+  const [microsoftName, setMicrosoftName] = useState<string | null>(null)
+  const [microsoftConnecting, setMicrosoftConnecting] = useState(false)
+  const [microsoftError, setMicrosoftError] = useState<string | null>(null)
+
+  const [linkedinClientId, setLinkedinClientId] = useState('')
+  const [linkedinClientSecret, setLinkedinClientSecret] = useState('')
+  const [linkedinProfile, setLinkedinProfile] = useState<LinkedInProfile | null>(null)
+  const [linkedinConnecting, setLinkedinConnecting] = useState(false)
+  const [linkedinError, setLinkedinError] = useState<string | null>(null)
+
   const [plaidClientId, setPlaidClientId] = useState('')
   const [plaidSecret, setPlaidSecret] = useState('')
   const [plaidEnvironment, setPlaidEnvironment] = useState('sandbox')
@@ -46,9 +90,27 @@ export function Settings() {
       setPlaidConfigured(s.configured)
       setPlaidEnvironment(s.environment)
     })
+    window.api.weather.getSettings().then((s) => {
+      setWeatherConfigured(s.configured)
+      setWeatherLocation(s.location)
+    })
+    window.api.spotify.getStatus().then((s) => {
+      setSpotifyConnected(s.connected)
+      setSpotifyName(s.displayName)
+    })
+    window.api.strava.getStatus().then((s) => {
+      setStravaConnected(s.connected)
+      setStravaName(s.athleteName)
+    })
+    window.api.microsoft.getStatus().then((s) => {
+      setMicrosoftConnected(s.connected)
+      setMicrosoftName(s.displayName)
+    })
+    window.api.linkedin.getProfile().then(setLinkedinProfile)
 
-    // Browser mode: Google redirects back here after the consent screen
-    // (?google=connected or ?google=error) rather than resolving a promise.
+    // Browser mode: Google/Spotify/Strava/Microsoft/LinkedIn redirect back
+    // here after their consent screens (?google=connected or
+    // ?spotify=error, etc) rather than resolving a promise.
     const params = new URLSearchParams(window.location.search)
     const googleResult = params.get('google')
     if (googleResult) {
@@ -57,6 +119,51 @@ export function Settings() {
         setGoogleError('Google connection failed — check your client ID/secret and redirect URI, then try again.')
       } else {
         window.api.notifications.getGoogleAuthStatus().then(setGoogleStatus)
+      }
+    }
+    const spotifyResult = params.get('spotify')
+    if (spotifyResult) {
+      window.history.replaceState({}, '', window.location.pathname)
+      if (spotifyResult === 'error') {
+        setSpotifyError('Spotify connection failed — check your client ID/secret and redirect URI, then try again.')
+      } else {
+        window.api.spotify.getStatus().then((s) => {
+          setSpotifyConnected(s.connected)
+          setSpotifyName(s.displayName)
+        })
+      }
+    }
+    const stravaResult = params.get('strava')
+    if (stravaResult) {
+      window.history.replaceState({}, '', window.location.pathname)
+      if (stravaResult === 'error') {
+        setStravaError('Strava connection failed — check your client ID/secret and redirect URI, then try again.')
+      } else {
+        window.api.strava.getStatus().then((s) => {
+          setStravaConnected(s.connected)
+          setStravaName(s.athleteName)
+        })
+      }
+    }
+    const microsoftResult = params.get('microsoft')
+    if (microsoftResult) {
+      window.history.replaceState({}, '', window.location.pathname)
+      if (microsoftResult === 'error') {
+        setMicrosoftError('Microsoft connection failed — check your client ID/secret and redirect URI, then try again.')
+      } else {
+        window.api.microsoft.getStatus().then((s) => {
+          setMicrosoftConnected(s.connected)
+          setMicrosoftName(s.displayName)
+        })
+      }
+    }
+    const linkedinResult = params.get('linkedin')
+    if (linkedinResult) {
+      window.history.replaceState({}, '', window.location.pathname)
+      if (linkedinResult === 'error') {
+        setLinkedinError('LinkedIn connection failed — check your client ID/secret and redirect URI, then try again.')
+      } else {
+        window.api.linkedin.getProfile().then(setLinkedinProfile)
       }
     }
   }, [])
@@ -79,6 +186,110 @@ export function Settings() {
     setOuraConfigured(true)
     setOuraSaved(true)
     setTimeout(() => setOuraSaved(false), 2000)
+  }
+
+  async function saveSpotifyCredentials() {
+    await window.api.spotify.saveCredentials(spotifyClientId.trim(), spotifyClientSecret.trim())
+  }
+
+  async function connectSpotify() {
+    setSpotifyConnecting(true)
+    setSpotifyError(null)
+    try {
+      await saveSpotifyCredentials()
+      const status = await window.api.spotify.connect()
+      setSpotifyConnected(status.connected)
+      setSpotifyName(status.displayName)
+    } catch (e) {
+      setSpotifyError(e instanceof Error ? e.message : 'Connection failed')
+    } finally {
+      setSpotifyConnecting(false)
+    }
+  }
+
+  async function disconnectSpotify() {
+    await window.api.spotify.disconnect()
+    setSpotifyConnected(false)
+    setSpotifyName(null)
+  }
+
+  async function saveStravaCredentials() {
+    await window.api.strava.saveCredentials(stravaClientId.trim(), stravaClientSecret.trim())
+  }
+
+  async function connectStrava() {
+    setStravaConnecting(true)
+    setStravaError(null)
+    try {
+      await saveStravaCredentials()
+      const status = await window.api.strava.connect()
+      setStravaConnected(status.connected)
+      setStravaName(status.athleteName)
+    } catch (e) {
+      setStravaError(e instanceof Error ? e.message : 'Connection failed')
+    } finally {
+      setStravaConnecting(false)
+    }
+  }
+
+  async function disconnectStrava() {
+    await window.api.strava.disconnect()
+    setStravaConnected(false)
+    setStravaName(null)
+  }
+
+  async function saveMicrosoftCredentials() {
+    await window.api.microsoft.saveCredentials(microsoftClientId.trim(), microsoftClientSecret.trim())
+  }
+
+  async function connectMicrosoft() {
+    setMicrosoftConnecting(true)
+    setMicrosoftError(null)
+    try {
+      await saveMicrosoftCredentials()
+      const status = await window.api.microsoft.connect()
+      setMicrosoftConnected(status.connected)
+      setMicrosoftName(status.displayName)
+    } catch (e) {
+      setMicrosoftError(e instanceof Error ? e.message : 'Connection failed')
+    } finally {
+      setMicrosoftConnecting(false)
+    }
+  }
+
+  async function disconnectMicrosoft() {
+    await window.api.microsoft.disconnect()
+    setMicrosoftConnected(false)
+    setMicrosoftName(null)
+  }
+
+  async function saveLinkedinCredentials() {
+    await window.api.linkedin.saveCredentials(linkedinClientId.trim(), linkedinClientSecret.trim())
+  }
+
+  async function connectLinkedin() {
+    setLinkedinConnecting(true)
+    setLinkedinError(null)
+    try {
+      await saveLinkedinCredentials()
+      setLinkedinProfile(await window.api.linkedin.connect())
+    } catch (e) {
+      setLinkedinError(e instanceof Error ? e.message : 'Connection failed')
+    } finally {
+      setLinkedinConnecting(false)
+    }
+  }
+
+  async function disconnectLinkedin() {
+    await window.api.linkedin.disconnect()
+    setLinkedinProfile(null)
+  }
+
+  async function saveWeatherSettings() {
+    await window.api.weather.saveSettings({ apiKey: weatherApiKey.trim(), location: weatherLocation.trim() })
+    setWeatherConfigured(true)
+    setWeatherSaved(true)
+    setTimeout(() => setWeatherSaved(false), 2000)
   }
 
   async function savePlaidSettings() {
@@ -236,6 +447,245 @@ export function Settings() {
       <div className="card settings-section">
         <h3>
           <span className="heading-with-icon">
+            <SpotifyIcon size={20} />
+            Spotify
+          </span>
+        </h3>
+        {IS_ELECTRON ? (
+          <p className="muted" style={{ marginBottom: 12 }}>
+            Create an app at{' '}
+            <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">
+              developer.spotify.com/dashboard
+            </a>
+            . Unlike Google, Spotify requires an exact redirect URI match — add exactly{' '}
+            <code>http://127.0.0.1:43817/oauth2callback</code>, then paste the client ID and secret below.
+          </p>
+        ) : (
+          <p className="muted" style={{ marginBottom: 12 }}>
+            Create an app at{' '}
+            <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer">
+              developer.spotify.com/dashboard
+            </a>
+            . Add this exact Redirect URI: <code>{window.location.origin}/api/spotify/callback</code>. Then paste
+            the client ID and secret below.
+          </p>
+        )}
+        {spotifyConnected ? (
+          <div>
+            <p>
+              Connected{spotifyName ? ` as ${spotifyName}` : ''}.
+            </p>
+            <button className="btn btn-danger" onClick={disconnectSpotify}>
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Client ID</label>
+              <input value={spotifyClientId} onChange={(e) => setSpotifyClientId(e.target.value)} placeholder="Spotify client ID" />
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Client secret</label>
+              <input
+                type="password"
+                value={spotifyClientSecret}
+                onChange={(e) => setSpotifyClientSecret(e.target.value)}
+                placeholder="Client secret"
+              />
+            </div>
+            <button className="btn btn-primary" onClick={connectSpotify} disabled={spotifyConnecting}>
+              {spotifyConnecting ? 'Connecting…' : 'Connect Spotify account'}
+            </button>
+            {spotifyError && (
+              <p className="muted" style={{ color: 'var(--danger)', marginTop: 10 }}>
+                {spotifyError}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="card settings-section">
+        <h3>
+          <span className="heading-with-icon">
+            <StravaIcon size={20} />
+            Strava
+          </span>
+        </h3>
+        <p className="muted" style={{ marginBottom: 12 }}>
+          Create an app at{' '}
+          <a href="https://www.strava.com/settings/api" target="_blank" rel="noreferrer">
+            strava.com/settings/api
+          </a>
+          . Set the "Authorization Callback Domain" to{' '}
+          <code>{IS_ELECTRON ? 'localhost' : new URL(window.location.origin).hostname}</code>, then paste the
+          client ID and secret below.
+        </p>
+        {stravaConnected ? (
+          <div>
+            <p>
+              Connected{stravaName ? ` as ${stravaName}` : ''}.
+            </p>
+            <button className="btn btn-danger" onClick={disconnectStrava}>
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Client ID</label>
+              <input value={stravaClientId} onChange={(e) => setStravaClientId(e.target.value)} placeholder="Strava client ID" />
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Client secret</label>
+              <input
+                type="password"
+                value={stravaClientSecret}
+                onChange={(e) => setStravaClientSecret(e.target.value)}
+                placeholder="Client secret"
+              />
+            </div>
+            <button className="btn btn-primary" onClick={connectStrava} disabled={stravaConnecting}>
+              {stravaConnecting ? 'Connecting…' : 'Connect Strava account'}
+            </button>
+            {stravaError && (
+              <p className="muted" style={{ color: 'var(--danger)', marginTop: 10 }}>
+                {stravaError}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="card settings-section">
+        <h3>
+          <span className="heading-with-icon">
+            <MicrosoftIcon size={20} />
+            Microsoft 365 (Outlook + files)
+          </span>
+        </h3>
+        {IS_ELECTRON ? (
+          <p className="muted" style={{ marginBottom: 12 }}>
+            Register an app at{' '}
+            <a href="https://portal.azure.com" target="_blank" rel="noreferrer">
+              portal.azure.com
+            </a>{' '}
+            → App registrations. Add a platform of type <strong>"Mobile and desktop applications"</strong> with
+            redirect URI exactly <code>http://localhost</code> (Azure matches that against any port). Under API
+            permissions add <code>Mail.Read</code>, <code>Files.Read.All</code>, and <code>User.Read</code>
+            (delegated), then create a client secret under "Certificates & secrets". Paste both below. This one
+            connection powers unread Outlook mail and recent Word/Excel/PowerPoint files.
+          </p>
+        ) : (
+          <p className="muted" style={{ marginBottom: 12 }}>
+            Register an app at{' '}
+            <a href="https://portal.azure.com" target="_blank" rel="noreferrer">
+              portal.azure.com
+            </a>{' '}
+            → App registrations. Add a platform of type <strong>"Web"</strong> with this exact redirect URI:{' '}
+            <code>{window.location.origin}/api/microsoft/callback</code>. Under API permissions add{' '}
+            <code>Mail.Read</code>, <code>Files.Read.All</code>, and <code>User.Read</code> (delegated), then
+            create a client secret under "Certificates & secrets". Paste both below.
+          </p>
+        )}
+        {microsoftConnected ? (
+          <div>
+            <p>
+              Connected{microsoftName ? ` as ${microsoftName}` : ''}.
+            </p>
+            <button className="btn btn-danger" onClick={disconnectMicrosoft}>
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Application (client) ID</label>
+              <input
+                value={microsoftClientId}
+                onChange={(e) => setMicrosoftClientId(e.target.value)}
+                placeholder="Application (client) ID"
+              />
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Client secret</label>
+              <input
+                type="password"
+                value={microsoftClientSecret}
+                onChange={(e) => setMicrosoftClientSecret(e.target.value)}
+                placeholder="Client secret value"
+              />
+            </div>
+            <button className="btn btn-primary" onClick={connectMicrosoft} disabled={microsoftConnecting}>
+              {microsoftConnecting ? 'Connecting…' : 'Connect Microsoft account'}
+            </button>
+            {microsoftError && (
+              <p className="muted" style={{ color: 'var(--danger)', marginTop: 10 }}>
+                {microsoftError}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="card settings-section">
+        <h3>
+          <span className="heading-with-icon">
+            <LinkedInIcon size={20} />
+            LinkedIn
+          </span>
+        </h3>
+        <p className="muted" style={{ marginBottom: 12 }}>
+          LinkedIn's public API only allows basic sign-in for ordinary developer apps — this will only ever show
+          your name, email, and photo, never your feed, connections, or activity (that requires a partnership
+          tier LinkedIn doesn't grant to personal projects). Create an app at{' '}
+          <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noreferrer">
+            linkedin.com/developers/apps
+          </a>
+          , request the "Sign In with LinkedIn using OpenID Connect" product, and add this exact redirect URL:{' '}
+          <code>
+            {IS_ELECTRON ? 'http://127.0.0.1:43819/oauth2callback' : `${window.location.origin}/api/linkedin/callback`}
+          </code>
+          .
+        </p>
+        {linkedinProfile ? (
+          <div>
+            <p>Connected as {linkedinProfile.name}.</p>
+            <button className="btn btn-danger" onClick={disconnectLinkedin}>
+              Disconnect
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Client ID</label>
+              <input value={linkedinClientId} onChange={(e) => setLinkedinClientId(e.target.value)} placeholder="LinkedIn client ID" />
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Client secret</label>
+              <input
+                type="password"
+                value={linkedinClientSecret}
+                onChange={(e) => setLinkedinClientSecret(e.target.value)}
+                placeholder="Client secret"
+              />
+            </div>
+            <button className="btn btn-primary" onClick={connectLinkedin} disabled={linkedinConnecting}>
+              {linkedinConnecting ? 'Connecting…' : 'Connect LinkedIn account'}
+            </button>
+            {linkedinError && (
+              <p className="muted" style={{ color: 'var(--danger)', marginTop: 10 }}>
+                {linkedinError}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="card settings-section">
+        <h3>
+          <span className="heading-with-icon">
             <ClaudeIcon size={20} />
             Built-in assistant
           </span>
@@ -266,6 +716,49 @@ export function Settings() {
           Save API key
         </button>
         {assistantSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
+      </div>
+
+      <div className="card settings-section">
+        <h3>
+          <span className="heading-with-icon">
+            <CloudSunIcon size={20} />
+            Weather
+          </span>
+        </h3>
+        <p className="muted" style={{ marginBottom: 12 }}>
+          Get a free API key at{' '}
+          <a href="https://openweathermap.org/api" target="_blank" rel="noreferrer">
+            openweathermap.org/api
+          </a>{' '}
+          (the "Current Weather" plan is free). Enter your city as "City, State" or "City, Country" (e.g.
+          "Portland, OR" or "London, GB").
+        </p>
+        {weatherConfigured && (
+          <p className="muted" style={{ marginBottom: 10 }}>
+            Weather is currently configured.
+          </p>
+        )}
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>API key</label>
+          <input
+            type="password"
+            value={weatherApiKey}
+            onChange={(e) => setWeatherApiKey(e.target.value)}
+            placeholder="Paste your OpenWeatherMap API key"
+          />
+        </div>
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>Location</label>
+          <input
+            value={weatherLocation}
+            onChange={(e) => setWeatherLocation(e.target.value)}
+            placeholder="Portland, OR"
+          />
+        </div>
+        <button className="btn btn-primary" onClick={saveWeatherSettings}>
+          Save weather settings
+        </button>
+        {weatherSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
       </div>
 
       <div className="card settings-section">

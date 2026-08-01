@@ -56,6 +56,15 @@ because there aren't any; the web app is one you host yourself.
   to bench 225 target 225 lbs", "go to budget", etc. Uses your browser
   engine's built-in speech recognition, so it requires an internet
   connection and a microphone.
+- **Weather** — current conditions and a 5-day forecast for a location you
+  set, via a free OpenWeatherMap API key.
+- **Spotify** — your recently played tracks.
+- **Strava** — your recent activities (distance, moving time, type).
+- **Microsoft 365** — one connection covers both unread Outlook mail and
+  recently modified Word/Excel/PowerPoint files.
+- **LinkedIn** — your basic profile (name, email, photo) only. LinkedIn's
+  API doesn't allow ordinary apps any more than that — no feed, no
+  connections, no activity.
 
 ## Getting started
 
@@ -169,6 +178,71 @@ Your Plaid access tokens are encrypted at rest the same way every other API
 credential in DeviceHub is. Disconnect a bank any time from the Bank
 accounts card on Budget — this revokes DeviceHub's access via Plaid and
 deletes the cached accounts/transactions for that bank.
+
+## Connecting Weather
+
+1. Get a free API key at [openweathermap.org/api](https://openweathermap.org/api)
+   (the "Current Weather" plan is free, no card required).
+2. Paste it into Settings along with your location as "City, State" or
+   "City, Country" (e.g. "Portland, OR" or "London, GB").
+3. Go to **Weather** and click **Sync**.
+
+## Connecting Spotify, Strava, Microsoft, and LinkedIn
+
+These four all use the same kind of OAuth connection as Google, and — like
+Google — **the desktop app and the web app need different redirect URI
+setups** registered in each service's own developer dashboard.
+
+**Spotify** (recently played tracks):
+
+1. Create an app at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard).
+2. Desktop app: add exactly `http://127.0.0.1:43817/oauth2callback` as a
+   Redirect URI (Spotify requires an exact match, unlike Google, so this
+   port is fixed). Web app: add `<your PUBLIC_URL>/api/spotify/callback`.
+3. Paste the client ID and secret into Settings and click **Connect
+   Spotify account**.
+
+**Strava** (recent activities):
+
+1. Create an app at [strava.com/settings/api](https://www.strava.com/settings/api).
+2. Set "Authorization Callback Domain" to `localhost` (desktop app) or your
+   web app's hostname (e.g. `devicehub.example.com`, no `https://` and no
+   path — Strava only validates the domain, not the full URL, so any port
+   works).
+3. Paste the client ID and secret into Settings and click **Connect Strava
+   account**.
+
+**Microsoft 365** (unread Outlook mail + recent Word/Excel/PowerPoint
+files, one connection):
+
+1. Register an app at [portal.azure.com](https://portal.azure.com) → App
+   registrations → New registration.
+2. Desktop app: add a platform of type **"Mobile and desktop
+   applications"** with redirect URI exactly `http://localhost` (Azure
+   matches that against any port). Web app: add a platform of type
+   **"Web"** with redirect URI `<your PUBLIC_URL>/api/microsoft/callback`.
+3. Under **API permissions**, add the delegated permissions `Mail.Read`,
+   `Files.Read.All`, and `User.Read`.
+4. Under **Certificates & secrets**, create a new client secret — copy its
+   *value* (not the secret ID) right away, since Azure only shows it once.
+5. Paste the Application (client) ID and the secret value into Settings
+   and click **Connect Microsoft account**.
+
+**LinkedIn** (name, email, and photo only — see below):
+
+1. Create an app at [linkedin.com/developers/apps](https://www.linkedin.com/developers/apps)
+   and request the **"Sign In with LinkedIn using OpenID Connect"**
+   product (self-serve, no approval wait).
+2. Desktop app: add exactly `http://127.0.0.1:43819/oauth2callback` as an
+   Authorized redirect URL (fixed port, same reason as Spotify). Web app:
+   add `<your PUBLIC_URL>/api/linkedin/callback`.
+3. Paste the client ID and secret into Settings and click **Connect
+   LinkedIn account**.
+
+LinkedIn's public API only grants ordinary developer apps this OpenID
+Connect sign-in scope — your feed, connections, and activity all require a
+restrictive partnership tier LinkedIn doesn't extend to personal projects,
+so that's the ceiling here, not a DeviceHub limitation.
 
 ## Running as a web app (for iPad, iPhone, or any browser)
 

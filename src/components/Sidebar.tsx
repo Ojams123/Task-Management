@@ -3,11 +3,16 @@ import {
   BellIcon,
   CanvasIcon,
   ClaudeIcon,
+  CloudSunIcon,
   DashboardIcon,
   DumbbellIcon,
   GmailIcon,
   GoogleCalendarIcon,
+  LinkedInIcon,
+  MicrosoftIcon,
   SlidersIcon,
+  SpotifyIcon,
+  StravaIcon,
   TargetIcon,
   WalletIcon,
   type IconProps,
@@ -21,6 +26,11 @@ export type Page =
   | 'assignments'
   | 'calendar'
   | 'fitness'
+  | 'weather'
+  | 'spotify'
+  | 'strava'
+  | 'microsoft'
+  | 'linkedin'
   | 'notifications'
   | 'assistant'
   | 'settings'
@@ -33,6 +43,11 @@ const NAV_ITEMS: { id: Page; label: string; icon: ComponentType<IconProps> }[] =
   { id: 'fitness', label: 'Fitness', icon: DumbbellIcon },
   { id: 'assignments', label: 'Assignments', icon: CanvasIcon },
   { id: 'calendar', label: 'Calendar', icon: GoogleCalendarIcon },
+  { id: 'weather', label: 'Weather', icon: CloudSunIcon },
+  { id: 'spotify', label: 'Spotify', icon: SpotifyIcon },
+  { id: 'strava', label: 'Strava', icon: StravaIcon },
+  { id: 'microsoft', label: 'Microsoft 365', icon: MicrosoftIcon },
+  { id: 'linkedin', label: 'LinkedIn', icon: LinkedInIcon },
   { id: 'notifications', label: 'Notifications', icon: GmailIcon },
   { id: 'assistant', label: 'Assistant', icon: ClaudeIcon },
   { id: 'settings', label: 'Settings', icon: SlidersIcon },
