@@ -6,8 +6,10 @@ import type {
   DailyFitnessSummary,
   Goal,
   NotificationDigest,
+  OuraDailySummary,
   Reminder,
 } from '../shared/types'
+import { OuraIcon } from '../components/icons'
 
 function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -38,10 +40,12 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   const [googleConnected, setGoogleConnected] = useState(false)
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [fitness, setFitness] = useState<DailyFitnessSummary | null>(null)
+  const [ouraConfigured, setOuraConfigured] = useState(false)
+  const [ouraToday, setOuraToday] = useState<OuraDailySummary | null>(null)
 
   useEffect(() => {
     async function load() {
-      const [profileName, r, g, b, canvasSettings, googleStatus, fitnessSummary] = await Promise.all([
+      const [profileName, r, g, b, canvasSettings, googleStatus, fitnessSummary, ouraStatus] = await Promise.all([
         window.api.profile.getName(),
         window.api.reminders.list(),
         window.api.goals.list(),
@@ -49,6 +53,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         window.api.canvas.getSettings(),
         window.api.notifications.getGoogleAuthStatus(),
         window.api.fitness.dailySummary(),
+        window.api.oura.getStatus(),
       ])
       setName(profileName ?? '')
       setReminders(r)
@@ -57,11 +62,16 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       setCanvasConfigured(!!canvasSettings)
       setGoogleConnected(googleStatus.connected)
       setFitness(fitnessSummary)
+      setOuraConfigured(ouraStatus.configured)
 
       if (canvasSettings) setAssignments(await window.api.canvas.listCached())
       if (googleStatus.connected) {
         setDigest(await window.api.notifications.getDigest())
         setEvents(await window.api.calendar.getEvents())
+      }
+      if (ouraStatus.configured) {
+        const days = await window.api.oura.listCached()
+        setOuraToday(days[0] ?? null)
       }
     }
     load()
@@ -308,6 +318,50 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
           </div>
         ) : (
           <div className="empty-state">No fitness data yet.</div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3>
+          <span className="heading-with-icon">
+            <OuraIcon size={18} />
+            Oura
+          </span>
+          <button className="link" onClick={() => onNavigate('fitness')}>
+            View all
+          </button>
+        </h3>
+        {!ouraConfigured ? (
+          <div className="empty-state">Connect Oura in Settings to see sleep and readiness scores here.</div>
+        ) : !ouraToday ? (
+          <div className="empty-state">No data synced yet — sync from Fitness to check for updates.</div>
+        ) : (
+          <div className="grid grid-2">
+            <div className="stat">
+              <span className="stat-label">Sleep</span>
+              <span className="stat-value" style={{ fontSize: 18 }}>
+                {ouraToday.sleepScore ?? '—'}
+              </span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Readiness</span>
+              <span className="stat-value" style={{ fontSize: 18 }}>
+                {ouraToday.readinessScore ?? '—'}
+              </span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Activity</span>
+              <span className="stat-value" style={{ fontSize: 18 }}>
+                {ouraToday.activityScore ?? '—'}
+              </span>
+            </div>
+            <div className="stat">
+              <span className="stat-label">Steps</span>
+              <span className="stat-value" style={{ fontSize: 18 }}>
+                {ouraToday.steps?.toLocaleString() ?? '—'}
+              </span>
+            </div>
+          </div>
         )}
       </div>
 
