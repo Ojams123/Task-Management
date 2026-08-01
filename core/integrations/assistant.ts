@@ -8,7 +8,7 @@ const MAX_TOOL_ROUNDS = 6
 function systemPrompt(): string {
   return `You are the built-in assistant inside DeviceHub, a personal organization desktop app.
 Current date/time: ${new Date().toString()}.
-You can create and update reminders, goals, budget transactions, food/exercise entries, and can look up the user's current reminders, goals, budget, Canvas assignments, and calendar events via tools. Use tools to take action whenever the user asks you to add/log/track something — don't just describe what you would do. Use get_overview before answering questions about what's due, owed, or upcoming, rather than guessing. Keep replies concise and conversational.`
+You can create and update reminders, goals, budget transactions, and food/exercise entries. You can also create/delete Google Calendar events, sync the weather, control Spotify playback (play/pause/skip — requires Spotify Premium), log Strava activities, mark Canvas assignments done in the local checklist, and read/mark-as-read Gmail messages. Use tools to take action whenever the user asks you to add/log/track/create/delete/play/pause something — don't just describe what you would do. Use get_overview before answering questions about what's due, owed, upcoming, playing, or how they've been sleeping/recovering/spending, rather than guessing — it covers reminders, goals, budget, Canvas, calendar, fitness, Oura, bank accounts/transactions, weather, Spotify, Strava, Microsoft 365, and LinkedIn. For calendar/Canvas actions matched by title, confirm which item you acted on. Keep replies concise and conversational.`
 }
 
 function toApiHistory(history: ChatMessage[]): Anthropic.MessageParam[] {
@@ -47,7 +47,7 @@ export async function runAssistantTurn(
       if (block.type !== 'tool_use') continue
       let result: unknown
       try {
-        result = executeTool(block.name, block.input as Record<string, unknown>)
+        result = await executeTool(block.name, block.input as Record<string, unknown>)
       } catch (err) {
         result = { error: err instanceof Error ? err.message : String(err) }
       }
