@@ -737,6 +737,107 @@ button.link:hover {
   color: #2a7ba0;
 }
 
+.oura-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.oura-tab {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.oura-tab:hover {
+  color: var(--text);
+}
+
+.oura-tab.active {
+  color: var(--tab-color, var(--accent));
+  border-color: var(--tab-color, var(--accent));
+  background: color-mix(in srgb, var(--tab-color, var(--accent)) 14%, transparent);
+}
+
+.oura-headline {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.oura-headline-value {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.oura-headline-label {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.oura-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 150px;
+  padding: 0 2px 10px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  scroll-snap-type: x proximity;
+}
+
+.oura-bar-col {
+  flex: 0 0 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  gap: 4px;
+  scroll-snap-align: center;
+}
+
+.oura-bar-value {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  min-height: 14px;
+}
+
+.oura-bar {
+  width: 60%;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.2s ease, background 0.15s ease;
+}
+
+.oura-bar-col.no-data .oura-bar {
+  opacity: 0.35;
+}
+
+.oura-bar-col.selected .oura-bar {
+  box-shadow: 0 0 0 2px var(--bg-card);
+}
+
+.oura-bar-day {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
 .settings-section {
   max-width: 560px;
 }

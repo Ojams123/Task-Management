@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { DailyFitnessSummary, ExerciseEntry, FoodEntry, Goal, OuraDailySummary } from '../shared/types'
 import type { Page } from '../components/Sidebar'
 import { OuraIcon } from '../components/icons'
+import { OuraPanel } from '../components/OuraPanel'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -268,29 +269,8 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
           <p className="muted" style={{ color: 'var(--danger)' }}>
             {ouraError}
           </p>
-        ) : ouraDays.length === 0 ? (
-          <div className="empty-state">No data synced yet — click "Sync".</div>
         ) : (
-          <div className="list">
-            {ouraDays.slice(0, 7).map((d) => (
-              <div className="list-row" key={d.date}>
-                <div className="list-row-main">
-                  <div className="list-row-title">
-                    {new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                  </div>
-                  <div className="list-row-sub">
-                    {d.totalSleepMinutes != null && `${Math.floor(d.totalSleepMinutes / 60)}h ${d.totalSleepMinutes % 60}m sleep`}
-                    {d.steps != null && ` · ${d.steps.toLocaleString()} steps`}
-                  </div>
-                </div>
-                <div className="list-row-actions">
-                  {d.sleepScore != null && <span className="badge">Sleep {d.sleepScore}</span>}
-                  {d.readinessScore != null && <span className="badge">Readiness {d.readinessScore}</span>}
-                  {d.activityScore != null && <span className="badge">Activity {d.activityScore}</span>}
-                </div>
-              </div>
-            ))}
-          </div>
+          <OuraPanel days={ouraDays} />
         )}
       </div>
 
