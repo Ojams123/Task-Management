@@ -118,6 +118,7 @@ export interface CalendarEvent {
   allDay: boolean
   location: string | null
   htmlLink: string | null
+  source?: 'google' | 'canvas'
 }
 
 export interface NewCalendarEvent {

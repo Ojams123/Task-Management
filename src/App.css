@@ -728,6 +728,15 @@ button.link:hover {
   font-size: 10px;
 }
 
+.week-calendar-event-canvas {
+  background: linear-gradient(135deg, #2a7ba0, #1d5a78);
+}
+
+.week-calendar-chip-canvas {
+  background: rgba(42, 123, 160, 0.16);
+  color: #2a7ba0;
+}
+
 .settings-section {
   max-width: 560px;
 }

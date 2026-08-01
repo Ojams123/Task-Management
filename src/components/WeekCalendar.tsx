@@ -139,7 +139,12 @@ export function WeekCalendar({
               {allDayEvents
                 .filter((e) => isSameDay(new Date(e.start), d))
                 .map((e) => (
-                  <div key={e.id} className="week-calendar-allday-chip" onClick={() => onDelete(e.id)} title="Click to delete">
+                  <div
+                    key={e.id}
+                    className={`week-calendar-allday-chip${e.source === 'canvas' ? ' week-calendar-chip-canvas' : ''}`}
+                    onClick={() => onDelete(e.id)}
+                    title={e.source === 'canvas' ? 'Canvas assignment — click to open' : 'Click to delete'}
+                  >
                     {e.title}
                   </div>
                 ))}
@@ -165,22 +170,28 @@ export function WeekCalendar({
                 <div key={h} className="week-calendar-hour-row" style={{ top: h * HOUR_HEIGHT, height: HOUR_HEIGHT }} />
               ))}
               {isToday && <div className="week-calendar-now-line" style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }} />}
-              {dayEvents.map(({ event, left, width, top, height }) => (
-                <div
-                  key={event.id}
-                  className="week-calendar-event"
-                  style={{ left: `${left}%`, width: `calc(${width}% - 3px)`, top, height: Math.max(height, 20) }}
-                  onClick={() => onDelete(event.id)}
-                  title={`${event.title} — click to delete`}
-                >
-                  <div className="week-calendar-event-title">{event.title}</div>
-                  {height > 30 && (
-                    <div className="week-calendar-event-time">
-                      {new Date(event.start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+              {dayEvents.map(({ event, left, width, top, height }) => {
+                const isCanvas = event.source === 'canvas'
+                return (
+                  <div
+                    key={event.id}
+                    className={`week-calendar-event${isCanvas ? ' week-calendar-event-canvas' : ''}`}
+                    style={{ left: `${left}%`, width: `calc(${width}% - 3px)`, top, height: Math.max(height, 20) }}
+                    onClick={() => onDelete(event.id)}
+                    title={isCanvas ? `${event.title} — due, click to open in Canvas` : `${event.title} — click to delete`}
+                  >
+                    <div className="week-calendar-event-title">
+                      {isCanvas ? '📘 ' : ''}
+                      {event.title}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {height > 30 && (
+                      <div className="week-calendar-event-time">
+                        {new Date(event.start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )
         })}
