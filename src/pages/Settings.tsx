@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IS_ELECTRON } from '../bootstrap'
-import type { GoogleAuthStatus, LinkedInProfile } from '../shared/types'
+import type { AssistantProvider, GoogleAuthStatus, LinkedInProfile } from '../shared/types'
 import {
   CanvasIcon,
   ClaudeIcon,
@@ -9,6 +9,7 @@ import {
   GoogleCalendarIcon,
   LinkedInIcon,
   MicrosoftIcon,
+  OpenAIIcon,
   OuraIcon,
   PlaidIcon,
   SpotifyIcon,
@@ -29,8 +30,11 @@ export function Settings() {
   const [connecting, setConnecting] = useState(false)
   const [googleError, setGoogleError] = useState<string | null>(null)
 
+  const [assistantProvider, setAssistantProvider] = useState<AssistantProvider>('anthropic')
   const [anthropicKey, setAnthropicKey] = useState('')
-  const [assistantConfigured, setAssistantConfigured] = useState(false)
+  const [openaiKey, setOpenaiKey] = useState('')
+  const [anthropicConfigured, setAnthropicConfigured] = useState(false)
+  const [openaiConfigured, setOpenaiConfigured] = useState(false)
   const [assistantSaved, setAssistantSaved] = useState(false)
 
   const [ouraToken, setOuraToken] = useState('')
@@ -84,7 +88,11 @@ export function Settings() {
       }
     })
     window.api.notifications.getGoogleAuthStatus().then(setGoogleStatus)
-    window.api.assistant.getStatus().then((s) => setAssistantConfigured(s.configured))
+    window.api.assistant.getStatus().then((s) => {
+      setAssistantProvider(s.provider)
+      setAnthropicConfigured(s.anthropicConfigured)
+      setOpenaiConfigured(s.openaiConfigured)
+    })
     window.api.oura.getStatus().then((s) => setOuraConfigured(s.configured))
     window.api.plaid.getSettings().then((s) => {
       setPlaidConfigured(s.configured)
@@ -174,11 +182,18 @@ export function Settings() {
     setTimeout(() => setNameSaved(false), 2000)
   }
 
-  async function saveAssistantKey() {
-    await window.api.assistant.saveApiKey(anthropicKey.trim())
-    setAssistantConfigured(true)
+  async function saveAssistantKey(provider: AssistantProvider) {
+    const key = provider === 'openai' ? openaiKey : anthropicKey
+    await window.api.assistant.saveApiKey(provider, key.trim())
+    if (provider === 'openai') setOpenaiConfigured(true)
+    else setAnthropicConfigured(true)
     setAssistantSaved(true)
     setTimeout(() => setAssistantSaved(false), 2000)
+  }
+
+  async function selectAssistantProvider(provider: AssistantProvider) {
+    setAssistantProvider(provider)
+    await window.api.assistant.setProvider(provider)
   }
 
   async function saveOuraToken() {
@@ -691,18 +706,38 @@ export function Settings() {
           </span>
         </h3>
         <p className="muted" style={{ marginBottom: 12 }}>
-          The assistant uses your own Anthropic API key — get one at{' '}
-          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer">
-            console.anthropic.com
-          </a>
-          . It's stored encrypted, only used to call the Claude API directly from your device, and can create
-          reminders, goals, transactions, and fitness entries when you ask it to.
+          The assistant can use either Anthropic (Claude) or OpenAI (ChatGPT) — bring your own API key for
+          whichever you prefer. It's stored encrypted, only used to call that provider's API directly from your
+          device, and can create reminders, goals, transactions, fitness entries, calendar events, and more when
+          you ask it to.
         </p>
-        {assistantConfigured && (
-          <p className="muted" style={{ marginBottom: 10 }}>
-            An API key is currently saved.
-          </p>
-        )}
+
+        <div className="field" style={{ marginBottom: 14 }}>
+          <label>Active provider</label>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              type="button"
+              className={`btn ${assistantProvider === 'anthropic' ? 'btn-primary' : 'btn-sm'}`}
+              onClick={() => selectAssistantProvider('anthropic')}
+            >
+              <span className="heading-with-icon">
+                <ClaudeIcon size={16} />
+                Anthropic (Claude)
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`btn ${assistantProvider === 'openai' ? 'btn-primary' : 'btn-sm'}`}
+              onClick={() => selectAssistantProvider('openai')}
+            >
+              <span className="heading-with-icon">
+                <OpenAIIcon size={16} />
+                OpenAI (ChatGPT)
+              </span>
+            </button>
+          </div>
+        </div>
+
         <div className="field" style={{ marginBottom: 10 }}>
           <label>Anthropic API key</label>
           <input
@@ -712,10 +747,52 @@ export function Settings() {
             placeholder="sk-ant-…"
           />
         </div>
-        <button className="btn btn-primary" onClick={saveAssistantKey}>
-          Save API key
+        <button className="btn btn-primary" onClick={() => saveAssistantKey('anthropic')}>
+          Save Anthropic key
         </button>
-        {assistantSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
+        {anthropicConfigured && (
+          <span className="muted" style={{ marginLeft: 10 }}>
+            A key is saved.
+          </span>
+        )}
+        <p className="muted" style={{ margin: '6px 0 16px' }}>
+          Get one at{' '}
+          <a href="https://console.anthropic.com" target="_blank" rel="noreferrer">
+            console.anthropic.com
+          </a>
+          .
+        </p>
+
+        <div className="field" style={{ marginBottom: 10 }}>
+          <label>OpenAI API key</label>
+          <input
+            type="password"
+            value={openaiKey}
+            onChange={(e) => setOpenaiKey(e.target.value)}
+            placeholder="sk-…"
+          />
+        </div>
+        <button className="btn btn-primary" onClick={() => saveAssistantKey('openai')}>
+          Save OpenAI key
+        </button>
+        {openaiConfigured && (
+          <span className="muted" style={{ marginLeft: 10 }}>
+            A key is saved.
+          </span>
+        )}
+        <p className="muted" style={{ margin: '6px 0 0' }}>
+          Get one at{' '}
+          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">
+            platform.openai.com/api-keys
+          </a>
+          .
+        </p>
+
+        {assistantSaved && (
+          <p className="muted" style={{ marginTop: 10 }}>
+            Saved.
+          </p>
+        )}
       </div>
 
       <div className="card settings-section">

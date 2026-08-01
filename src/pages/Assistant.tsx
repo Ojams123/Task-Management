@@ -92,8 +92,9 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
       <div className="card">
         <h3>Set up the assistant</h3>
         <p className="muted" style={{ marginBottom: 12 }}>
-          Add your own Anthropic API key in Settings to enable the built-in assistant. It can answer questions
-          about what's due and add reminders, goals, transactions, and fitness entries for you on request.
+          Add your own Anthropic or OpenAI API key in Settings to enable the built-in assistant. It can answer
+          questions about what's due and add reminders, goals, transactions, and fitness entries for you on
+          request.
         </p>
         <button className="btn btn-primary" onClick={() => onNavigate?.('settings')}>
           Go to Settings

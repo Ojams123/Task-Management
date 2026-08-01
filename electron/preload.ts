@@ -61,7 +61,8 @@ const api: DeviceHubApi = {
   },
   assistant: {
     getStatus: () => ipcRenderer.invoke('assistant:getStatus'),
-    saveApiKey: (apiKey) => ipcRenderer.invoke('assistant:saveApiKey', apiKey),
+    saveApiKey: (provider, apiKey) => ipcRenderer.invoke('assistant:saveApiKey', provider, apiKey),
+    setProvider: (provider) => ipcRenderer.invoke('assistant:setProvider', provider),
     getHistory: () => ipcRenderer.invoke('assistant:getHistory'),
     sendMessage: (content) => ipcRenderer.invoke('assistant:sendMessage', content),
     clearHistory: () => ipcRenderer.invoke('assistant:clearHistory'),

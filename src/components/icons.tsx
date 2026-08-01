@@ -240,3 +240,17 @@ export function PlaidIcon(props: IconProps) {
     </Line>
   )
 }
+
+export function OpenAIIcon(props: IconProps) {
+  // Not a reproduction of OpenAI's trademarked logo — a generic six-point
+  // spark motif in their brand teal, standing in for the GPT model family.
+  return (
+    <svg width={props.size ?? 18} height={props.size ?? 18} viewBox="0 0 24 24" className={props.className} data-brand="true">
+      <path
+        d="M12 1.5c.66 2.94 1.3 4.62 2.2 5.86 1.11 1.53 2.66 2.5 5.8 3.14-3.14.64-4.69 1.61-5.8 3.14-.9 1.24-1.54 2.92-2.2 5.86-.66-2.94-1.3-4.62-2.2-5.86-1.11-1.53-2.66-2.5-5.8-3.14 3.14-.64 4.69-1.61 5.8-3.14.9-1.24 1.54-2.92 2.2-5.86Z"
+        fill="#10A37F"
+      />
+      <circle cx="19.5" cy="19.5" r="1.9" fill="#10A37F" opacity="0.8" />
+    </svg>
+  )
+}

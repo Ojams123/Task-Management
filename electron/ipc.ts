@@ -42,7 +42,7 @@ import { fetchMicrosoftSnapshot, type MicrosoftCreds } from '../core/integration
 import { connectMicrosoft } from './integrations/microsoftAuth'
 import type { LinkedInCreds } from '../core/integrations/linkedin'
 import { connectLinkedIn } from './integrations/linkedinAuth'
-import type { CanvasSettings, NotificationDigest, NewCalendarEvent } from '../src/shared/types'
+import type { CanvasSettings, NotificationDigest, NewCalendarEvent, AssistantProvider } from '../src/shared/types'
 
 const CANVAS_DOMAIN_KEY = 'canvas.domain'
 const CANVAS_TOKEN_KEY = 'canvas.token'
@@ -53,6 +53,8 @@ const GOOGLE_EMAIL_KEY = 'google.email'
 const LAST_NOTIFICATION_CHECK_KEY = 'notifications.lastCheck'
 const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
+const OPENAI_API_KEY = 'assistant.openaiApiKey'
+const ASSISTANT_PROVIDER_KEY = 'assistant.provider'
 const OURA_TOKEN_KEY = 'oura.token'
 const PROFILE_NAME_KEY = 'profile.name'
 const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
@@ -120,6 +122,10 @@ async function syncAllPlaidItems() {
     plaidRepo.replaceCachedTransactions(item.id, transactions)
   }
   return { accounts: plaidRepo.listCachedAccounts(), transactions: plaidRepo.listCachedTransactions() }
+}
+
+function getAssistantProvider(): AssistantProvider {
+  return (getSecret(ASSISTANT_PROVIDER_KEY) as AssistantProvider | null) ?? 'anthropic'
 }
 
 function getCanvasSettings(): CanvasSettings | null {
@@ -276,17 +282,33 @@ export function registerIpcHandlers() {
   })
 
   // Assistant
-  ipcMain.handle('assistant:getStatus', () => ({ configured: !!getSecret(ANTHROPIC_API_KEY) }))
-  ipcMain.handle('assistant:saveApiKey', (_e, apiKey: string) => {
-    setSecret(ANTHROPIC_API_KEY, apiKey)
+  ipcMain.handle('assistant:getStatus', () => {
+    const provider = getAssistantProvider()
+    const anthropicConfigured = !!getSecret(ANTHROPIC_API_KEY)
+    const openaiConfigured = !!getSecret(OPENAI_API_KEY)
+    return {
+      provider,
+      anthropicConfigured,
+      openaiConfigured,
+      configured: provider === 'openai' ? openaiConfigured : anthropicConfigured,
+    }
+  })
+  ipcMain.handle('assistant:saveApiKey', (_e, provider: AssistantProvider, apiKey: string) => {
+    setSecret(provider === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY, apiKey)
+  })
+  ipcMain.handle('assistant:setProvider', (_e, provider: AssistantProvider) => {
+    setSecret(ASSISTANT_PROVIDER_KEY, provider)
   })
   ipcMain.handle('assistant:getHistory', () => chat.listMessages())
   ipcMain.handle('assistant:sendMessage', async (_e, content: string) => {
-    const apiKey = getSecret(ANTHROPIC_API_KEY)
-    if (!apiKey) throw new Error('Add your Anthropic API key in Settings to enable the assistant.')
+    const provider = getAssistantProvider()
+    const apiKey = getSecret(provider === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY)
+    if (!apiKey) {
+      throw new Error(`Add your ${provider === 'openai' ? 'OpenAI' : 'Anthropic'} API key in Settings to enable the assistant.`)
+    }
     const history = chat.listMessages()
     chat.addMessage('user', content)
-    const reply = await runAssistantTurn(apiKey, history, content)
+    const reply = await runAssistantTurn(provider, apiKey, history, content)
     chat.addMessage('assistant', reply)
     return chat.listMessages()
   })

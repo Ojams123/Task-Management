@@ -110,7 +110,8 @@ export function createHttpClient(): DeviceHubApi {
     },
     assistant: {
       getStatus: () => request('GET', '/assistant/status'),
-      saveApiKey: (apiKey) => request('POST', '/assistant/api-key', { apiKey }),
+      saveApiKey: (provider, apiKey) => request('POST', '/assistant/api-key', { provider, apiKey }),
+      setProvider: (provider) => request('POST', '/assistant/provider', { provider }),
       getHistory: () => request('GET', '/assistant/history'),
       sendMessage: (content) => request('POST', '/assistant/message', { content }),
       clearHistory: () => request('DELETE', '/assistant/history'),

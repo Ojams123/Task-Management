@@ -44,7 +44,7 @@ import { buildMicrosoftAuthUrl, exchangeMicrosoftCode, fetchMicrosoftSnapshot, t
 import { buildLinkedInAuthUrl, exchangeLinkedInCode, fetchLinkedInProfile, type LinkedInCreds } from '../core/integrations/linkedin'
 import { buildAuthUrl, exchangeCode } from './googleOAuth'
 import { requireAuth } from './auth'
-import type { CanvasSettings, NotificationDigest, NewCalendarEvent } from '../src/shared/types'
+import type { CanvasSettings, NotificationDigest, NewCalendarEvent, AssistantProvider } from '../src/shared/types'
 
 const CANVAS_DOMAIN_KEY = 'canvas.domain'
 const CANVAS_TOKEN_KEY = 'canvas.token'
@@ -55,6 +55,8 @@ const GOOGLE_EMAIL_KEY = 'google.email'
 const LAST_NOTIFICATION_CHECK_KEY = 'notifications.lastCheck'
 const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
+const OPENAI_API_KEY = 'assistant.openaiApiKey'
+const ASSISTANT_PROVIDER_KEY = 'assistant.provider'
 const OURA_TOKEN_KEY = 'oura.token'
 const PROFILE_NAME_KEY = 'profile.name'
 const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
@@ -74,6 +76,10 @@ const MICROSOFT_REFRESH_TOKEN_KEY = 'microsoft.refreshToken'
 const LINKEDIN_CLIENT_ID_KEY = 'linkedin.clientId'
 const LINKEDIN_CLIENT_SECRET_KEY = 'linkedin.clientSecret'
 const DEFAULT_CALORIE_TARGET = 2000
+
+function getAssistantProvider(): AssistantProvider {
+  return (getSecret(ASSISTANT_PROVIDER_KEY) as AssistantProvider | null) ?? 'anthropic'
+}
 
 function getMicrosoftCreds(): MicrosoftCreds | null {
   const clientId = getSecret(MICROSOFT_CLIENT_ID_KEY)
@@ -348,23 +354,42 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
   })
 
   // Assistant
-  api.get('/assistant/status', (_req, res) => res.json({ configured: !!getSecret(ANTHROPIC_API_KEY) }))
+  api.get('/assistant/status', (_req, res) => {
+    const provider = getAssistantProvider()
+    const anthropicConfigured = !!getSecret(ANTHROPIC_API_KEY)
+    const openaiConfigured = !!getSecret(OPENAI_API_KEY)
+    res.json({
+      provider,
+      anthropicConfigured,
+      openaiConfigured,
+      configured: provider === 'openai' ? openaiConfigured : anthropicConfigured,
+    })
+  })
   api.post('/assistant/api-key', (req, res) => {
-    setSecret(ANTHROPIC_API_KEY, req.body.apiKey)
+    const provider: AssistantProvider = req.body.provider === 'openai' ? 'openai' : 'anthropic'
+    setSecret(provider === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY, req.body.apiKey)
+    res.json({ ok: true })
+  })
+  api.post('/assistant/provider', (req, res) => {
+    const provider: AssistantProvider = req.body.provider === 'openai' ? 'openai' : 'anthropic'
+    setSecret(ASSISTANT_PROVIDER_KEY, provider)
     res.json({ ok: true })
   })
   api.get('/assistant/history', (_req, res) => res.json(chat.listMessages()))
   api.post(
     '/assistant/message',
     asyncHandler(async (req, res) => {
-      const apiKey = getSecret(ANTHROPIC_API_KEY)
+      const provider = getAssistantProvider()
+      const apiKey = getSecret(provider === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY)
       if (!apiKey) {
-        res.status(400).json({ error: 'Add your Anthropic API key in Settings to enable the assistant.' })
+        res.status(400).json({
+          error: `Add your ${provider === 'openai' ? 'OpenAI' : 'Anthropic'} API key in Settings to enable the assistant.`,
+        })
         return
       }
       const history = chat.listMessages()
       chat.addMessage('user', req.body.content)
-      const reply = await runAssistantTurn(apiKey, history, req.body.content)
+      const reply = await runAssistantTurn(provider, apiKey, history, req.body.content)
       chat.addMessage('assistant', reply)
       res.json(chat.listMessages())
     })

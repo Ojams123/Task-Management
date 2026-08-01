@@ -168,6 +168,15 @@ export interface ChatMessage {
   createdAt: string
 }
 
+export type AssistantProvider = 'anthropic' | 'openai'
+
+export interface AssistantStatus {
+  provider: AssistantProvider
+  configured: boolean
+  anthropicConfigured: boolean
+  openaiConfigured: boolean
+}
+
 export interface OuraDailySummary {
   date: string // YYYY-MM-DD
   sleepScore: number | null
@@ -375,8 +384,9 @@ export interface DeviceHubApi {
     setCalorieTarget(target: number): Promise<void>
   }
   assistant: {
-    getStatus(): Promise<{ configured: boolean }>
-    saveApiKey(apiKey: string): Promise<void>
+    getStatus(): Promise<AssistantStatus>
+    saveApiKey(provider: AssistantProvider, apiKey: string): Promise<void>
+    setProvider(provider: AssistantProvider): Promise<void>
     getHistory(): Promise<ChatMessage[]>
     sendMessage(content: string): Promise<ChatMessage[]>
     clearHistory(): Promise<void>
