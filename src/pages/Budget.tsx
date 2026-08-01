@@ -11,6 +11,18 @@ function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 }
 
+const COLLEGE_BUDGET_SEED: { name: string; kind: 'income' | 'expense'; monthlyLimit: number }[] = [
+  { name: 'Dad and Tera', kind: 'income', monthlyLimit: 300 },
+  { name: 'Mom', kind: 'income', monthlyLimit: 500 },
+  { name: 'Kitchen Staff', kind: 'income', monthlyLimit: 1125 },
+  { name: 'Rent', kind: 'expense', monthlyLimit: 1000 },
+  { name: 'Utilities', kind: 'expense', monthlyLimit: 100 },
+  { name: 'Groceries/Food', kind: 'expense', monthlyLimit: 450 },
+  { name: 'Books', kind: 'expense', monthlyLimit: 150 },
+  { name: 'Fun/Spending', kind: 'expense', monthlyLimit: 100 },
+  { name: 'Contingency', kind: 'expense', monthlyLimit: 200 },
+]
+
 function ConnectBankButton({ onConnected }: { onConnected: () => void }) {
   const [linkToken, setLinkToken] = useState<string | null>(null)
   const [fetching, setFetching] = useState(false)
@@ -89,6 +101,7 @@ export function Budget() {
   const [txDesc, setTxDesc] = useState('')
 
   const [budgetError, setBudgetError] = useState<string | null>(null)
+  const [seeding, setSeeding] = useState(false)
 
   async function refresh() {
     const [cats, txs, sum, plaidStatus] = await Promise.all([
@@ -140,6 +153,23 @@ export function Budget() {
 
   function institutionName(itemId: string): string {
     return plaidItems.find((i) => i.id === itemId)?.institutionName ?? 'Bank'
+  }
+
+  async function seedCollegeBudget() {
+    setSeeding(true)
+    setBudgetError(null)
+    try {
+      const existingNames = new Set(categories.map((c) => c.name.toLowerCase()))
+      for (const cat of COLLEGE_BUDGET_SEED) {
+        if (existingNames.has(cat.name.toLowerCase())) continue
+        await window.api.budget.createCategory(cat)
+      }
+      await refresh()
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Could not set up the budget')
+    } finally {
+      setSeeding(false)
+    }
   }
 
   async function addCategory() {
@@ -361,6 +391,18 @@ export function Budget() {
       <div className="grid grid-2" style={{ marginBottom: 20 }}>
         <div className="card">
           <h3>Budget categories</h3>
+          {categories.length === 0 && (
+            <div className="empty-state" style={{ marginBottom: 14 }}>
+              <p style={{ marginBottom: 10 }}>
+                Set up your college budget in one click — Dad and Tera ($300), Mom ($500), and Kitchen Staff
+                ($1,125) as income; Rent ($1,000), Utilities ($100), Groceries/Food ($450), Books ($150),
+                Fun/Spending ($100), and Contingency ($200) as expenses. You can edit any of these afterward.
+              </p>
+              <button className="btn btn-primary" onClick={seedCollegeBudget} disabled={seeding}>
+                {seeding ? 'Setting up…' : 'Set up my college budget'}
+              </button>
+            </div>
+          )}
           <div className="form-grid" style={{ marginBottom: 14 }}>
             <div className="field">
               <label>Name</label>
