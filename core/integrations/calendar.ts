@@ -10,8 +10,10 @@ export async function fetchUpcomingEvents(
   const auth = clientFor(clientId, clientSecret, refreshToken)
   const calendar = google.calendar({ version: 'v3', auth })
 
-  const timeMin = new Date().toISOString()
-  const timeMax = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
+  // Wide enough that the week-grid view's prev/next navigation has real
+  // data a few weeks in either direction, not just "upcoming".
+  const timeMin = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000).toISOString()
+  const timeMax = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString()
 
   const res = await calendar.events.list({
     calendarId: 'primary',
@@ -19,7 +21,7 @@ export async function fetchUpcomingEvents(
     timeMax,
     singleEvents: true,
     orderBy: 'startTime',
-    maxResults: 50,
+    maxResults: 250,
   })
 
   const events = res.data.items ?? []

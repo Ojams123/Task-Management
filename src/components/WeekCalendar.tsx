@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { CalendarEvent } from '../shared/types'
 
 const HOUR_HEIGHT = 48
@@ -75,6 +75,7 @@ export function WeekCalendar({
   onDelete: (id: string) => void
 }) {
   const bodyRef = useRef<HTMLDivElement>(null)
+  const [weekOffset, setWeekOffset] = useState(0)
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -83,7 +84,11 @@ export function WeekCalendar({
   }, [])
 
   const today = new Date()
-  const weekStart = startOfWeek(today)
+  const anchor = new Date(today)
+  anchor.setDate(anchor.getDate() + weekOffset * 7)
+  const weekStart = startOfWeek(anchor)
+  const weekEnd = new Date(weekStart)
+  weekEnd.setDate(weekEnd.getDate() + 6)
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart)
     d.setDate(d.getDate() + i)
@@ -95,8 +100,27 @@ export function WeekCalendar({
 
   const nowMinutes = minutesSinceMidnight(today)
 
+  const rangeLabel =
+    weekStart.getMonth() === weekEnd.getMonth()
+      ? `${weekStart.toLocaleDateString(undefined, { month: 'long', day: 'numeric' })} – ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`
+      : `${weekStart.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${weekEnd.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+
   return (
     <div className="week-calendar">
+      <div className="week-calendar-toolbar">
+        <div className="week-calendar-range">{rangeLabel}</div>
+        <div className="week-calendar-nav">
+          <button className="btn btn-sm" onClick={() => setWeekOffset((w) => w - 1)}>
+            ‹ Prev
+          </button>
+          <button className="btn btn-sm" onClick={() => setWeekOffset(0)} disabled={weekOffset === 0}>
+            Today
+          </button>
+          <button className="btn btn-sm" onClick={() => setWeekOffset((w) => w + 1)}>
+            Next ›
+          </button>
+        </div>
+      </div>
       <div className="week-calendar-header">
         <div className="week-calendar-hour-gutter" />
         {days.map((d) => (

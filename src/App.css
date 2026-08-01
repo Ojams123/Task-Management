@@ -560,6 +560,24 @@ button.link:hover {
   overflow: hidden;
 }
 
+.week-calendar-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.week-calendar-range {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.week-calendar-nav {
+  display: flex;
+  gap: 6px;
+}
+
 .week-calendar-header {
   display: grid;
   grid-template-columns: 48px repeat(7, 1fr);

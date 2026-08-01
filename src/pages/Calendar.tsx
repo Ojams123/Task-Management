@@ -117,7 +117,7 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
 
       <div className="card" style={{ marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="muted">Next 14 days</span>
+          <span className="muted">Syncs 4 weeks back to 8 weeks ahead</span>
           <button className="btn btn-primary" onClick={sync} disabled={syncing}>
             {syncing ? 'Syncing…' : 'Sync calendar'}
           </button>
