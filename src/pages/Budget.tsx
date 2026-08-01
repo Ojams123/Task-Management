@@ -88,6 +88,8 @@ export function Budget() {
   const [txAmount, setTxAmount] = useState('')
   const [txDesc, setTxDesc] = useState('')
 
+  const [budgetError, setBudgetError] = useState<string | null>(null)
+
   async function refresh() {
     const [cats, txs, sum, plaidStatus] = await Promise.all([
       window.api.budget.listCategories(),
@@ -142,15 +144,25 @@ export function Budget() {
 
   async function addCategory() {
     if (!catName.trim()) return
-    await window.api.budget.createCategory({ name: catName.trim(), monthlyLimit: catLimit, kind: catKind })
-    setCatName('')
-    setCatLimit(200)
-    await refresh()
+    setBudgetError(null)
+    try {
+      await window.api.budget.createCategory({ name: catName.trim(), monthlyLimit: catLimit, kind: catKind })
+      setCatName('')
+      setCatLimit(200)
+      await refresh()
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Could not add category')
+    }
   }
 
   async function removeCategory(id: string) {
-    await window.api.budget.removeCategory(id)
-    await refresh()
+    setBudgetError(null)
+    try {
+      await window.api.budget.removeCategory(id)
+      await refresh()
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Could not remove category')
+    }
   }
 
   function startEditCategory(id: string, name: string, limit: number) {
@@ -161,33 +173,53 @@ export function Budget() {
 
   async function saveEditCategory(id: string) {
     if (!editName.trim()) return
-    await window.api.budget.updateCategory(id, { name: editName.trim(), monthlyLimit: editLimit })
-    setEditingCategoryId(null)
-    await refresh()
+    setBudgetError(null)
+    try {
+      await window.api.budget.updateCategory(id, { name: editName.trim(), monthlyLimit: editLimit })
+      setEditingCategoryId(null)
+      await refresh()
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Could not save category')
+    }
   }
 
   async function reassignTransaction(id: string, categoryId: string) {
-    await window.api.budget.updateTransactionCategory(id, categoryId)
-    await refresh()
+    setBudgetError(null)
+    try {
+      await window.api.budget.updateTransactionCategory(id, categoryId)
+      await refresh()
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Could not reassign transaction')
+    }
   }
 
   async function addTransaction() {
     const amount = Number(txAmount)
     if (!txCategoryId || !amount) return
-    await window.api.budget.createTransaction({
-      categoryId: txCategoryId,
-      amount,
-      description: txDesc.trim() || null,
-      occurredAt: new Date().toISOString(),
-    })
-    setTxAmount('')
-    setTxDesc('')
-    await refresh()
+    setBudgetError(null)
+    try {
+      await window.api.budget.createTransaction({
+        categoryId: txCategoryId,
+        amount,
+        description: txDesc.trim() || null,
+        occurredAt: new Date().toISOString(),
+      })
+      setTxAmount('')
+      setTxDesc('')
+      await refresh()
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Could not add transaction')
+    }
   }
 
   async function removeTransaction(id: string) {
-    await window.api.budget.removeTransaction(id)
-    await refresh()
+    setBudgetError(null)
+    try {
+      await window.api.budget.removeTransaction(id)
+      await refresh()
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Could not remove transaction')
+    }
   }
 
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? 'Unknown'
@@ -315,6 +347,14 @@ export function Budget() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {budgetError && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <p className="muted" style={{ color: 'var(--danger)', margin: 0 }}>
+            {budgetError}
+          </p>
         </div>
       )}
 
