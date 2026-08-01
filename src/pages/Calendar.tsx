@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { CalendarEvent } from '../shared/types'
 import type { Page } from '../components/Sidebar'
+import { WeekCalendar } from '../components/WeekCalendar'
 
 function defaultStart(): string {
   const d = new Date(Date.now() + 60 * 60 * 1000)
@@ -18,7 +19,6 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
   const [start, setStart] = useState(defaultStart())
   const [location, setLocation] = useState('')
   const [creating, setCreating] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function refresh() {
     const status = await window.api.notifications.getGoogleAuthStatus()
@@ -67,14 +67,13 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
   }
 
   async function removeEvent(id: string) {
-    setDeletingId(id)
+    const target = events.find((e) => e.id === id)
+    if (target && !window.confirm(`Delete "${target.title}" from your Google Calendar?`)) return
     setError(null)
     try {
       setEvents(await window.api.calendar.deleteEvent(id))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not delete event')
-    } finally {
-      setDeletingId(null)
     }
   }
 
@@ -130,48 +129,13 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card">
-        <h3>Upcoming events</h3>
-        {events.length === 0 ? (
+      {events.length === 0 ? (
+        <div className="card">
           <div className="empty-state">No events synced yet — click "Sync calendar".</div>
-        ) : (
-          <div className="list">
-            {events.map((e) => (
-              <div className="list-row" key={e.id}>
-                <div className="list-row-main">
-                  <div className="list-row-title">{e.title}</div>
-                  <div className="list-row-sub">
-                    {e.allDay
-                      ? new Date(e.start).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-                      : new Date(e.start).toLocaleString(undefined, {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                        })}
-                    {e.location && ` · ${e.location}`}
-                  </div>
-                </div>
-                <div className="list-row-actions">
-                  {e.htmlLink && (
-                    <a className="btn btn-sm" href={e.htmlLink} target="_blank" rel="noreferrer">
-                      Open
-                    </a>
-                  )}
-                  <button
-                    className="btn btn-sm btn-danger"
-                    onClick={() => removeEvent(e.id)}
-                    disabled={deletingId === e.id}
-                  >
-                    {deletingId === e.id ? 'Deleting…' : 'Delete'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <WeekCalendar events={events} onDelete={removeEvent} />
+      )}
     </div>
   )
 }
