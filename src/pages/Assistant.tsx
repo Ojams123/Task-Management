@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChatMessage } from '../shared/types'
 import type { Page } from '../components/Sidebar'
 import { isVoiceMuted, setVoiceMuted, speak } from '../voice/speak'
+import { useSpeechRecognition } from '../voice/useSpeechRecognition'
 
 export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const [configured, setConfigured] = useState<boolean | null>(null)
@@ -48,26 +49,38 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
     setVoiceMuted(next)
   }
 
-  async function send() {
-    const content = input.trim()
-    if (!content || sending) return
-    setInput('')
-    setSending(true)
-    setError(null)
-    setMessages((prev) => [
-      ...prev,
-      { id: `pending-${Date.now()}`, role: 'user', content, createdAt: new Date().toISOString() },
-    ])
-    try {
-      const updated = await window.api.assistant.sendMessage(content)
-      setMessages(updated)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to reach the assistant')
-      await refresh()
-    } finally {
-      setSending(false)
-    }
-  }
+  const send = useCallback(
+    async (overrideContent?: string) => {
+      const content = (overrideContent ?? input).trim()
+      if (!content || sending) return
+      setInput('')
+      setSending(true)
+      setError(null)
+      setMessages((prev) => [
+        ...prev,
+        { id: `pending-${Date.now()}`, role: 'user', content, createdAt: new Date().toISOString() },
+      ])
+      try {
+        const updated = await window.api.assistant.sendMessage(content)
+        setMessages(updated)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to reach the assistant')
+        await refresh()
+      } finally {
+        setSending(false)
+      }
+    },
+    [input, sending]
+  )
+
+  const handleTranscript = useCallback(
+    (transcript: string) => {
+      if (transcript.trim()) send(transcript)
+    },
+    [send]
+  )
+
+  const { supported: micSupported, listening, interim, start, stop } = useSpeechRecognition(handleTranscript)
 
   async function clear() {
     await window.api.assistant.clearHistory()
@@ -136,7 +149,24 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
         </p>
       )}
 
+      {listening && (
+        <p className="muted" style={{ marginBottom: 8 }}>
+          Listening… {interim}
+        </p>
+      )}
+
       <div className="inline-form">
+        {micSupported && (
+          <button
+            type="button"
+            className={`mic-button${listening ? ' listening' : ''}`}
+            onClick={() => (listening ? stop() : start())}
+            disabled={sending}
+            title={listening ? 'Stop listening' : 'Speak to the assistant'}
+          >
+            {listening ? '● Listening' : '🎤'}
+          </button>
+        )}
         <input
           style={{ flex: 1 }}
           value={input}
@@ -144,7 +174,7 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
           onKeyDown={(e) => e.key === 'Enter' && send()}
           placeholder="Ask the assistant, or tell it to add something…"
         />
-        <button className="btn btn-primary" onClick={send} disabled={sending}>
+        <button className="btn btn-primary" onClick={() => send()} disabled={sending}>
           Send
         </button>
         <button className="btn btn-sm" onClick={clear}>
