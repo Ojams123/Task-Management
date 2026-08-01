@@ -203,6 +203,11 @@ function migrate(database: Database.Database) {
       syncedAt TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS canvas_local_completion (
+      assignmentId TEXT PRIMARY KEY,
+      completedAt TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS linkedin_profile (
       id TEXT PRIMARY KEY,
       name TEXT,

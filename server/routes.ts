@@ -16,8 +16,8 @@ import * as microsoftRepo from '../core/db/repos/microsoft'
 import * as linkedinRepo from '../core/db/repos/linkedin'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
-import { fetchUnreadDigest } from '../core/integrations/gmail'
-import { fetchUpcomingEvents } from '../core/integrations/calendar'
+import { fetchUnreadDigest, markMessageAsRead } from '../core/integrations/gmail'
+import { fetchUpcomingEvents, createCalendarEvent, deleteCalendarEvent } from '../core/integrations/calendar'
 import { runAssistantTurn } from '../core/integrations/assistant'
 import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
@@ -32,12 +32,19 @@ import {
   type SpotifyCreds,
   type SpotifyPlaybackAction,
 } from '../core/integrations/spotify'
-import { buildStravaAuthUrl, exchangeStravaCode, fetchStravaSnapshot, type StravaCreds } from '../core/integrations/strava'
+import {
+  buildStravaAuthUrl,
+  exchangeStravaCode,
+  fetchStravaSnapshot,
+  createManualActivity,
+  type StravaCreds,
+  type NewStravaActivity,
+} from '../core/integrations/strava'
 import { buildMicrosoftAuthUrl, exchangeMicrosoftCode, fetchMicrosoftSnapshot, type MicrosoftCreds } from '../core/integrations/microsoft'
 import { buildLinkedInAuthUrl, exchangeLinkedInCode, fetchLinkedInProfile, type LinkedInCreds } from '../core/integrations/linkedin'
 import { buildAuthUrl, exchangeCode } from './googleOAuth'
 import { requireAuth } from './auth'
-import type { CanvasSettings, NotificationDigest } from '../src/shared/types'
+import type { CanvasSettings, NotificationDigest, NewCalendarEvent } from '../src/shared/types'
 
 const CANVAS_DOMAIN_KEY = 'canvas.domain'
 const CANVAS_TOKEN_KEY = 'canvas.token'
@@ -199,10 +206,14 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
       }
       const assignments = await fetchAssignments(settings)
       canvasRepo.replaceCachedAssignments(assignments)
-      res.json(assignments)
+      res.json(canvasRepo.listCachedAssignments())
     })
   )
   api.get('/canvas/cached', (_req, res) => res.json(canvasRepo.listCachedAssignments()))
+  api.post('/canvas/assignments/:id/complete', (req, res) => {
+    canvasRepo.setLocalCompletion(String(req.params.id), !!req.body.completed)
+    res.json(canvasRepo.listCachedAssignments())
+  })
 
   // Notifications / Gmail
   api.get('/notifications/google-status', (_req, res) => {
@@ -249,6 +260,20 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
   }
   api.get('/notifications/digest', asyncHandler(async (_req, res) => res.json(await buildDigest())))
   api.post('/notifications/refresh-digest', asyncHandler(async (_req, res) => res.json(await buildDigest())))
+  api.post(
+    '/notifications/mark-read/:id',
+    asyncHandler(async (req, res) => {
+      const clientId = getSecret(GOOGLE_CLIENT_ID_KEY)
+      const clientSecret = getSecret(GOOGLE_CLIENT_SECRET_KEY)
+      const refreshToken = getSecret(GOOGLE_REFRESH_TOKEN_KEY)
+      if (!clientId || !clientSecret || !refreshToken) {
+        res.status(400).json({ error: 'Connect Google in Settings first.' })
+        return
+      }
+      await markMessageAsRead(clientId, clientSecret, refreshToken, String(req.params.id))
+      res.json({ ok: true })
+    })
+  )
 
   // Calendar
   async function syncCalendar() {
@@ -262,6 +287,34 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
   }
   api.get('/calendar/events', (_req, res) => res.json(calendarRepo.listCachedEvents()))
   api.post('/calendar/refresh', asyncHandler(async (_req, res) => res.json(await syncCalendar())))
+  api.post(
+    '/calendar/events',
+    asyncHandler(async (req, res) => {
+      const clientId = getSecret(GOOGLE_CLIENT_ID_KEY)
+      const clientSecret = getSecret(GOOGLE_CLIENT_SECRET_KEY)
+      const refreshToken = getSecret(GOOGLE_REFRESH_TOKEN_KEY)
+      if (!clientId || !clientSecret || !refreshToken) {
+        res.status(400).json({ error: 'Connect Google in Settings first.' })
+        return
+      }
+      await createCalendarEvent(clientId, clientSecret, refreshToken, req.body as NewCalendarEvent)
+      res.json(await syncCalendar())
+    })
+  )
+  api.delete(
+    '/calendar/events/:id',
+    asyncHandler(async (req, res) => {
+      const clientId = getSecret(GOOGLE_CLIENT_ID_KEY)
+      const clientSecret = getSecret(GOOGLE_CLIENT_SECRET_KEY)
+      const refreshToken = getSecret(GOOGLE_REFRESH_TOKEN_KEY)
+      if (!clientId || !clientSecret || !refreshToken) {
+        res.status(400).json({ error: 'Connect Google in Settings first.' })
+        return
+      }
+      await deleteCalendarEvent(clientId, clientSecret, refreshToken, String(req.params.id))
+      res.json(await syncCalendar())
+    })
+  )
 
   // Fitness
   api.get('/fitness/food', (req, res) => res.json(fitness.listFood(req.query.date ? String(req.query.date) : undefined)))
@@ -534,6 +587,23 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     })
   )
   api.get('/strava/cached', (_req, res) => res.json(stravaRepo.getCachedSnapshot()))
+  api.post(
+    '/strava/activities',
+    asyncHandler(async (req, res) => {
+      const creds = getStravaCreds()
+      const refreshToken = getSecret(STRAVA_REFRESH_TOKEN_KEY)
+      if (!creds || !refreshToken) {
+        res.status(400).json({ error: 'Connect Strava in Settings first.' })
+        return
+      }
+      const created = await createManualActivity(creds, refreshToken, req.body as NewStravaActivity)
+      setSecret(STRAVA_REFRESH_TOKEN_KEY, created.refreshToken)
+      const result = await fetchStravaSnapshot(creds, created.refreshToken)
+      setSecret(STRAVA_REFRESH_TOKEN_KEY, result.refreshToken)
+      stravaRepo.saveSnapshot(result.athleteName, result.activities)
+      res.json({ athleteName: result.athleteName, activities: result.activities, syncedAt: new Date().toISOString() })
+    })
+  )
 
   // Microsoft (Outlook + Microsoft 365)
   api.get('/microsoft/status', (_req, res) => {

@@ -42,3 +42,18 @@ export async function fetchUnreadDigest(
 
   return items
 }
+
+export async function markMessageAsRead(
+  clientId: string,
+  clientSecret: string,
+  refreshToken: string,
+  messageId: string
+): Promise<void> {
+  const auth = clientFor(clientId, clientSecret, refreshToken)
+  const gmail = google.gmail({ version: 'v1', auth })
+  await gmail.users.messages.modify({
+    userId: 'me',
+    id: messageId,
+    requestBody: { removeLabelIds: ['UNREAD'] },
+  })
+}

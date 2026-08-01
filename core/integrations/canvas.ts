@@ -33,13 +33,13 @@ async function canvasFetch<T>(settings: CanvasSettings, endpoint: string): Promi
   return res.json() as Promise<T>
 }
 
-export async function fetchAssignments(settings: CanvasSettings): Promise<CanvasAssignment[]> {
+export async function fetchAssignments(settings: CanvasSettings): Promise<Omit<CanvasAssignment, 'completedLocally'>[]> {
   const courses = await canvasFetch<CanvasCourse[]>(
     settings,
     '/api/v1/courses?enrollment_state=active&per_page=100'
   )
 
-  const results: CanvasAssignment[] = []
+  const results: Omit<CanvasAssignment, 'completedLocally'>[] = []
 
   for (const course of courses) {
     if (course.workflow_state !== 'available') continue

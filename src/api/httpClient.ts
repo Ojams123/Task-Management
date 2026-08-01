@@ -71,6 +71,7 @@ export function createHttpClient(): DeviceHubApi {
       saveSettings: (settings) => request('POST', '/canvas/settings', settings),
       sync: () => request('POST', '/canvas/sync'),
       listCached: () => request('GET', '/canvas/cached'),
+      setLocalCompletion: (id, completed) => request('POST', `/canvas/assignments/${id}/complete`, { completed }),
     },
     notifications: {
       getGoogleAuthStatus: () => request('GET', '/notifications/google-status'),
@@ -88,10 +89,13 @@ export function createHttpClient(): DeviceHubApi {
       disconnectGoogle: () => request('POST', '/notifications/disconnect-google'),
       getDigest: () => request('GET', '/notifications/digest'),
       refreshDigest: () => request('POST', '/notifications/refresh-digest'),
+      markAsRead: (id) => request('POST', `/notifications/mark-read/${id}`),
     },
     calendar: {
       getEvents: () => request('GET', '/calendar/events'),
       refreshEvents: () => request('POST', '/calendar/refresh'),
+      createEvent: (input) => request('POST', '/calendar/events', input),
+      deleteEvent: (id) => request('DELETE', `/calendar/events/${id}`),
     },
     fitness: {
       listFood: (date) => request('GET', `/fitness/food${query({ date })}`),
@@ -152,6 +156,7 @@ export function createHttpClient(): DeviceHubApi {
       disconnect: () => request('POST', '/strava/disconnect'),
       sync: () => request('POST', '/strava/sync'),
       getCached: () => request('GET', '/strava/cached'),
+      createActivity: (input) => request('POST', '/strava/activities', input),
     },
     microsoft: {
       getStatus: () => request('GET', '/microsoft/status'),

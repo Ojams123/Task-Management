@@ -39,12 +39,16 @@ because there aren't any; the web app is one you host yourself.
   bank accounts via Plaid (the aggregator behind Rocket Money) for live
   balances and transactions.
 - **Canvas assignments** — syncs assignments across your active courses so
-  you can see what's upcoming or overdue without opening Canvas.
+  you can see what's upcoming or overdue without opening Canvas. A "done"
+  checkbox lets you track what you've finished — tracked inside DeviceHub
+  only, it doesn't submit anything to Canvas itself.
 - **Calendar** — syncs upcoming Google Calendar events for the next two
-  weeks.
+  weeks, and lets you create or delete real events on your Google Calendar
+  directly from DeviceHub.
 - **Missed notifications** — connects to Gmail and summarizes unread mail
-  since you were last on the device. This covers *connected accounts only*
-  — it does not and cannot read raw SMS or other apps' OS-level
+  since you were last on the device, with a "Mark as read" button that
+  marks the real message read in Gmail. This covers *connected accounts
+  only* — it does not and cannot read raw SMS or other apps' OS-level
   notifications (no desktop or web app can do that for third-party apps
   without being a native mobile app with special, OS-granted permissions).
 - **Built-in assistant** — a chat panel backed by the Claude API (your own
@@ -62,7 +66,9 @@ because there aren't any; the web app is one you host yourself.
   pause, skip) of whatever device already has Spotify open. Requires
   **Spotify Premium** — Spotify's playback API refuses all control
   commands for free accounts.
-- **Strava** — your recent activities (distance, moving time, type).
+- **Strava** — your recent activities (distance, moving time, type), and
+  logging a manual activity that posts as a real activity to your Strava
+  account.
 - **Microsoft 365** — one connection covers both unread Outlook mail and
   recently modified Word/Excel/PowerPoint files.
 - **LinkedIn** — your basic profile (name, email, photo) only. LinkedIn's
@@ -132,6 +138,13 @@ running DeviceHub (you can have both if you use both).
    value once the server is running).
 5. Paste the client ID/secret into Settings and click **Connect Google
    account** — this redirects your browser tab to Google and back.
+
+Either way: go to **Calendar** to add or delete real events on your
+Google Calendar, and use **Mark as read** on the Notifications page to
+mark real Gmail messages read. If you connected Google before these were
+added, disconnect and reconnect once — the permission to modify mail
+(mark as read) wasn't part of the original connection and Google won't
+grant it retroactively.
 
 Either way: go to **Calendar** and click **Sync calendar**, or
 **Notifications** and click **Refresh**, once connected. Only

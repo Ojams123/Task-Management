@@ -1,6 +1,6 @@
 import { google } from 'googleapis'
 import { clientFor } from './googleClient'
-import type { CalendarEvent } from '../../src/shared/types'
+import type { CalendarEvent, NewCalendarEvent } from '../../src/shared/types'
 
 export async function fetchUpcomingEvents(
   clientId: string,
@@ -38,4 +38,48 @@ export async function fetchUpcomingEvents(
         htmlLink: e.htmlLink ?? null,
       }
     })
+}
+
+export async function createCalendarEvent(
+  clientId: string,
+  clientSecret: string,
+  refreshToken: string,
+  input: NewCalendarEvent
+): Promise<CalendarEvent> {
+  const auth = clientFor(clientId, clientSecret, refreshToken)
+  const calendar = google.calendar({ version: 'v3', auth })
+
+  const res = await calendar.events.insert({
+    calendarId: 'primary',
+    requestBody: {
+      summary: input.title,
+      location: input.location ?? undefined,
+      start: input.allDay ? { date: input.start.slice(0, 10) } : { dateTime: input.start },
+      end: input.allDay
+        ? { date: (input.end ?? input.start).slice(0, 10) }
+        : { dateTime: input.end ?? input.start },
+    },
+  })
+
+  const e = res.data
+  return {
+    id: e.id ?? crypto.randomUUID(),
+    title: e.summary ?? input.title,
+    start: (e.start?.dateTime ?? e.start?.date ?? input.start) as string,
+    end: (e.end?.dateTime ?? e.end?.date ?? null) as string | null,
+    allDay: !!e.start?.date && !e.start?.dateTime,
+    location: e.location ?? null,
+    htmlLink: e.htmlLink ?? null,
+  }
+}
+
+export async function deleteCalendarEvent(
+  clientId: string,
+  clientSecret: string,
+  refreshToken: string,
+  eventId: string
+): Promise<void> {
+  const auth = clientFor(clientId, clientSecret, refreshToken)
+  const calendar = google.calendar({ version: 'v3', auth })
+  await calendar.events.delete({ calendarId: 'primary', eventId })
 }

@@ -7,6 +7,7 @@ export function Notifications({ onNavigate }: { onNavigate?: (page: Page) => voi
   const [digest, setDigest] = useState<NotificationDigest | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [markingId, setMarkingId] = useState<string | null>(null)
 
   async function refresh() {
     const s = await window.api.notifications.getGoogleAuthStatus()
@@ -30,6 +31,23 @@ export function Notifications({ onNavigate }: { onNavigate?: (page: Page) => voi
       setError(e instanceof Error ? e.message : 'Failed to refresh')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function markAsRead(id: string) {
+    setMarkingId(id)
+    setError(null)
+    try {
+      await window.api.notifications.markAsRead(id)
+      setDigest((prev) =>
+        prev
+          ? { ...prev, items: prev.items.filter((i) => i.id !== id), totalUnread: Math.max(0, prev.totalUnread - 1) }
+          : prev
+      )
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not mark as read')
+    } finally {
+      setMarkingId(null)
     }
   }
 
@@ -87,6 +105,15 @@ export function Notifications({ onNavigate }: { onNavigate?: (page: Page) => voi
                   <div className="muted" style={{ marginTop: 4 }}>
                     {item.snippet}
                   </div>
+                </div>
+                <div className="list-row-actions">
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => markAsRead(item.id)}
+                    disabled={markingId === item.id}
+                  >
+                    {markingId === item.id ? 'Marking…' : 'Mark as read'}
+                  </button>
                 </div>
               </div>
             ))}

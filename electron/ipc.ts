@@ -15,8 +15,8 @@ import * as microsoftRepo from '../core/db/repos/microsoft'
 import * as linkedinRepo from '../core/db/repos/linkedin'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
-import { fetchUnreadDigest } from '../core/integrations/gmail'
-import { fetchUpcomingEvents } from '../core/integrations/calendar'
+import { fetchUnreadDigest, markMessageAsRead } from '../core/integrations/gmail'
+import { fetchUpcomingEvents, createCalendarEvent, deleteCalendarEvent } from '../core/integrations/calendar'
 import { runOAuthFlow } from './integrations/googleAuth'
 import { runAssistantTurn } from '../core/integrations/assistant'
 import { fetchOuraSummary } from '../core/integrations/oura'
@@ -31,13 +31,18 @@ import {
   type SpotifyPlaybackAction,
 } from '../core/integrations/spotify'
 import { connectSpotify } from './integrations/spotifyAuth'
-import { fetchStravaSnapshot, type StravaCreds } from '../core/integrations/strava'
+import {
+  fetchStravaSnapshot,
+  createManualActivity,
+  type StravaCreds,
+  type NewStravaActivity,
+} from '../core/integrations/strava'
 import { connectStrava } from './integrations/stravaAuth'
 import { fetchMicrosoftSnapshot, type MicrosoftCreds } from '../core/integrations/microsoft'
 import { connectMicrosoft } from './integrations/microsoftAuth'
 import type { LinkedInCreds } from '../core/integrations/linkedin'
 import { connectLinkedIn } from './integrations/linkedinAuth'
-import type { CanvasSettings, NotificationDigest } from '../src/shared/types'
+import type { CanvasSettings, NotificationDigest, NewCalendarEvent } from '../src/shared/types'
 
 const CANVAS_DOMAIN_KEY = 'canvas.domain'
 const CANVAS_TOKEN_KEY = 'canvas.token'
@@ -159,9 +164,13 @@ export function registerIpcHandlers() {
     if (!settings) throw new Error('Canvas is not configured yet. Add your domain and token in Settings.')
     const assignments = await fetchAssignments(settings)
     canvasRepo.replaceCachedAssignments(assignments)
-    return assignments
+    return canvasRepo.listCachedAssignments()
   })
   ipcMain.handle('canvas:listCached', () => canvasRepo.listCachedAssignments())
+  ipcMain.handle('canvas:setLocalCompletion', (_e, id: string, completed: boolean) => {
+    canvasRepo.setLocalCompletion(id, completed)
+    return canvasRepo.listCachedAssignments()
+  })
 
   // Notifications / Gmail
   ipcMain.handle('notifications:getGoogleAuthStatus', () => {
@@ -207,6 +216,13 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('notifications:getDigest', () => buildDigest())
   ipcMain.handle('notifications:refreshDigest', () => buildDigest())
+  ipcMain.handle('notifications:markAsRead', async (_e, id: string) => {
+    const clientId = getSecret(GOOGLE_CLIENT_ID_KEY)
+    const clientSecret = getSecret(GOOGLE_CLIENT_SECRET_KEY)
+    const refreshToken = getSecret(GOOGLE_REFRESH_TOKEN_KEY)
+    if (!clientId || !clientSecret || !refreshToken) throw new Error('Connect Google in Settings first.')
+    await markMessageAsRead(clientId, clientSecret, refreshToken, id)
+  })
 
   // Calendar
   async function syncCalendar() {
@@ -220,6 +236,22 @@ export function registerIpcHandlers() {
   }
   ipcMain.handle('calendar:getEvents', () => calendarRepo.listCachedEvents())
   ipcMain.handle('calendar:refreshEvents', () => syncCalendar())
+  ipcMain.handle('calendar:createEvent', async (_e, input: NewCalendarEvent) => {
+    const clientId = getSecret(GOOGLE_CLIENT_ID_KEY)
+    const clientSecret = getSecret(GOOGLE_CLIENT_SECRET_KEY)
+    const refreshToken = getSecret(GOOGLE_REFRESH_TOKEN_KEY)
+    if (!clientId || !clientSecret || !refreshToken) throw new Error('Connect Google in Settings first.')
+    await createCalendarEvent(clientId, clientSecret, refreshToken, input)
+    return syncCalendar()
+  })
+  ipcMain.handle('calendar:deleteEvent', async (_e, id: string) => {
+    const clientId = getSecret(GOOGLE_CLIENT_ID_KEY)
+    const clientSecret = getSecret(GOOGLE_CLIENT_SECRET_KEY)
+    const refreshToken = getSecret(GOOGLE_REFRESH_TOKEN_KEY)
+    if (!clientId || !clientSecret || !refreshToken) throw new Error('Connect Google in Settings first.')
+    await deleteCalendarEvent(clientId, clientSecret, refreshToken, id)
+    return syncCalendar()
+  })
 
   // Fitness
   ipcMain.handle('fitness:listFood', (_e, date) => fitness.listFood(date))
@@ -411,6 +443,17 @@ export function registerIpcHandlers() {
     return { athleteName: result.athleteName, activities: result.activities, syncedAt: new Date().toISOString() }
   })
   ipcMain.handle('strava:getCached', () => stravaRepo.getCachedSnapshot())
+  ipcMain.handle('strava:createActivity', async (_e, input: NewStravaActivity) => {
+    const creds = getStravaCreds()
+    const refreshToken = getSecret(STRAVA_REFRESH_TOKEN_KEY)
+    if (!creds || !refreshToken) throw new Error('Connect Strava in Settings first.')
+    const created = await createManualActivity(creds, refreshToken, input)
+    setSecret(STRAVA_REFRESH_TOKEN_KEY, created.refreshToken)
+    const result = await fetchStravaSnapshot(creds, created.refreshToken)
+    setSecret(STRAVA_REFRESH_TOKEN_KEY, result.refreshToken)
+    stravaRepo.saveSnapshot(result.athleteName, result.activities)
+    return { athleteName: result.athleteName, activities: result.activities, syncedAt: new Date().toISOString() }
+  })
 
   // Microsoft (Outlook + Microsoft 365)
   ipcMain.handle('microsoft:getStatus', () => {

@@ -30,6 +30,7 @@ const api: DeviceHubApi = {
     saveSettings: (settings) => ipcRenderer.invoke('canvas:saveSettings', settings),
     sync: () => ipcRenderer.invoke('canvas:sync'),
     listCached: () => ipcRenderer.invoke('canvas:listCached'),
+    setLocalCompletion: (id, completed) => ipcRenderer.invoke('canvas:setLocalCompletion', id, completed),
   },
   notifications: {
     getGoogleAuthStatus: () => ipcRenderer.invoke('notifications:getGoogleAuthStatus'),
@@ -39,10 +40,13 @@ const api: DeviceHubApi = {
     disconnectGoogle: () => ipcRenderer.invoke('notifications:disconnectGoogle'),
     getDigest: () => ipcRenderer.invoke('notifications:getDigest'),
     refreshDigest: () => ipcRenderer.invoke('notifications:refreshDigest'),
+    markAsRead: (id) => ipcRenderer.invoke('notifications:markAsRead', id),
   },
   calendar: {
     getEvents: () => ipcRenderer.invoke('calendar:getEvents'),
     refreshEvents: () => ipcRenderer.invoke('calendar:refreshEvents'),
+    createEvent: (input) => ipcRenderer.invoke('calendar:createEvent', input),
+    deleteEvent: (id) => ipcRenderer.invoke('calendar:deleteEvent', id),
   },
   fitness: {
     listFood: (date) => ipcRenderer.invoke('fitness:listFood', date),
@@ -95,6 +99,7 @@ const api: DeviceHubApi = {
     disconnect: () => ipcRenderer.invoke('strava:disconnect'),
     sync: () => ipcRenderer.invoke('strava:sync'),
     getCached: () => ipcRenderer.invoke('strava:getCached'),
+    createActivity: (input) => ipcRenderer.invoke('strava:createActivity', input),
   },
   microsoft: {
     getStatus: () => ipcRenderer.invoke('microsoft:getStatus'),

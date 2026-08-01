@@ -77,6 +77,10 @@ export interface CanvasAssignment {
   htmlUrl: string
   submitted: boolean
   pointsPossible: number | null
+  // Tracked only inside DeviceHub — Canvas itself is never notified, since
+  // actually submitting work through its API is a much bigger, riskier
+  // feature than a personal "done" checkbox.
+  completedLocally: boolean
 }
 
 export interface GoogleAuthStatus {
@@ -114,6 +118,14 @@ export interface CalendarEvent {
   allDay: boolean
   location: string | null
   htmlLink: string | null
+}
+
+export interface NewCalendarEvent {
+  title: string
+  start: string // ISO datetime
+  end: string | null
+  allDay: boolean
+  location: string | null
 }
 
 export interface FoodEntry {
@@ -257,6 +269,14 @@ export interface StravaSnapshot {
   syncedAt: string
 }
 
+export interface NewStravaActivity {
+  name: string
+  type: string
+  startDate: string
+  durationMinutes: number
+  distanceMiles?: number
+}
+
 export interface MicrosoftMailItem {
   from: string
   subject: string
@@ -326,6 +346,7 @@ export interface DeviceHubApi {
     saveSettings(settings: CanvasSettings): Promise<void>
     sync(): Promise<CanvasAssignment[]>
     listCached(): Promise<CanvasAssignment[]>
+    setLocalCompletion(id: string, completed: boolean): Promise<CanvasAssignment[]>
   }
   notifications: {
     getGoogleAuthStatus(): Promise<GoogleAuthStatus>
@@ -334,10 +355,13 @@ export interface DeviceHubApi {
     disconnectGoogle(): Promise<void>
     getDigest(): Promise<NotificationDigest>
     refreshDigest(): Promise<NotificationDigest>
+    markAsRead(id: string): Promise<void>
   }
   calendar: {
     getEvents(): Promise<CalendarEvent[]>
     refreshEvents(): Promise<CalendarEvent[]>
+    createEvent(input: NewCalendarEvent): Promise<CalendarEvent[]>
+    deleteEvent(id: string): Promise<CalendarEvent[]>
   }
   fitness: {
     listFood(date?: string): Promise<FoodEntry[]>
@@ -390,6 +414,7 @@ export interface DeviceHubApi {
     disconnect(): Promise<void>
     sync(): Promise<StravaSnapshot>
     getCached(): Promise<StravaSnapshot | null>
+    createActivity(input: NewStravaActivity): Promise<StravaSnapshot>
   }
   microsoft: {
     getStatus(): Promise<{ connected: boolean; displayName: string | null }>
