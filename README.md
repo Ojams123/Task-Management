@@ -58,7 +58,10 @@ because there aren't any; the web app is one you host yourself.
   connection and a microphone.
 - **Weather** — current conditions and a 5-day forecast for a location you
   set, via a free OpenWeatherMap API key.
-- **Spotify** — your recently played tracks.
+- **Spotify** — your recently played tracks, plus remote control (play,
+  pause, skip) of whatever device already has Spotify open. Requires
+  **Spotify Premium** — Spotify's playback API refuses all control
+  commands for free accounts.
 - **Strava** — your recent activities (distance, moving time, type).
 - **Microsoft 365** — one connection covers both unread Outlook mail and
   recently modified Word/Excel/PowerPoint files.
@@ -193,7 +196,9 @@ These four all use the same kind of OAuth connection as Google, and — like
 Google — **the desktop app and the web app need different redirect URI
 setups** registered in each service's own developer dashboard.
 
-**Spotify** (recently played tracks):
+**Spotify** (recently played tracks + remote playback control — requires
+Spotify Premium for the play/pause/skip buttons; the recently-played list
+works on free accounts too):
 
 1. Create an app at [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard).
 2. Desktop app: add exactly `http://127.0.0.1:43817/oauth2callback` as a
@@ -201,6 +206,11 @@ setups** registered in each service's own developer dashboard.
    port is fixed). Web app: add `<your PUBLIC_URL>/api/spotify/callback`.
 3. Paste the client ID and secret into Settings and click **Connect
    Spotify account**.
+
+If you connected Spotify before playback control was added, disconnect and
+reconnect once — the new permissions (reading/controlling what's playing)
+weren't part of the original connection and Spotify won't grant them
+retroactively.
 
 **Strava** (recent activities):
 

@@ -138,6 +138,8 @@ export function createHttpClient(): DeviceHubApi {
       disconnect: () => request('POST', '/spotify/disconnect'),
       sync: () => request('POST', '/spotify/sync'),
       getCached: () => request('GET', '/spotify/cached'),
+      getPlaybackState: () => request('GET', '/spotify/playback'),
+      controlPlayback: (action) => request('POST', `/spotify/playback/${action}`),
     },
     strava: {
       getStatus: () => request('GET', '/strava/status'),

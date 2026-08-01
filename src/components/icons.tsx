@@ -152,6 +152,41 @@ export function OuraIcon(props: IconProps) {
   )
 }
 
+export function PlayIcon(props: IconProps) {
+  return (
+    <Line {...props}>
+      <path d="M7 5.5v13l11-6.5-11-6.5Z" fill="currentColor" stroke="none" />
+    </Line>
+  )
+}
+
+export function PauseIcon(props: IconProps) {
+  return (
+    <Line {...props}>
+      <rect x="6.5" y="5.5" width="4" height="13" rx="1" fill="currentColor" stroke="none" />
+      <rect x="13.5" y="5.5" width="4" height="13" rx="1" fill="currentColor" stroke="none" />
+    </Line>
+  )
+}
+
+export function SkipNextIcon(props: IconProps) {
+  return (
+    <Line {...props}>
+      <path d="M6 5.5v13l9-6.5-9-6.5Z" fill="currentColor" stroke="none" />
+      <rect x="16.5" y="5.5" width="2" height="13" rx="0.5" fill="currentColor" stroke="none" />
+    </Line>
+  )
+}
+
+export function SkipPreviousIcon(props: IconProps) {
+  return (
+    <Line {...props}>
+      <path d="M18 5.5v13L9 12l9-6.5Z" fill="currentColor" stroke="none" />
+      <rect x="5.5" y="5.5" width="2" height="13" rx="0.5" fill="currentColor" stroke="none" />
+    </Line>
+  )
+}
+
 export function SpotifyIcon(props: IconProps) {
   return (
     <Brand {...props} hex="#1ED760">

@@ -230,6 +230,18 @@ export interface SpotifySnapshot {
   syncedAt: string
 }
 
+export interface SpotifyPlaybackState {
+  isPlaying: boolean
+  trackName: string | null
+  artistName: string | null
+  albumArt: string | null
+  progressMs: number | null
+  durationMs: number | null
+  deviceName: string | null
+}
+
+export type SpotifyPlaybackAction = 'play' | 'pause' | 'next' | 'previous'
+
 export interface StravaActivitySummary {
   id: number
   name: string
@@ -368,6 +380,8 @@ export interface DeviceHubApi {
     disconnect(): Promise<void>
     sync(): Promise<SpotifySnapshot>
     getCached(): Promise<SpotifySnapshot | null>
+    getPlaybackState(): Promise<SpotifyPlaybackState | null>
+    controlPlayback(action: SpotifyPlaybackAction): Promise<void>
   }
   strava: {
     getStatus(): Promise<{ connected: boolean; athleteName: string | null }>

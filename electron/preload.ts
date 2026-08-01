@@ -85,6 +85,8 @@ const api: DeviceHubApi = {
     disconnect: () => ipcRenderer.invoke('spotify:disconnect'),
     sync: () => ipcRenderer.invoke('spotify:sync'),
     getCached: () => ipcRenderer.invoke('spotify:getCached'),
+    getPlaybackState: () => ipcRenderer.invoke('spotify:getPlaybackState'),
+    controlPlayback: (action) => ipcRenderer.invoke('spotify:controlPlayback', action),
   },
   strava: {
     getStatus: () => ipcRenderer.invoke('strava:getStatus'),

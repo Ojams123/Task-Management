@@ -23,7 +23,15 @@ import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
 import type { PlaidEnvironment } from '../core/integrations/plaid'
 import { fetchWeather } from '../core/integrations/weather'
-import { buildSpotifyAuthUrl, exchangeSpotifyCode, fetchSpotifySnapshot, type SpotifyCreds } from '../core/integrations/spotify'
+import {
+  buildSpotifyAuthUrl,
+  exchangeSpotifyCode,
+  fetchSpotifySnapshot,
+  fetchPlaybackState,
+  controlSpotifyPlayback,
+  type SpotifyCreds,
+  type SpotifyPlaybackAction,
+} from '../core/integrations/spotify'
 import { buildStravaAuthUrl, exchangeStravaCode, fetchStravaSnapshot, type StravaCreds } from '../core/integrations/strava'
 import { buildMicrosoftAuthUrl, exchangeMicrosoftCode, fetchMicrosoftSnapshot, type MicrosoftCreds } from '../core/integrations/microsoft'
 import { buildLinkedInAuthUrl, exchangeLinkedInCode, fetchLinkedInProfile, type LinkedInCreds } from '../core/integrations/linkedin'
@@ -460,6 +468,31 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     })
   )
   api.get('/spotify/cached', (_req, res) => res.json(spotifyRepo.getCachedSnapshot()))
+  api.get(
+    '/spotify/playback',
+    asyncHandler(async (_req, res) => {
+      const creds = getSpotifyCreds()
+      const refreshToken = getSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+      if (!creds || !refreshToken) {
+        res.status(400).json({ error: 'Connect Spotify in Settings first.' })
+        return
+      }
+      res.json(await fetchPlaybackState(creds, refreshToken))
+    })
+  )
+  api.post(
+    '/spotify/playback/:action',
+    asyncHandler(async (req, res) => {
+      const creds = getSpotifyCreds()
+      const refreshToken = getSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+      if (!creds || !refreshToken) {
+        res.status(400).json({ error: 'Connect Spotify in Settings first.' })
+        return
+      }
+      await controlSpotifyPlayback(creds, refreshToken, req.params.action as SpotifyPlaybackAction)
+      res.json({ ok: true })
+    })
+  )
 
   // Strava
   api.get('/strava/status', (_req, res) => {

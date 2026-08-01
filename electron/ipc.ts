@@ -23,7 +23,13 @@ import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
 import type { PlaidEnvironment } from '../core/integrations/plaid'
 import { fetchWeather } from '../core/integrations/weather'
-import { fetchSpotifySnapshot, type SpotifyCreds } from '../core/integrations/spotify'
+import {
+  fetchSpotifySnapshot,
+  fetchPlaybackState,
+  controlSpotifyPlayback,
+  type SpotifyCreds,
+  type SpotifyPlaybackAction,
+} from '../core/integrations/spotify'
 import { connectSpotify } from './integrations/spotifyAuth'
 import { fetchStravaSnapshot, type StravaCreds } from '../core/integrations/strava'
 import { connectStrava } from './integrations/stravaAuth'
@@ -360,6 +366,18 @@ export function registerIpcHandlers() {
     return { profile, recentlyPlayed, syncedAt: new Date().toISOString() }
   })
   ipcMain.handle('spotify:getCached', () => spotifyRepo.getCachedSnapshot())
+  ipcMain.handle('spotify:getPlaybackState', async () => {
+    const creds = getSpotifyCreds()
+    const refreshToken = getSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+    if (!creds || !refreshToken) throw new Error('Connect Spotify in Settings first.')
+    return fetchPlaybackState(creds, refreshToken)
+  })
+  ipcMain.handle('spotify:controlPlayback', async (_e, action: SpotifyPlaybackAction) => {
+    const creds = getSpotifyCreds()
+    const refreshToken = getSecret(SPOTIFY_REFRESH_TOKEN_KEY)
+    if (!creds || !refreshToken) throw new Error('Connect Spotify in Settings first.')
+    await controlSpotifyPlayback(creds, refreshToken, action)
+  })
 
   // Strava
   ipcMain.handle('strava:getStatus', () => {
