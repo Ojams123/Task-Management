@@ -896,3 +896,153 @@ button.link:hover {
     transform: scaleY(2.6);
   }
 }
+
+/* Dashboard v2 — pastel SaaS-style redesign pilot, scoped to the Dashboard
+   page only via .dv2-root so no other page is affected. */
+
+.dv2-root .greeting-title {
+  color: var(--text);
+}
+
+.dv2-root .greeting-subtitle {
+  color: var(--text-muted);
+}
+
+.dv2-root .card {
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.dv2-root .card h3 {
+  font-size: 15px;
+}
+
+.dv2-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.dv2-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--text);
+  color: var(--bg);
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dv2-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.dv2-stat-tile {
+  border-radius: 20px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  cursor: pointer;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.dv2-stat-tile:hover {
+  filter: brightness(0.97);
+}
+
+.dv2-pastel-1 {
+  background: color-mix(in srgb, #f5b942 20%, var(--bg-card));
+}
+
+.dv2-pastel-2 {
+  background: color-mix(in srgb, #3b82f6 16%, var(--bg-card));
+}
+
+.dv2-pastel-3 {
+  background: color-mix(in srgb, var(--text-muted) 16%, var(--bg-card));
+}
+
+.dv2-stat-tile-top {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.dv2-stat-tile-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dv2-stat-tile-value {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.dv2-stat-tile-icon {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.dv2-pastel-1-icon {
+  background: #f5b942;
+}
+
+.dv2-pastel-2-icon {
+  background: #3b82f6;
+}
+
+.dv2-pastel-3-icon {
+  background: var(--text-muted);
+}
+
+.dv2-gauge-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.dv2-gauge {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dv2-gauge svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.dv2-gauge-value {
+  position: relative;
+  font-size: 24px;
+  font-weight: 800;
+  font-family: var(--font-display);
+}

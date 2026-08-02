@@ -9,12 +9,40 @@ import type {
   OuraDailySummary,
   Reminder,
 } from '../shared/types'
-import { OuraIcon } from '../components/icons'
+import { BellIcon, OuraIcon, TargetIcon, WalletIcon } from '../components/icons'
 import { AssistantAvatar } from '../components/AssistantAvatar'
 import { speak } from '../voice/speak'
 
 function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+}
+
+function BudgetGauge({ pct }: { pct: number | null }) {
+  const r = 52
+  const circumference = 2 * Math.PI * r
+  const offset = circumference * (1 - (pct ?? 0) / 100)
+  return (
+    <div className="dv2-gauge">
+      <svg viewBox="0 0 120 120" width={140} height={140}>
+        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--border)" strokeWidth="10" />
+        {pct != null && (
+          <circle
+            cx="60"
+            cy="60"
+            r={r}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            transform="rotate(-90 60 60)"
+          />
+        )}
+      </svg>
+      <div className="dv2-gauge-value">{pct != null ? `${pct}%` : '—'}</div>
+    </div>
+  )
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -120,50 +148,74 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   ).length
   const eventsToday = events.filter((e) => isSameDay(new Date(e.start), now)).length
 
-  const priorityChips: { label: string; hue: string }[] = []
-  if (dueTodayOrOverdue > 0) {
-    priorityChips.push({ label: `${dueTodayOrOverdue} reminder${dueTodayOrOverdue === 1 ? '' : 's'} due`, hue: 'var(--hue-1)' })
-  }
-  if (canvasConfigured && assignmentsDueSoon > 0) {
-    priorityChips.push({ label: `${assignmentsDueSoon} assignment${assignmentsDueSoon === 1 ? '' : 's'} due soon`, hue: 'var(--hue-6)' })
-  }
-  if (googleConnected && eventsToday > 0) {
-    priorityChips.push({ label: `${eventsToday} event${eventsToday === 1 ? '' : 's'} today`, hue: 'var(--hue-2)' })
-  }
-  if (budgetSummary) {
-    priorityChips.push({ label: `${formatMoney(budgetSummary.balance)} left this month`, hue: 'var(--hue-3)' })
-  }
+  const totalPriorities =
+    dueTodayOrOverdue + (canvasConfigured ? assignmentsDueSoon : 0) + (googleConnected ? eventsToday : 0)
+  const incomePct =
+    budgetSummary && budgetSummary.income > 0
+      ? Math.min(100, Math.round((budgetSummary.expenses / budgetSummary.income) * 100))
+      : null
 
-  const initial = name.trim() ? name.trim()[0].toUpperCase() : 'D'
   const dateLabel = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
-    <>
-      <div className="greeting-hero">
-        <div className="greeting-hero-top">
-          <div className="avatar-circle">{initial}</div>
-          <div>
-            <h1 className="greeting-title">
-              {greetingForHour(now.getHours())}
-              {name.trim() ? `, ${name.trim()}` : ''}
-            </h1>
-            <p className="greeting-subtitle">{dateLabel}</p>
-          </div>
+    <div className="dv2-root">
+      <div className="dv2-hero">
+        <div>
+          <h1 className="greeting-title">
+            {greetingForHour(now.getHours())}
+            {name.trim() ? `, ${name.trim()}` : ''}
+          </h1>
+          <p className="greeting-subtitle">{dateLabel}</p>
         </div>
-        {priorityChips.length > 0 ? (
-          <div className="priority-chips">
-            {priorityChips.map((chip) => (
-              <span key={chip.label} className="priority-chip" style={{ ['--chip-hue' as string]: chip.hue }}>
-                {chip.label}
-              </span>
-            ))}
+        <div className="dv2-pill">
+          <span aria-hidden>⚡</span>
+          {totalPriorities > 0
+            ? `${totalPriorities} thing${totalPriorities === 1 ? '' : 's'} need${totalPriorities === 1 ? 's' : ''} attention`
+            : 'All caught up'}
+        </div>
+      </div>
+
+      <div className="dv2-stat-row">
+        <button className="dv2-stat-tile dv2-pastel-1" onClick={() => onNavigate('reminders')}>
+          <span className="dv2-stat-tile-top">Reminders</span>
+          <div className="dv2-stat-tile-bottom">
+            <span className="dv2-stat-tile-value">{upcomingReminders.length}</span>
+            <span className="dv2-stat-tile-icon dv2-pastel-1-icon">
+              <BellIcon size={16} />
+            </span>
           </div>
-        ) : (
-          <p className="greeting-subtitle">Nothing urgent — enjoy the calm.</p>
-        )}
+        </button>
+        <button className="dv2-stat-tile dv2-pastel-2" onClick={() => onNavigate('goals')}>
+          <span className="dv2-stat-tile-top">Active goals</span>
+          <div className="dv2-stat-tile-bottom">
+            <span className="dv2-stat-tile-value">{activeGoals.length}</span>
+            <span className="dv2-stat-tile-icon dv2-pastel-2-icon">
+              <TargetIcon size={16} />
+            </span>
+          </div>
+        </button>
+        <button className="dv2-stat-tile dv2-pastel-3" onClick={() => onNavigate('budget')}>
+          <span className="dv2-stat-tile-top">Balance this month</span>
+          <div className="dv2-stat-tile-bottom">
+            <span className="dv2-stat-tile-value">{budgetSummary ? formatMoney(budgetSummary.balance) : '—'}</span>
+            <span className="dv2-stat-tile-icon dv2-pastel-3-icon">
+              <WalletIcon size={16} />
+            </span>
+          </div>
+        </button>
       </div>
 
       <div className="grid grid-2">
+      <div className="card dv2-gauge-card">
+        <h3>Income spent this month</h3>
+        <BudgetGauge pct={incomePct} />
+        <p className="muted" style={{ marginTop: 8 }}>
+          {budgetSummary
+            ? `${formatMoney(budgetSummary.expenses)} of ${formatMoney(budgetSummary.income)}`
+            : 'No budget data yet.'}
+        </p>
+      </div>
+
       <div className="card" style={{ gridColumn: 'span 2' }}>
         <h3>
           Assistant
@@ -465,6 +517,6 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
       </div>
-    </>
+    </div>
   )
 }
