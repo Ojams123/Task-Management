@@ -1046,3 +1046,79 @@ button.link:hover {
   font-weight: 800;
   font-family: var(--font-display);
 }
+
+.dv2-stat-tile-caption {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.dv2-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  margin-right: 7px;
+  vertical-align: middle;
+}
+
+.dv2-dot-reminder {
+  background: #f5b942;
+}
+
+.dv2-dot-assignment {
+  background: #3b82f6;
+}
+
+.dv2-dot-event {
+  background: var(--text-muted);
+}
+
+.dv2-activity-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.dv2-stacked-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  gap: 2px;
+  background: var(--border);
+  margin-bottom: 16px;
+}
+
+.dv2-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.dv2-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+}
+
+.dv2-legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.dv2-legend-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Page } from '../components/Sidebar'
 import type {
+  BudgetCategory,
   CalendarEvent,
   CanvasAssignment,
   DailyFitnessSummary,
@@ -15,6 +16,19 @@ import { speak } from '../voice/speak'
 
 function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
+}
+
+// Fixed order chosen so the two lowest-contrast neighbors (teal/orange)
+// never land next to each other in the stacked bar.
+const BREAKDOWN_HUES = ['var(--hue-1)', 'var(--hue-4)', 'var(--hue-2)', 'var(--hue-5)', 'var(--hue-6)', 'var(--hue-3)']
+
+function relativeDayLabel(date: Date, now: Date): string {
+  if (isSameDay(date, now)) return 'Today'
+  const tomorrow = new Date(now)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  if (isSameDay(date, tomorrow)) return 'Tomorrow'
+  if (date < now) return 'Overdue'
+  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
 function BudgetGauge({ pct }: { pct: number | null }) {
@@ -61,9 +75,13 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   const [name, setName] = useState('')
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
-  const [budgetSummary, setBudgetSummary] = useState<{ income: number; expenses: number; balance: number } | null>(
-    null
-  )
+  const [budgetSummary, setBudgetSummary] = useState<{
+    income: number
+    expenses: number
+    balance: number
+    byCategory: { categoryId: string; name: string; spent: number; limit: number }[]
+  } | null>(null)
+  const [categories, setCategories] = useState<BudgetCategory[]>([])
   const [assignments, setAssignments] = useState<CanvasAssignment[]>([])
   const [canvasConfigured, setCanvasConfigured] = useState(false)
   const [digest, setDigest] = useState<NotificationDigest | null>(null)
@@ -79,14 +97,17 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   const [assistantSending, setAssistantSending] = useState(false)
   const [assistantError, setAssistantError] = useState<string | null>(null)
 
+  const [activityFilter, setActivityFilter] = useState<'all' | 'reminder' | 'assignment' | 'event'>('all')
+
   useEffect(() => {
     async function load() {
-      const [profileName, r, g, b, canvasSettings, googleStatus, fitnessSummary, ouraStatus, assistantStatus] =
+      const [profileName, r, g, b, cats, canvasSettings, googleStatus, fitnessSummary, ouraStatus, assistantStatus] =
         await Promise.all([
           window.api.profile.getName(),
           window.api.reminders.list(),
           window.api.goals.list(),
           window.api.budget.summary(),
+          window.api.budget.listCategories(),
           window.api.canvas.getSettings(),
           window.api.notifications.getGoogleAuthStatus(),
           window.api.fitness.dailySummary(),
@@ -97,6 +118,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       setReminders(r)
       setGoals(g)
       setBudgetSummary(b)
+      setCategories(cats)
       setCanvasConfigured(!!canvasSettings)
       setGoogleConnected(googleStatus.connected)
       setFitness(fitnessSummary)
@@ -139,8 +161,6 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   const now = new Date()
   const upcomingReminders = reminders.filter((r) => !r.completed).slice(0, 5)
   const activeGoals = goals.filter((g) => !g.archived).slice(0, 4)
-  const upcomingAssignments = assignments.filter((a) => !a.submitted).slice(0, 5)
-  const upcomingEvents = events.slice(0, 4)
 
   const dueTodayOrOverdue = reminders.filter((r) => !r.completed && new Date(r.dueAt) <= new Date(now.getTime() + 24 * 60 * 60 * 1000)).length
   const assignmentsDueSoon = assignments.filter(
@@ -154,6 +174,35 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
     budgetSummary && budgetSummary.income > 0
       ? Math.min(100, Math.round((budgetSummary.expenses / budgetSummary.income) * 100))
       : null
+
+  type ActivityItem = { id: string; type: 'reminder' | 'assignment' | 'event'; title: string; subtitle: string; date: Date }
+  const activityItems: ActivityItem[] = [
+    ...reminders
+      .filter((r) => !r.completed)
+      .map((r): ActivityItem => ({ id: `r-${r.id}`, type: 'reminder', title: r.title, subtitle: 'Reminder', date: new Date(r.dueAt) })),
+    ...(canvasConfigured
+      ? assignments
+          .filter((a) => !a.submitted && a.dueAt)
+          .map((a): ActivityItem => ({ id: `a-${a.id}`, type: 'assignment', title: a.name, subtitle: a.courseName, date: new Date(a.dueAt as string) }))
+      : []),
+    ...(googleConnected
+      ? events.map((e): ActivityItem => ({ id: `e-${e.id}`, type: 'event', title: e.title, subtitle: e.location ?? 'Event', date: new Date(e.start) }))
+      : []),
+  ].sort((a, b) => a.date.getTime() - b.date.getTime())
+  const filteredActivity = activityItems.filter((i) => activityFilter === 'all' || i.type === activityFilter).slice(0, 8)
+
+  const kindByCategoryId = new Map(categories.map((c) => [c.id, c.kind]))
+  const expenseRows = budgetSummary
+    ? budgetSummary.byCategory
+        .filter((c) => kindByCategoryId.get(c.categoryId) === 'expense' && c.spent > 0)
+        .sort((a, b) => b.spent - a.spent)
+    : []
+  const expenseTotal = expenseRows.reduce((sum, r) => sum + r.spent, 0)
+  const expenseBreakdown = expenseRows.map((r, i) => ({
+    ...r,
+    color: BREAKDOWN_HUES[i % BREAKDOWN_HUES.length],
+    pct: expenseTotal > 0 ? (r.spent / expenseTotal) * 100 : 0,
+  }))
 
   const dateLabel = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 
@@ -177,7 +226,10 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
 
       <div className="dv2-stat-row">
         <button className="dv2-stat-tile dv2-pastel-1" onClick={() => onNavigate('reminders')}>
-          <span className="dv2-stat-tile-top">Reminders</span>
+          <div>
+            <span className="dv2-stat-tile-top">Reminders</span>
+            <div className="dv2-stat-tile-caption">Stay on top of tasks.</div>
+          </div>
           <div className="dv2-stat-tile-bottom">
             <span className="dv2-stat-tile-value">{upcomingReminders.length}</span>
             <span className="dv2-stat-tile-icon dv2-pastel-1-icon">
@@ -186,7 +238,10 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
           </div>
         </button>
         <button className="dv2-stat-tile dv2-pastel-2" onClick={() => onNavigate('goals')}>
-          <span className="dv2-stat-tile-top">Active goals</span>
+          <div>
+            <span className="dv2-stat-tile-top">Active goals</span>
+            <div className="dv2-stat-tile-caption">Track your progress.</div>
+          </div>
           <div className="dv2-stat-tile-bottom">
             <span className="dv2-stat-tile-value">{activeGoals.length}</span>
             <span className="dv2-stat-tile-icon dv2-pastel-2-icon">
@@ -195,7 +250,10 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
           </div>
         </button>
         <button className="dv2-stat-tile dv2-pastel-3" onClick={() => onNavigate('budget')}>
-          <span className="dv2-stat-tile-top">Balance this month</span>
+          <div>
+            <span className="dv2-stat-tile-top">Balance this month</span>
+            <div className="dv2-stat-tile-caption">Income minus expenses.</div>
+          </div>
           <div className="dv2-stat-tile-bottom">
             <span className="dv2-stat-tile-value">{budgetSummary ? formatMoney(budgetSummary.balance) : '—'}</span>
             <span className="dv2-stat-tile-icon dv2-pastel-3-icon">
@@ -265,28 +323,37 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card">
-        <h3>
-          Today's reminders
-          <button className="link" onClick={() => onNavigate('reminders')}>
-            View all
-          </button>
-        </h3>
-        {upcomingReminders.length === 0 ? (
-          <div className="empty-state">Nothing due. Add one from Reminders or say "remind me to…".</div>
+      <div className="card" style={{ gridColumn: 'span 2' }}>
+        <h3>Latest activity</h3>
+        <div className="oura-tabs">
+          {(['all', 'reminder', 'assignment', 'event'] as const).map((f) => (
+            <button
+              key={f}
+              className={`oura-tab${activityFilter === f ? ' active' : ''}`}
+              style={{ ['--tab-color' as string]: 'var(--accent)' }}
+              onClick={() => setActivityFilter(f)}
+            >
+              {f === 'all' ? 'All' : f === 'reminder' ? 'Reminders' : f === 'assignment' ? 'Assignments' : 'Events'}
+            </button>
+          ))}
+        </div>
+        {filteredActivity.length === 0 ? (
+          <div className="empty-state" style={{ marginTop: 14 }}>
+            Nothing coming up — you're all caught up.
+          </div>
         ) : (
-          <div className="list">
-            {upcomingReminders.map((r) => (
-              <div className="list-row" key={r.id}>
+          <div className="list" style={{ marginTop: 14 }}>
+            {filteredActivity.map((item) => (
+              <div className="list-row" key={item.id}>
                 <div className="list-row-main">
-                  <div className="list-row-title">{r.title}</div>
-                  <div className="list-row-sub">
-                    {new Date(r.dueAt).toLocaleString(undefined, {
-                      weekday: 'short',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
+                  <div className="list-row-title">
+                    <span className={`dv2-dot dv2-dot-${item.type}`} aria-hidden />
+                    {item.title}
                   </div>
+                  <div className="list-row-sub">{item.subtitle}</div>
+                </div>
+                <div className="list-row-actions">
+                  <span className="dv2-activity-badge">{relativeDayLabel(item.date, now)}</span>
                 </div>
               </div>
             ))}
@@ -327,93 +394,34 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
 
       <div className="card">
         <h3>
-          Budget snapshot
+          Spending breakdown
           <button className="link" onClick={() => onNavigate('budget')}>
             View all
           </button>
         </h3>
-        {budgetSummary ? (
-          <div className="grid grid-3">
-            <div className="stat">
-              <span className="stat-label">Income</span>
-              <span className="stat-value" style={{ fontSize: 18, color: 'var(--success)' }}>
-                {formatMoney(budgetSummary.income)}
-              </span>
-            </div>
-            <div className="stat">
-              <span className="stat-label">Expenses</span>
-              <span className="stat-value" style={{ fontSize: 18, color: 'var(--danger)' }}>
-                {formatMoney(budgetSummary.expenses)}
-              </span>
-            </div>
-            <div className="stat">
-              <span className="stat-label">Balance</span>
-              <span className="stat-value" style={{ fontSize: 18 }}>
-                {formatMoney(budgetSummary.balance)}
-              </span>
-            </div>
-          </div>
+        {expenseBreakdown.length === 0 ? (
+          <div className="empty-state">No expenses logged yet.</div>
         ) : (
-          <div className="empty-state">No budget data yet.</div>
-        )}
-      </div>
-
-      <div className="card">
-        <h3>
-          Assignments due
-          <button className="link" onClick={() => onNavigate('assignments')}>
-            View all
-          </button>
-        </h3>
-        {!canvasConfigured ? (
-          <div className="empty-state">
-            Connect Canvas in Settings to see assignments here.
-          </div>
-        ) : upcomingAssignments.length === 0 ? (
-          <div className="empty-state">Nothing outstanding — sync from Assignments to check for updates.</div>
-        ) : (
-          <div className="list">
-            {upcomingAssignments.map((a) => (
-              <div className="list-row" key={a.id}>
-                <div className="list-row-main">
-                  <div className="list-row-title">{a.name}</div>
-                  <div className="list-row-sub">
-                    {a.courseName}
-                    {a.dueAt && ` · due ${new Date(a.dueAt).toLocaleDateString()}`}
-                  </div>
+          <>
+            <div className="dv2-stacked-bar">
+              {expenseBreakdown.map((r) => (
+                <div
+                  key={r.categoryId}
+                  style={{ flex: r.pct, background: r.color }}
+                  title={`${r.name}: ${formatMoney(r.spent)} (${Math.round(r.pct)}%)`}
+                />
+              ))}
+            </div>
+            <div className="dv2-legend">
+              {expenseBreakdown.map((r) => (
+                <div className="dv2-legend-row" key={r.categoryId}>
+                  <span className="dv2-legend-dot" style={{ background: r.color }} />
+                  <span className="dv2-legend-name">{r.name}</span>
+                  <span className="muted">{Math.round(r.pct)}%</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="card">
-        <h3>
-          Upcoming events
-          <button className="link" onClick={() => onNavigate('calendar')}>
-            View all
-          </button>
-        </h3>
-        {!googleConnected ? (
-          <div className="empty-state">Connect Google in Settings to see calendar events here.</div>
-        ) : upcomingEvents.length === 0 ? (
-          <div className="empty-state">Nothing synced — sync from Calendar to check for updates.</div>
-        ) : (
-          <div className="list">
-            {upcomingEvents.map((e) => (
-              <div className="list-row" key={e.id}>
-                <div className="list-row-main">
-                  <div className="list-row-title">{e.title}</div>
-                  <div className="list-row-sub">
-                    {e.allDay
-                      ? new Date(e.start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                      : new Date(e.start).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
