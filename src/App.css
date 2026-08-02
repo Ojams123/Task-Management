@@ -900,6 +900,15 @@ button.link:hover {
 /* Dashboard v2 — pastel SaaS-style redesign pilot, scoped to the Dashboard
    page only via .dv2-root so no other page is affected. */
 
+.dv2-root {
+  --dv2-tint-1: color-mix(in srgb, var(--accent) 100%, black 32%);
+  --dv2-tint-2: color-mix(in srgb, var(--accent) 100%, black 12%);
+  --dv2-tint-3: var(--accent);
+  --dv2-tint-4: color-mix(in srgb, var(--accent) 100%, white 24%);
+  --dv2-tint-5: color-mix(in srgb, var(--accent) 100%, white 44%);
+  --dv2-tint-6: color-mix(in srgb, var(--accent) 100%, white 62%);
+}
+
 .dv2-root .greeting-title {
   color: var(--text);
 }
@@ -964,15 +973,15 @@ button.link:hover {
 }
 
 .dv2-pastel-1 {
-  background: color-mix(in srgb, #f5b942 20%, var(--bg-card));
+  background: color-mix(in srgb, var(--accent) 24%, var(--bg-card));
 }
 
 .dv2-pastel-2 {
-  background: color-mix(in srgb, #3b82f6 16%, var(--bg-card));
+  background: color-mix(in srgb, var(--accent-strong) 14%, var(--bg-card));
 }
 
 .dv2-pastel-3 {
-  background: color-mix(in srgb, var(--text-muted) 16%, var(--bg-card));
+  background: color-mix(in srgb, var(--text) 12%, var(--bg-card));
 }
 
 .dv2-stat-tile-top {
@@ -1007,11 +1016,11 @@ button.link:hover {
 }
 
 .dv2-pastel-1-icon {
-  background: #f5b942;
+  background: var(--accent);
 }
 
 .dv2-pastel-2-icon {
-  background: #3b82f6;
+  background: var(--accent-strong);
 }
 
 .dv2-pastel-3-icon {
@@ -1063,11 +1072,11 @@ button.link:hover {
 }
 
 .dv2-dot-reminder {
-  background: #f5b942;
+  background: var(--accent);
 }
 
 .dv2-dot-assignment {
-  background: #3b82f6;
+  background: var(--accent-strong);
 }
 
 .dv2-dot-event {

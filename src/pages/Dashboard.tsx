@@ -18,9 +18,16 @@ function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 }
 
-// Fixed order chosen so the two lowest-contrast neighbors (teal/orange)
-// never land next to each other in the stacked bar.
-const BREAKDOWN_HUES = ['var(--hue-1)', 'var(--hue-4)', 'var(--hue-2)', 'var(--hue-5)', 'var(--hue-6)', 'var(--hue-3)']
+// A single-hue dark-to-light tint ramp (not a rainbow of distinct hues) —
+// category identity comes from the legend's labels, not the color alone.
+const BREAKDOWN_HUES = [
+  'var(--dv2-tint-1)',
+  'var(--dv2-tint-2)',
+  'var(--dv2-tint-3)',
+  'var(--dv2-tint-4)',
+  'var(--dv2-tint-5)',
+  'var(--dv2-tint-6)',
+]
 
 function relativeDayLabel(date: Date, now: Date): string {
   if (isSameDay(date, now)) return 'Today'
