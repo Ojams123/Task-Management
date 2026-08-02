@@ -72,5 +72,10 @@ export async function speak(text: string) {
   } else {
     utterance.lang = 'en-GB'
   }
+  // Lets any avatar/UI listen for speaking state without prop drilling —
+  // same event-based pattern as the httpClient's devicehub:unauthorized.
+  utterance.onstart = () => window.dispatchEvent(new CustomEvent('devicehub:speaking-start'))
+  utterance.onend = () => window.dispatchEvent(new CustomEvent('devicehub:speaking-end'))
+  utterance.onerror = () => window.dispatchEvent(new CustomEvent('devicehub:speaking-end'))
   window.speechSynthesis.speak(utterance)
 }

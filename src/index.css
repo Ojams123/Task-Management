@@ -28,6 +28,14 @@
   --hue-5: #ff5c9d;
   --hue-6: #ffd166;
 
+  --avatar-hair: #6b4226;
+  --avatar-skin: #f0c39a;
+  --avatar-brow: #5a3820;
+  --avatar-eye: #3b2a20;
+  --avatar-mouth: #b5605a;
+  --avatar-collar: var(--bg-card);
+  --avatar-shirt: var(--accent);
+
   --radius-lg: 20px;
   --radius-md: 12px;
   --radius-sm: 8px;

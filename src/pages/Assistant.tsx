@@ -3,6 +3,7 @@ import type { ChatMessage } from '../shared/types'
 import type { Page } from '../components/Sidebar'
 import { isVoiceMuted, setVoiceMuted, speak } from '../voice/speak'
 import { useSpeechRecognition } from '../voice/useSpeechRecognition'
+import { AssistantAvatar } from '../components/AssistantAvatar'
 
 export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const [configured, setConfigured] = useState<boolean | null>(null)
@@ -105,6 +106,10 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+        <AssistantAvatar size={88} />
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
         <button className="btn btn-sm" onClick={toggleVoice}>
           {voiceMuted ? 'Voice replies: off' : 'Voice replies: on'}
