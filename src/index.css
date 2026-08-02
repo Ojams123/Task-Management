@@ -40,7 +40,7 @@
   --radius-md: 12px;
   --radius-sm: 8px;
 
-  --font-display: -apple-system, 'SF Pro Display', 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-body: -apple-system, 'SF Pro Text', 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans-serif;
 
   font-family: var(--font-body);
