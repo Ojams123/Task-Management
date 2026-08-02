@@ -10,6 +10,8 @@ import type {
   Reminder,
 } from '../shared/types'
 import { OuraIcon } from '../components/icons'
+import { AssistantAvatar } from '../components/AssistantAvatar'
+import { speak } from '../voice/speak'
 
 function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -43,18 +45,26 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   const [ouraConfigured, setOuraConfigured] = useState(false)
   const [ouraToday, setOuraToday] = useState<OuraDailySummary | null>(null)
 
+  const [assistantConfigured, setAssistantConfigured] = useState(false)
+  const [assistantInput, setAssistantInput] = useState('')
+  const [assistantExchange, setAssistantExchange] = useState<{ question: string; reply: string } | null>(null)
+  const [assistantSending, setAssistantSending] = useState(false)
+  const [assistantError, setAssistantError] = useState<string | null>(null)
+
   useEffect(() => {
     async function load() {
-      const [profileName, r, g, b, canvasSettings, googleStatus, fitnessSummary, ouraStatus] = await Promise.all([
-        window.api.profile.getName(),
-        window.api.reminders.list(),
-        window.api.goals.list(),
-        window.api.budget.summary(),
-        window.api.canvas.getSettings(),
-        window.api.notifications.getGoogleAuthStatus(),
-        window.api.fitness.dailySummary(),
-        window.api.oura.getStatus(),
-      ])
+      const [profileName, r, g, b, canvasSettings, googleStatus, fitnessSummary, ouraStatus, assistantStatus] =
+        await Promise.all([
+          window.api.profile.getName(),
+          window.api.reminders.list(),
+          window.api.goals.list(),
+          window.api.budget.summary(),
+          window.api.canvas.getSettings(),
+          window.api.notifications.getGoogleAuthStatus(),
+          window.api.fitness.dailySummary(),
+          window.api.oura.getStatus(),
+          window.api.assistant.getStatus(),
+        ])
       setName(profileName ?? '')
       setReminders(r)
       setGoals(g)
@@ -63,6 +73,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       setGoogleConnected(googleStatus.connected)
       setFitness(fitnessSummary)
       setOuraConfigured(ouraStatus.configured)
+      setAssistantConfigured(assistantStatus.configured)
 
       if (canvasSettings) setAssignments(await window.api.canvas.listCached())
       if (googleStatus.connected) {
@@ -76,6 +87,26 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
     }
     load()
   }, [])
+
+  async function askAssistant() {
+    const question = assistantInput.trim()
+    if (!question || assistantSending) return
+    setAssistantSending(true)
+    setAssistantError(null)
+    setAssistantInput('')
+    try {
+      const history = await window.api.assistant.sendMessage(question)
+      const reply = history[history.length - 1]
+      if (reply && reply.role === 'assistant') {
+        setAssistantExchange({ question, reply: reply.content })
+        speak(reply.content)
+      }
+    } catch (e) {
+      setAssistantError(e instanceof Error ? e.message : 'Failed to reach the assistant')
+    } finally {
+      setAssistantSending(false)
+    }
+  }
 
   const now = new Date()
   const upcomingReminders = reminders.filter((r) => !r.completed).slice(0, 5)
@@ -133,6 +164,55 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       </div>
 
       <div className="grid grid-2">
+      <div className="card" style={{ gridColumn: 'span 2' }}>
+        <h3>
+          Assistant
+          <button className="link" onClick={() => onNavigate('assistant')}>
+            Open
+          </button>
+        </h3>
+        {!assistantConfigured ? (
+          <div className="empty-state">
+            Add your Anthropic or OpenAI API key in Settings to enable the built-in assistant.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <AssistantAvatar size={64} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {assistantExchange ? (
+                <div style={{ marginBottom: 10 }}>
+                  <div className="muted" style={{ fontSize: 12, marginBottom: 2 }}>
+                    You asked: "{assistantExchange.question}"
+                  </div>
+                  <div style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{assistantExchange.reply}</div>
+                </div>
+              ) : (
+                <div className="empty-state" style={{ marginBottom: 10 }}>
+                  Ask it anything — "what's due this week?", "log a run", "add a reminder".
+                </div>
+              )}
+              {assistantError && (
+                <p className="muted" style={{ color: 'var(--danger)', marginBottom: 8 }}>
+                  {assistantError}
+                </p>
+              )}
+              <div className="inline-form">
+                <input
+                  style={{ flex: 1 }}
+                  value={assistantInput}
+                  onChange={(e) => setAssistantInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && askAssistant()}
+                  placeholder="Ask the assistant…"
+                />
+                <button className="btn btn-primary" onClick={askAssistant} disabled={assistantSending}>
+                  {assistantSending ? 'Asking…' : 'Ask'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="card">
         <h3>
           Today's reminders
