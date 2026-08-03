@@ -12,6 +12,7 @@ import type {
 } from '../shared/types'
 import { BellIcon, OuraIcon, TargetIcon, WalletIcon } from '../components/icons'
 import { AssistantAvatar } from '../components/AssistantAvatar'
+import { WeekCalendar } from '../components/WeekCalendar'
 import { speak } from '../voice/speak'
 
 function formatMoney(n: number): string {
@@ -105,6 +106,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   const [assistantError, setAssistantError] = useState<string | null>(null)
 
   const [activityFilter, setActivityFilter] = useState<'all' | 'reminder' | 'assignment' | 'event'>('all')
+  const [weekCalError, setWeekCalError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -165,6 +167,22 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
     }
   }
 
+  async function removeWeekEvent(id: string) {
+    const target = weekEvents.find((e) => e.id === id)
+    if (!target) return
+    if (target.source === 'canvas') {
+      if (target.htmlLink) window.open(target.htmlLink, '_blank', 'noreferrer')
+      return
+    }
+    if (!window.confirm(`Delete "${target.title}" from your Google Calendar?`)) return
+    setWeekCalError(null)
+    try {
+      setEvents(await window.api.calendar.deleteEvent(id))
+    } catch (e) {
+      setWeekCalError(e instanceof Error ? e.message : 'Could not delete event')
+    }
+  }
+
   const now = new Date()
   const upcomingReminders = reminders.filter((r) => !r.completed).slice(0, 5)
   const activeGoals = goals.filter((g) => !g.archived).slice(0, 4)
@@ -197,6 +215,26 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       : []),
   ].sort((a, b) => a.date.getTime() - b.date.getTime())
   const filteredActivity = activityItems.filter((i) => activityFilter === 'all' || i.type === activityFilter).slice(0, 8)
+
+  const weekEvents: CalendarEvent[] = [
+    ...events,
+    ...(canvasConfigured
+      ? assignments
+          .filter((a) => !a.submitted && a.dueAt)
+          .map(
+            (a): CalendarEvent => ({
+              id: `canvas-${a.id}`,
+              title: `${a.name} (${a.courseName})`,
+              start: a.dueAt as string,
+              end: null,
+              allDay: false,
+              location: a.courseName,
+              htmlLink: a.htmlUrl,
+              source: 'canvas',
+            })
+          )
+      : []),
+  ]
 
   const kindByCategoryId = new Map(categories.map((c) => [c.id, c.kind]))
   const expenseRows = budgetSummary
@@ -327,6 +365,27 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
               </div>
             </div>
           </div>
+        )}
+      </div>
+
+      <div className="card" style={{ gridColumn: 'span 2' }}>
+        <h3>
+          This week
+          <button className="link" onClick={() => onNavigate('calendar')}>
+            Open Calendar
+          </button>
+        </h3>
+        {weekCalError && (
+          <p className="muted" style={{ color: 'var(--danger)', marginBottom: 10 }}>
+            {weekCalError}
+          </p>
+        )}
+        {weekEvents.length === 0 ? (
+          <div className="empty-state">
+            Nothing scheduled yet — connect Google Calendar and/or Canvas in Settings to see your week here.
+          </div>
+        ) : (
+          <WeekCalendar events={weekEvents} onDelete={removeWeekEvent} />
         )}
       </div>
 

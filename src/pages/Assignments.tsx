@@ -45,6 +45,14 @@ export function Assignments({ onNavigate }: { onNavigate?: (page: Page) => void 
     return !a.submitted && !a.completedLocally
   })
 
+  const byCourse = new Map<string, CanvasAssignment[]>()
+  for (const a of filtered) {
+    const list = byCourse.get(a.courseName)
+    if (list) list.push(a)
+    else byCourse.set(a.courseName, [a])
+  }
+  const courseGroups = Array.from(byCourse.entries()).sort(([a], [b]) => a.localeCompare(b))
+
   if (configured === false) {
     return (
       <div className="card">
@@ -92,44 +100,53 @@ export function Assignments({ onNavigate }: { onNavigate?: (page: Page) => void 
             {assignments.length === 0 ? 'No assignments synced yet — click "Sync with Canvas".' : 'Nothing here.'}
           </div>
         ) : (
-          <div className="list">
-            {filtered.map((a) => {
-              const overdue = !a.submitted && a.dueAt !== null && new Date(a.dueAt).getTime() < now
-              return (
-                <div className="list-row" key={a.id}>
-                  <div className="list-row-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <input
-                      type="checkbox"
-                      checked={a.completedLocally}
-                      onChange={(e) => toggleCompleted(a.id, e.target.checked)}
-                      title="Mark done (tracked in DeviceHub only — doesn't submit to Canvas)"
-                    />
-                    <div>
-                      <div
-                        className="list-row-title"
-                        style={a.completedLocally ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}
-                      >
-                        {a.name}
+          courseGroups.map(([courseName, courseAssignments]) => (
+            <div key={courseName} style={{ marginBottom: 18 }}>
+              <div
+                className="muted"
+                style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 8 }}
+              >
+                {courseName} <span style={{ fontWeight: 400 }}>({courseAssignments.length})</span>
+              </div>
+              <div className="list">
+                {courseAssignments.map((a) => {
+                  const overdue = !a.submitted && a.dueAt !== null && new Date(a.dueAt).getTime() < now
+                  return (
+                    <div className="list-row" key={a.id}>
+                      <div className="list-row-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <input
+                          type="checkbox"
+                          checked={a.completedLocally}
+                          onChange={(e) => toggleCompleted(a.id, e.target.checked)}
+                          title="Mark done (tracked in DeviceHub only — doesn't submit to Canvas)"
+                        />
+                        <div>
+                          <div
+                            className="list-row-title"
+                            style={a.completedLocally ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}
+                          >
+                            {a.name}
+                          </div>
+                          <div className="list-row-sub">
+                            {a.dueAt && `Due ${new Date(a.dueAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
+                            {a.pointsPossible != null && ` · ${a.pointsPossible} pts`}
+                          </div>
+                        </div>
                       </div>
-                      <div className="list-row-sub">
-                        {a.courseName}
-                        {a.dueAt && ` · due ${new Date(a.dueAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
-                        {a.pointsPossible != null && ` · ${a.pointsPossible} pts`}
+                      <div className="list-row-actions">
+                        {a.completedLocally && <span className="badge success">Done</span>}
+                        {a.submitted && <span className="badge success">Submitted</span>}
+                        {overdue && !a.completedLocally && <span className="badge danger">Overdue</span>}
+                        <a className="btn btn-sm" href={a.htmlUrl} target="_blank" rel="noreferrer">
+                          Open
+                        </a>
                       </div>
                     </div>
-                  </div>
-                  <div className="list-row-actions">
-                    {a.completedLocally && <span className="badge success">Done</span>}
-                    {a.submitted && <span className="badge success">Submitted</span>}
-                    {overdue && !a.completedLocally && <span className="badge danger">Overdue</span>}
-                    <a className="btn btn-sm" href={a.htmlUrl} target="_blank" rel="noreferrer">
-                      Open
-                    </a>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))
         )}
       </div>
     </div>
