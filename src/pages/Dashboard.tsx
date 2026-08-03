@@ -224,7 +224,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
           .map(
             (a): CalendarEvent => ({
               id: `canvas-${a.id}`,
-              title: `${a.name} (${a.courseName})`,
+              title: a.name,
               start: a.dueAt as string,
               end: null,
               allDay: false,

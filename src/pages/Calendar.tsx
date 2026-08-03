@@ -28,7 +28,7 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
         .filter((a) => !a.submitted && a.dueAt)
         .map((a) => ({
           id: `canvas-${a.id}`,
-          title: `${a.name} (${a.courseName})`,
+          title: a.name,
           start: a.dueAt as string,
           end: null,
           allDay: false,

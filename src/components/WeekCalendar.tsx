@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CalendarEvent } from '../shared/types'
 
-const HOUR_HEIGHT = 48
+const HOUR_HEIGHT = 68
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 function startOfWeek(date: Date): Date {
@@ -32,7 +32,7 @@ function layoutDayEvents(events: CalendarEvent[]): PositionedEvent[] {
     .map((e) => {
       const start = new Date(e.start)
       const end = e.end ? new Date(e.end) : new Date(start.getTime() + 30 * 60000)
-      return { event: e, startMin: minutesSinceMidnight(start), endMin: Math.max(minutesSinceMidnight(end), minutesSinceMidnight(start) + 20) }
+      return { event: e, startMin: minutesSinceMidnight(start), endMin: Math.max(minutesSinceMidnight(end), minutesSinceMidnight(start) + 36) }
     })
     .sort((a, b) => a.startMin - b.startMin)
 
@@ -172,11 +172,12 @@ export function WeekCalendar({
               {isToday && <div className="week-calendar-now-line" style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }} />}
               {dayEvents.map(({ event, left, width, top, height }) => {
                 const isCanvas = event.source === 'canvas'
+                const boxHeight = Math.max(height, 34)
                 return (
                   <div
                     key={event.id}
                     className={`week-calendar-event${isCanvas ? ' week-calendar-event-canvas' : ''}`}
-                    style={{ left: `${left}%`, width: `calc(${width}% - 3px)`, top, height: Math.max(height, 20) }}
+                    style={{ left: `${left}%`, width: `calc(${width}% - 3px)`, top, height: boxHeight }}
                     onClick={() => onDelete(event.id)}
                     title={isCanvas ? `${event.title} — due, click to open in Canvas` : `${event.title} — click to delete`}
                   >
@@ -184,7 +185,10 @@ export function WeekCalendar({
                       {isCanvas ? '📘 ' : ''}
                       {event.title}
                     </div>
-                    {height > 30 && (
+                    {event.location && boxHeight > 48 && (
+                      <div className="week-calendar-event-location">{event.location}</div>
+                    )}
+                    {boxHeight > 40 && (
                       <div className="week-calendar-event-time">
                         {new Date(event.start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
                       </div>
