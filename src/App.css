@@ -738,13 +738,31 @@ button.link:hover {
   font-size: 10.5px;
 }
 
-.week-calendar-event-canvas {
-  background: linear-gradient(135deg, #2a7ba0, #1d5a78);
-}
-
 .week-calendar-chip-canvas {
   background: rgba(42, 123, 160, 0.16);
   color: #2a7ba0;
+}
+
+.week-calendar-event-compact {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #2a7ba0, #1d5a78);
+  color: #fff;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  box-shadow: 0 2px 5px -2px rgba(0, 0, 0, 0.4);
+}
+
+.week-calendar-event-compact:hover {
+  filter: brightness(1.1);
 }
 
 .oura-tabs {

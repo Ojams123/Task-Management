@@ -27,6 +27,26 @@ interface PositionedEvent {
   height: number
 }
 
+const CANVAS_CHIP_HEIGHT = 24
+
+// Canvas due-dates are point-in-time markers, not real scheduled durations —
+// several assignments commonly share the same due time (11:59pm is a very
+// common Canvas default). Running them through the side-by-side overlap
+// layout below would split them into ever-narrower unreadable slivers, so
+// they get their own compact vertically-stacked list instead.
+function layoutCanvasStack(events: CalendarEvent[]): PositionedEvent[] {
+  const withTimes = events
+    .map((e) => ({ event: e, startMin: minutesSinceMidnight(new Date(e.start)) }))
+    .sort((a, b) => a.startMin - b.startMin)
+
+  let nextTop = -Infinity
+  return withTimes.map(({ event, startMin }) => {
+    const top = Math.max((startMin / 60) * HOUR_HEIGHT, nextTop)
+    nextTop = top + CANVAS_CHIP_HEIGHT + 2
+    return { event, left: 0, width: 100, top, height: CANVAS_CHIP_HEIGHT }
+  })
+}
+
 function layoutDayEvents(events: CalendarEvent[]): PositionedEvent[] {
   const withTimes = events
     .map((e) => {
@@ -162,7 +182,9 @@ export function WeekCalendar({
           ))}
         </div>
         {days.map((d) => {
-          const dayEvents = layoutDayEvents(timedEvents.filter((e) => isSameDay(new Date(e.start), d)))
+          const dayTimedEvents = timedEvents.filter((e) => isSameDay(new Date(e.start), d))
+          const dayEvents = layoutDayEvents(dayTimedEvents.filter((e) => e.source !== 'canvas'))
+          const canvasChips = layoutCanvasStack(dayTimedEvents.filter((e) => e.source === 'canvas'))
           const isToday = isSameDay(d, today)
           return (
             <div key={d.toISOString()} className="week-calendar-day-col" style={{ height: 24 * HOUR_HEIGHT }}>
@@ -171,20 +193,16 @@ export function WeekCalendar({
               ))}
               {isToday && <div className="week-calendar-now-line" style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }} />}
               {dayEvents.map(({ event, left, width, top, height }) => {
-                const isCanvas = event.source === 'canvas'
                 const boxHeight = Math.max(height, 34)
                 return (
                   <div
                     key={event.id}
-                    className={`week-calendar-event${isCanvas ? ' week-calendar-event-canvas' : ''}`}
+                    className="week-calendar-event"
                     style={{ left: `${left}%`, width: `calc(${width}% - 3px)`, top, height: boxHeight }}
                     onClick={() => onDelete(event.id)}
-                    title={isCanvas ? `${event.title} — due, click to open in Canvas` : `${event.title} — click to delete`}
+                    title={`${event.title} — click to delete`}
                   >
-                    <div className="week-calendar-event-title">
-                      {isCanvas ? '📘 ' : ''}
-                      {event.title}
-                    </div>
+                    <div className="week-calendar-event-title">{event.title}</div>
                     {event.location && boxHeight > 48 && (
                       <div className="week-calendar-event-location">{event.location}</div>
                     )}
@@ -196,6 +214,17 @@ export function WeekCalendar({
                   </div>
                 )
               })}
+              {canvasChips.map(({ event, top, height }) => (
+                <div
+                  key={event.id}
+                  className="week-calendar-event-compact"
+                  style={{ top, height }}
+                  onClick={() => onDelete(event.id)}
+                  title={`${event.title} (${event.location}) — due ${new Date(event.start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}, click to open in Canvas`}
+                >
+                  📘 {event.title}
+                </div>
+              ))}
             </div>
           )
         })}
