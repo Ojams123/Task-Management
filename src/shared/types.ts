@@ -177,13 +177,16 @@ export interface ChatMessage {
   createdAt: string
 }
 
-export type AssistantProvider = 'anthropic' | 'openai'
+export type AssistantProvider = 'anthropic' | 'openai' | 'managed-agent'
 
 export interface AssistantStatus {
   provider: AssistantProvider
   configured: boolean
   anthropicConfigured: boolean
   openaiConfigured: boolean
+  managedAgentConfigured: boolean
+  managedAgentId: string | null
+  managedAgentEnvironmentId: string | null
 }
 
 export interface OuraDailySummary {
@@ -398,6 +401,7 @@ export interface DeviceHubApi {
     getStatus(): Promise<AssistantStatus>
     saveApiKey(provider: AssistantProvider, apiKey: string): Promise<void>
     setProvider(provider: AssistantProvider): Promise<void>
+    saveManagedAgentConfig(agentId: string, environmentId: string): Promise<void>
     getHistory(): Promise<ChatMessage[]>
     sendMessage(content: string): Promise<ChatMessage[]>
     clearHistory(): Promise<void>

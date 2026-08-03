@@ -19,6 +19,7 @@ import { fetchUnreadDigest, markMessageAsRead } from '../core/integrations/gmail
 import { fetchUpcomingEvents, createCalendarEvent, deleteCalendarEvent } from '../core/integrations/calendar'
 import { runOAuthFlow } from './integrations/googleAuth'
 import { runAssistantTurn } from '../core/integrations/assistant'
+import { runManagedAgentTurn } from '../core/integrations/managedAgent'
 import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
 import { autoCategorizePlaidTransactions } from '../core/integrations/budgetAutoSync'
@@ -56,6 +57,9 @@ const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
 const OPENAI_API_KEY = 'assistant.openaiApiKey'
 const ASSISTANT_PROVIDER_KEY = 'assistant.provider'
+const MANAGED_AGENT_ID_KEY = 'assistant.managedAgentId'
+const MANAGED_AGENT_ENV_KEY = 'assistant.managedAgentEnvironmentId'
+const MANAGED_AGENT_SESSION_KEY = 'assistant.managedAgentSessionId'
 const OURA_TOKEN_KEY = 'oura.token'
 const PROFILE_NAME_KEY = 'profile.name'
 const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
@@ -128,6 +132,12 @@ async function syncAllPlaidItems() {
 
 function getAssistantProvider(): AssistantProvider {
   return (getSecret(ASSISTANT_PROVIDER_KEY) as AssistantProvider | null) ?? 'anthropic'
+}
+
+function parseAssistantProvider(value: unknown): AssistantProvider {
+  if (value === 'openai') return 'openai'
+  if (value === 'managed-agent') return 'managed-agent'
+  return 'anthropic'
 }
 
 function getCanvasSettings(): CanvasSettings | null {
@@ -290,22 +300,50 @@ export function registerIpcHandlers() {
     const provider = getAssistantProvider()
     const anthropicConfigured = !!getSecret(ANTHROPIC_API_KEY)
     const openaiConfigured = !!getSecret(OPENAI_API_KEY)
+    const managedAgentId = getSecret(MANAGED_AGENT_ID_KEY)
+    const managedAgentEnvironmentId = getSecret(MANAGED_AGENT_ENV_KEY)
+    const managedAgentConfigured = anthropicConfigured && !!managedAgentId && !!managedAgentEnvironmentId
     return {
       provider,
       anthropicConfigured,
       openaiConfigured,
-      configured: provider === 'openai' ? openaiConfigured : anthropicConfigured,
+      managedAgentConfigured,
+      managedAgentId,
+      managedAgentEnvironmentId,
+      configured:
+        provider === 'openai' ? openaiConfigured : provider === 'managed-agent' ? managedAgentConfigured : anthropicConfigured,
     }
   })
   ipcMain.handle('assistant:saveApiKey', (_e, provider: AssistantProvider, apiKey: string) => {
-    setSecret(provider === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY, apiKey)
+    setSecret(parseAssistantProvider(provider) === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY, apiKey)
   })
   ipcMain.handle('assistant:setProvider', (_e, provider: AssistantProvider) => {
-    setSecret(ASSISTANT_PROVIDER_KEY, provider)
+    setSecret(ASSISTANT_PROVIDER_KEY, parseAssistantProvider(provider))
+  })
+  ipcMain.handle('assistant:saveManagedAgentConfig', (_e, agentId: string, environmentId: string) => {
+    setSecret(MANAGED_AGENT_ID_KEY, (agentId ?? '').trim())
+    setSecret(MANAGED_AGENT_ENV_KEY, (environmentId ?? '').trim())
+    deleteSecret(MANAGED_AGENT_SESSION_KEY)
   })
   ipcMain.handle('assistant:getHistory', () => chat.listMessages())
   ipcMain.handle('assistant:sendMessage', async (_e, content: string) => {
     const provider = getAssistantProvider()
+
+    if (provider === 'managed-agent') {
+      const apiKey = getSecret(ANTHROPIC_API_KEY)
+      const agentId = getSecret(MANAGED_AGENT_ID_KEY)
+      const environmentId = getSecret(MANAGED_AGENT_ENV_KEY)
+      if (!apiKey || !agentId || !environmentId) {
+        throw new Error('Add your Anthropic API key and Managed Agent ID/Environment ID in Settings to enable this agent.')
+      }
+      chat.addMessage('user', content)
+      const sessionId = getSecret(MANAGED_AGENT_SESSION_KEY)
+      const result = await runManagedAgentTurn({ apiKey, agentId, environmentId, sessionId }, content)
+      setSecret(MANAGED_AGENT_SESSION_KEY, result.sessionId)
+      chat.addMessage('assistant', result.reply)
+      return chat.listMessages()
+    }
+
     const apiKey = getSecret(provider === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY)
     if (!apiKey) {
       throw new Error(`Add your ${provider === 'openai' ? 'OpenAI' : 'Anthropic'} API key in Settings to enable the assistant.`)
@@ -316,7 +354,10 @@ export function registerIpcHandlers() {
     chat.addMessage('assistant', reply)
     return chat.listMessages()
   })
-  ipcMain.handle('assistant:clearHistory', () => chat.clearMessages())
+  ipcMain.handle('assistant:clearHistory', () => {
+    chat.clearMessages()
+    deleteSecret(MANAGED_AGENT_SESSION_KEY)
+  })
 
   // Oura
   ipcMain.handle('oura:getStatus', () => ({ configured: !!getSecret(OURA_TOKEN_KEY) }))

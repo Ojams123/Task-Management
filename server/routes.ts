@@ -19,6 +19,7 @@ import { fetchAssignments } from '../core/integrations/canvas'
 import { fetchUnreadDigest, markMessageAsRead } from '../core/integrations/gmail'
 import { fetchUpcomingEvents, createCalendarEvent, deleteCalendarEvent } from '../core/integrations/calendar'
 import { runAssistantTurn } from '../core/integrations/assistant'
+import { runManagedAgentTurn } from '../core/integrations/managedAgent'
 import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
 import { autoCategorizePlaidTransactions } from '../core/integrations/budgetAutoSync'
@@ -58,6 +59,9 @@ const CALORIE_TARGET_KEY = 'fitness.calorieTarget'
 const ANTHROPIC_API_KEY = 'assistant.anthropicApiKey'
 const OPENAI_API_KEY = 'assistant.openaiApiKey'
 const ASSISTANT_PROVIDER_KEY = 'assistant.provider'
+const MANAGED_AGENT_ID_KEY = 'assistant.managedAgentId'
+const MANAGED_AGENT_ENV_KEY = 'assistant.managedAgentEnvironmentId'
+const MANAGED_AGENT_SESSION_KEY = 'assistant.managedAgentSessionId'
 const OURA_TOKEN_KEY = 'oura.token'
 const PROFILE_NAME_KEY = 'profile.name'
 const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
@@ -80,6 +84,12 @@ const DEFAULT_CALORIE_TARGET = 2000
 
 function getAssistantProvider(): AssistantProvider {
   return (getSecret(ASSISTANT_PROVIDER_KEY) as AssistantProvider | null) ?? 'anthropic'
+}
+
+function parseAssistantProvider(value: unknown): AssistantProvider {
+  if (value === 'openai') return 'openai'
+  if (value === 'managed-agent') return 'managed-agent'
+  return 'anthropic'
 }
 
 function getMicrosoftCreds(): MicrosoftCreds | null {
@@ -364,21 +374,34 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     const provider = getAssistantProvider()
     const anthropicConfigured = !!getSecret(ANTHROPIC_API_KEY)
     const openaiConfigured = !!getSecret(OPENAI_API_KEY)
+    const managedAgentId = getSecret(MANAGED_AGENT_ID_KEY)
+    const managedAgentEnvironmentId = getSecret(MANAGED_AGENT_ENV_KEY)
+    const managedAgentConfigured = anthropicConfigured && !!managedAgentId && !!managedAgentEnvironmentId
     res.json({
       provider,
       anthropicConfigured,
       openaiConfigured,
-      configured: provider === 'openai' ? openaiConfigured : anthropicConfigured,
+      managedAgentConfigured,
+      managedAgentId,
+      managedAgentEnvironmentId,
+      configured:
+        provider === 'openai' ? openaiConfigured : provider === 'managed-agent' ? managedAgentConfigured : anthropicConfigured,
     })
   })
   api.post('/assistant/api-key', (req, res) => {
-    const provider: AssistantProvider = req.body.provider === 'openai' ? 'openai' : 'anthropic'
+    const provider = parseAssistantProvider(req.body.provider)
     setSecret(provider === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY, req.body.apiKey)
     res.json({ ok: true })
   })
   api.post('/assistant/provider', (req, res) => {
-    const provider: AssistantProvider = req.body.provider === 'openai' ? 'openai' : 'anthropic'
+    const provider = parseAssistantProvider(req.body.provider)
     setSecret(ASSISTANT_PROVIDER_KEY, provider)
+    res.json({ ok: true })
+  })
+  api.post('/assistant/managed-agent-config', (req, res) => {
+    setSecret(MANAGED_AGENT_ID_KEY, String(req.body.agentId ?? '').trim())
+    setSecret(MANAGED_AGENT_ENV_KEY, String(req.body.environmentId ?? '').trim())
+    deleteSecret(MANAGED_AGENT_SESSION_KEY)
     res.json({ ok: true })
   })
   api.get('/assistant/history', (_req, res) => res.json(chat.listMessages()))
@@ -386,6 +409,26 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     '/assistant/message',
     asyncHandler(async (req, res) => {
       const provider = getAssistantProvider()
+
+      if (provider === 'managed-agent') {
+        const apiKey = getSecret(ANTHROPIC_API_KEY)
+        const agentId = getSecret(MANAGED_AGENT_ID_KEY)
+        const environmentId = getSecret(MANAGED_AGENT_ENV_KEY)
+        if (!apiKey || !agentId || !environmentId) {
+          res.status(400).json({
+            error: 'Add your Anthropic API key and Managed Agent ID/Environment ID in Settings to enable this agent.',
+          })
+          return
+        }
+        chat.addMessage('user', req.body.content)
+        const sessionId = getSecret(MANAGED_AGENT_SESSION_KEY)
+        const result = await runManagedAgentTurn({ apiKey, agentId, environmentId, sessionId }, req.body.content)
+        setSecret(MANAGED_AGENT_SESSION_KEY, result.sessionId)
+        chat.addMessage('assistant', result.reply)
+        res.json(chat.listMessages())
+        return
+      }
+
       const apiKey = getSecret(provider === 'openai' ? OPENAI_API_KEY : ANTHROPIC_API_KEY)
       if (!apiKey) {
         res.status(400).json({
@@ -402,6 +445,7 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
   )
   api.delete('/assistant/history', (_req, res) => {
     chat.clearMessages()
+    deleteSecret(MANAGED_AGENT_SESSION_KEY)
     res.json({ ok: true })
   })
 

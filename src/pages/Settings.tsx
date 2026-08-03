@@ -36,6 +36,10 @@ export function Settings() {
   const [anthropicConfigured, setAnthropicConfigured] = useState(false)
   const [openaiConfigured, setOpenaiConfigured] = useState(false)
   const [assistantSaved, setAssistantSaved] = useState(false)
+  const [managedAgentId, setManagedAgentId] = useState('')
+  const [managedAgentEnvId, setManagedAgentEnvId] = useState('')
+  const [managedAgentConfigured, setManagedAgentConfigured] = useState(false)
+  const [managedAgentSaved, setManagedAgentSaved] = useState(false)
 
   const [ouraToken, setOuraToken] = useState('')
   const [ouraConfigured, setOuraConfigured] = useState(false)
@@ -92,6 +96,9 @@ export function Settings() {
       setAssistantProvider(s.provider)
       setAnthropicConfigured(s.anthropicConfigured)
       setOpenaiConfigured(s.openaiConfigured)
+      setManagedAgentConfigured(s.managedAgentConfigured)
+      if (s.managedAgentId) setManagedAgentId(s.managedAgentId)
+      if (s.managedAgentEnvironmentId) setManagedAgentEnvId(s.managedAgentEnvironmentId)
     })
     window.api.oura.getStatus().then((s) => setOuraConfigured(s.configured))
     window.api.plaid.getSettings().then((s) => {
@@ -194,6 +201,13 @@ export function Settings() {
   async function selectAssistantProvider(provider: AssistantProvider) {
     setAssistantProvider(provider)
     await window.api.assistant.setProvider(provider)
+  }
+
+  async function saveManagedAgentConfig() {
+    await window.api.assistant.saveManagedAgentConfig(managedAgentId.trim(), managedAgentEnvId.trim())
+    setManagedAgentConfigured(!!managedAgentId.trim() && !!managedAgentEnvId.trim())
+    setManagedAgentSaved(true)
+    setTimeout(() => setManagedAgentSaved(false), 2000)
   }
 
   async function saveOuraToken() {
@@ -706,15 +720,15 @@ export function Settings() {
           </span>
         </h3>
         <p className="muted" style={{ marginBottom: 12 }}>
-          The assistant can use either Anthropic (Claude) or OpenAI (ChatGPT) — bring your own API key for
-          whichever you prefer. It's stored encrypted, only used to call that provider's API directly from your
-          device, and can create reminders, goals, transactions, fitness entries, calendar events, and more when
-          you ask it to.
+          The assistant can use Anthropic (Claude), OpenAI (ChatGPT), or your own Managed Agent on
+          platform.claude.com — bring your own API key for whichever you prefer. It's stored encrypted, only used
+          to call that provider's API directly from your device, and can create reminders, goals, transactions,
+          fitness entries, calendar events, and more when you ask it to.
         </p>
 
         <div className="field" style={{ marginBottom: 14 }}>
           <label>Active provider</label>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button
               type="button"
               className={`btn ${assistantProvider === 'anthropic' ? 'btn-primary' : 'btn-sm'}`}
@@ -733,6 +747,16 @@ export function Settings() {
               <span className="heading-with-icon">
                 <OpenAIIcon size={16} />
                 OpenAI (ChatGPT)
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`btn ${assistantProvider === 'managed-agent' ? 'btn-primary' : 'btn-sm'}`}
+              onClick={() => selectAssistantProvider('managed-agent')}
+            >
+              <span className="heading-with-icon">
+                <ClaudeIcon size={16} />
+                My Agent (Managed)
               </span>
             </button>
           </div>
@@ -792,6 +816,50 @@ export function Settings() {
           <p className="muted" style={{ marginTop: 10 }}>
             Saved.
           </p>
+        )}
+
+        {assistantProvider === 'managed-agent' && (
+          <>
+            <hr style={{ margin: '18px 0', border: 'none', borderTop: '1px solid var(--border)' }} />
+            <p className="muted" style={{ marginBottom: 12 }}>
+              This uses the Anthropic API key above to connect to a Managed Agent you built at{' '}
+              <a href="https://platform.claude.com" target="_blank" rel="noreferrer">
+                platform.claude.com
+              </a>{' '}
+              — it keeps your agent's own model/system prompt, and gives it DeviceHub's own tools (reminders,
+              goals, budget, calendar, etc.) for the session, plus general web research. Requires a one-time
+              Environment created on your Anthropic account.
+            </p>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Agent ID</label>
+              <input
+                value={managedAgentId}
+                onChange={(e) => setManagedAgentId(e.target.value)}
+                placeholder="agent_01Gc5UadD65MnzgfnRRVyZQg"
+              />
+            </div>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Environment ID</label>
+              <input
+                value={managedAgentEnvId}
+                onChange={(e) => setManagedAgentEnvId(e.target.value)}
+                placeholder="env_..."
+              />
+            </div>
+            <button className="btn btn-primary" onClick={saveManagedAgentConfig}>
+              Save agent config
+            </button>
+            {managedAgentConfigured && (
+              <span className="muted" style={{ marginLeft: 10 }}>
+                Configured.
+              </span>
+            )}
+            {managedAgentSaved && (
+              <p className="muted" style={{ marginTop: 10 }}>
+                Saved.
+              </p>
+            )}
+          </>
         )}
       </div>
 

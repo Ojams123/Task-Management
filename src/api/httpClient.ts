@@ -114,6 +114,8 @@ export function createHttpClient(): DeviceHubApi {
       getStatus: () => request('GET', '/assistant/status'),
       saveApiKey: (provider, apiKey) => request('POST', '/assistant/api-key', { provider, apiKey }),
       setProvider: (provider) => request('POST', '/assistant/provider', { provider }),
+      saveManagedAgentConfig: (agentId, environmentId) =>
+        request('POST', '/assistant/managed-agent-config', { agentId, environmentId }),
       getHistory: () => request('GET', '/assistant/history'),
       sendMessage: (content) => request('POST', '/assistant/message', { content }),
       clearHistory: () => request('DELETE', '/assistant/history'),
