@@ -27,7 +27,7 @@ interface PositionedEvent {
   height: number
 }
 
-const CANVAS_CHIP_HEIGHT = 24
+const CANVAS_CHIP_HEIGHT = 36
 
 // Canvas due-dates are point-in-time markers, not real scheduled durations —
 // several assignments commonly share the same due time (11:59pm is a very
@@ -141,6 +141,7 @@ export function WeekCalendar({
           </button>
         </div>
       </div>
+      <div className="week-calendar-scroll">
       <div className="week-calendar-header">
         <div className="week-calendar-hour-gutter" />
         {days.map((d) => (
@@ -228,6 +229,7 @@ export function WeekCalendar({
             </div>
           )
         })}
+      </div>
       </div>
     </div>
   )

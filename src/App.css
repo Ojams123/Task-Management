@@ -578,9 +578,15 @@ button.link:hover {
   gap: 6px;
 }
 
+.week-calendar-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
 .week-calendar-header {
   display: grid;
-  grid-template-columns: 48px repeat(7, 1fr);
+  grid-template-columns: 48px repeat(7, minmax(150px, 1fr));
+  min-width: 1098px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -626,7 +632,8 @@ button.link:hover {
 
 .week-calendar-allday-row {
   display: grid;
-  grid-template-columns: 48px repeat(7, 1fr);
+  grid-template-columns: 48px repeat(7, minmax(150px, 1fr));
+  min-width: 1098px;
   border-bottom: 1px solid var(--border);
   padding: 4px 0;
 }
@@ -654,7 +661,8 @@ button.link:hover {
 
 .week-calendar-body {
   display: grid;
-  grid-template-columns: 48px repeat(7, 1fr);
+  grid-template-columns: 48px repeat(7, minmax(150px, 1fr));
+  min-width: 1098px;
   max-height: 560px;
   overflow-y: auto;
   position: relative;
@@ -754,9 +762,10 @@ button.link:hover {
   font-size: 11px;
   font-weight: 600;
   line-height: 1.3;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
   cursor: pointer;
   box-shadow: 0 2px 5px -2px rgba(0, 0, 0, 0.4);
 }
