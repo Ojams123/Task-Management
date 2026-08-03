@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChatMessage } from '../shared/types'
 import type { Page } from '../components/Sidebar'
-import { isVoiceMuted, setVoiceMuted, speak } from '../voice/speak'
+import { isVoiceMuted, setVoiceMuted, speak, primeVoice } from '../voice/speak'
 import { useSpeechRecognition } from '../voice/useSpeechRecognition'
 import { AssistantAvatar } from '../components/AssistantAvatar'
 
@@ -54,6 +54,7 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
     async (overrideContent?: string) => {
       const content = (overrideContent ?? input).trim()
       if (!content || sending) return
+      primeVoice()
       setInput('')
       setSending(true)
       setError(null)

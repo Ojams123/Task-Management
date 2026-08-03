@@ -13,7 +13,7 @@ import type {
 import { BellIcon, OuraIcon, TargetIcon, WalletIcon } from '../components/icons'
 import { AssistantAvatar } from '../components/AssistantAvatar'
 import { WeekCalendar } from '../components/WeekCalendar'
-import { speak } from '../voice/speak'
+import { speak, primeVoice } from '../voice/speak'
 
 function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -150,6 +150,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   async function askAssistant() {
     const question = assistantInput.trim()
     if (!question || assistantSending) return
+    primeVoice()
     setAssistantSending(true)
     setAssistantError(null)
     setAssistantInput('')

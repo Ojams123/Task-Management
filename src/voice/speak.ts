@@ -62,6 +62,20 @@ export function setVoiceMuted(muted: boolean) {
   localStorage.setItem(MUTE_KEY, muted ? '1' : '0')
 }
 
+// iOS/iPadOS Safari only allows speechSynthesis.speak() to produce audio when
+// called synchronously inside a real user gesture (tap/click). A reply that
+// arrives after a long async wait (e.g. a multi-round-trip Managed Agent
+// session) falls outside that window and gets silently dropped — no error,
+// just no sound. Calling speak() once, synchronously, at the moment of the
+// gesture (even on near-silent text) unlocks the speech engine for the rest
+// of that page session, so the later real utterance still plays.
+export function primeVoice() {
+  if (!('speechSynthesis' in window) || isVoiceMuted()) return
+  const utterance = new SpeechSynthesisUtterance(' ')
+  utterance.volume = 0
+  window.speechSynthesis.speak(utterance)
+}
+
 export async function speak(text: string) {
   if (!text.trim() || !('speechSynthesis' in window) || isVoiceMuted()) return
   const utterance = new SpeechSynthesisUtterance(text)
