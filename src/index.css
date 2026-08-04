@@ -1,32 +1,33 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
-  --bg: #0a0c11;
-  --bg-elevated: #12151c;
-  --bg-card: #171b24;
-  --bg-card-hover: #1c212c;
-  --border: #242a36;
-  --border-strong: #333c4d;
-  --text: #edf0f6;
-  --text-muted: #8991a3;
+  --bg: #0a0a0b;
+  --bg-elevated: #111214;
+  --bg-card: #131417;
+  --bg-card-hover: #17191d;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #edeef1;
+  --text-muted: #83878f;
+  --text-faint: #54585f;
 
-  --accent: #7c6fff;
-  --accent-strong: #6355e8;
-  --accent-soft: rgba(124, 111, 255, 0.16);
-  --on-accent: #0b0d14;
+  --accent: #4ddb96;
+  --accent-strong: #33b87c;
+  --accent-soft: rgba(77, 219, 150, 0.14);
+  --on-accent: #06130c;
 
-  --danger: #ff5c72;
-  --success: #2fd9a8;
-  --warning: #ffb648;
-  --info: #3fc6ff;
+  --danger: #ff6b6b;
+  --success: #4ddb96;
+  --warning: #f5b955;
+  --info: #5eb3ff;
 
-  /* module accent hues, cycled across bento tiles */
-  --hue-1: #7c6fff;
-  --hue-2: #3fc6ff;
-  --hue-3: #2fd9a8;
-  --hue-4: #ff9d4d;
-  --hue-5: #ff5c9d;
-  --hue-6: #ffd166;
+  /* single-hue tint ramp for charts/breakdowns — not a rainbow of hues */
+  --hue-1: #4ddb96;
+  --hue-2: #5eb3ff;
+  --hue-3: #f5b955;
+  --hue-4: #c792ea;
+  --hue-5: #ff6b6b;
+  --hue-6: #83878f;
 
   --avatar-hair: #6b4226;
   --avatar-skin: #f0c39a;
@@ -36,30 +37,15 @@
   --avatar-collar: var(--bg-card);
   --avatar-shirt: var(--accent);
 
-  --radius-lg: 20px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
+  --radius-lg: 14px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
 
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-body: -apple-system, 'SF Pro Text', 'Segoe UI', system-ui, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   font-family: var(--font-body);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f4f2fb;
-    --bg-elevated: #ffffff;
-    --bg-card: #ffffff;
-    --bg-card-hover: #faf9ff;
-    --border: #e5e1f2;
-    --border-strong: #d3cced;
-    --text: #191b23;
-    --text-muted: #656f82;
-    --accent: #6a5bf5;
-    --accent-strong: #5646e0;
-    --accent-soft: rgba(106, 91, 245, 0.1);
-  }
 }
 
 * {
