@@ -1,10 +1,5 @@
-import { ComingNext } from "@/components/ui/coming-next";
+import { SettingsView } from "@/components/settings/settings-view";
 
 export default function SettingsPage() {
-  return (
-    <ComingNext
-      title="Settings"
-      detail="Profile, security, data permissions, notifications, AI preferences, and theme sections land in the next phase."
-    />
-  );
+  return <SettingsView />;
 }

@@ -1,10 +1,6 @@
-import { ComingNext } from "@/components/ui/coming-next";
+import { IntegrationsGrid } from "@/components/integrations/integrations-grid";
+import { integrations } from "@/lib/mock-data";
 
 export default function IntegrationsPage() {
-  return (
-    <ComingNext
-      title="Integrations"
-      detail="Connection cards for banks, Google Drive, and other services with connected/syncing/error states land in the next phase."
-    />
-  );
+  return <IntegrationsGrid integrations={integrations} />;
 }

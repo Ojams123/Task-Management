@@ -1,10 +1,6 @@
-import { ComingNext } from "@/components/ui/coming-next";
+import { DocumentsView } from "@/components/documents/documents-view";
+import { documents } from "@/lib/mock-data";
 
 export default function DocumentsPage() {
-  return (
-    <ComingNext
-      title="Documents"
-      detail="File browser, upload zone, and Google Drive ingestion status land in the next phase."
-    />
-  );
+  return <DocumentsView documents={documents} />;
 }
