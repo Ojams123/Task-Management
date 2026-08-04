@@ -1011,8 +1011,9 @@ export function Settings() {
           <a href="https://dashboard.plaid.com/signup" target="_blank" rel="noreferrer">
             dashboard.plaid.com
           </a>
-          , copy your client ID and secret for the environment you want, and paste them below. Then go to{' '}
-          <strong>Budget</strong> to connect a bank account.
+          , then under Developers → Keys request Production access (a short form, usually fast to approve for
+          personal use), copy your client ID and Production secret, and paste them below. Then go to{' '}
+          <strong>Budget</strong> to connect a real bank account.
         </p>
         {plaidConfigured && (
           <p className="muted" style={{ marginBottom: 10 }}>
@@ -1036,8 +1037,8 @@ export function Settings() {
           <label>Environment</label>
           <select value={plaidEnvironment} onChange={(e) => setPlaidEnvironment(e.target.value)}>
             <option value="sandbox">Sandbox (test data)</option>
-            <option value="development">Development (real accounts)</option>
-            <option value="production">Production</option>
+            <option value="production">Production (real accounts)</option>
+            <option value="development">Development (legacy — most new Plaid accounts don't have this)</option>
           </select>
         </div>
         <button className="btn btn-primary" onClick={savePlaidSettings}>
