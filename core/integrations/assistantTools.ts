@@ -230,6 +230,43 @@ export const ASSISTANT_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'list_budget_transactions',
+    description:
+      "List this month's (or a given month's) budget transactions with their current category name, amount, and date. Use this to find transactions that need recategorizing — e.g. ones filed under \"Uncategorized\" — before calling reassign_transaction_category.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        month: { type: 'string', description: 'YYYY-MM, defaults to the current month' },
+      },
+    },
+  },
+  {
+    name: 'reassign_transaction_category',
+    description:
+      'Move an existing transaction (by its id from list_budget_transactions) into a different budget category, creating that category if it does not already exist.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        transactionId: { type: 'string' },
+        categoryName: { type: 'string' },
+        kind: { type: 'string', enum: ['expense', 'income'], description: "Only used if the category doesn't exist yet; defaults to expense" },
+      },
+      required: ['transactionId', 'categoryName'],
+    },
+  },
+  {
+    name: 'update_budget_category_limit',
+    description: "Set a new monthly limit for an existing budget category, matched by (partial) name.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        categoryName: { type: 'string' },
+        monthlyLimit: { type: 'number' },
+      },
+      required: ['categoryName', 'monthlyLimit'],
+    },
+  },
+  {
     name: 'get_overview',
     description:
       "Fetch the user's current reminders, active goals, this month's budget summary, upcoming Canvas assignments, upcoming calendar events, recent Oura sleep/readiness/activity scores, bank balances/recent transactions, current weather, Spotify/Strava/Microsoft 365 snapshots, and LinkedIn profile. Use this before answering questions about what's due, owed, in progress, playing, or how they've been sleeping/recovering.",
@@ -381,6 +418,31 @@ export async function executeTool(name: string, input: Record<string, unknown>):
       if (!google) return { error: 'Connect Google in Settings first.' }
       await markMessageAsRead(google.clientId, google.clientSecret, google.refreshToken, i.messageId)
       return { markedRead: i.messageId }
+    }
+    case 'list_budget_transactions': {
+      const i = input as { month?: string }
+      const categories = budget.listCategories()
+      const nameById = new Map(categories.map((c) => [c.id, c.name]))
+      return budget.listTransactions(i.month).map((t) => ({
+        id: t.id,
+        description: t.description,
+        amount: t.amount,
+        categoryName: nameById.get(t.categoryId) ?? 'Unknown',
+        occurredAt: t.occurredAt,
+      }))
+    }
+    case 'reassign_transaction_category': {
+      const i = input as { transactionId: string; categoryName: string; kind?: 'expense' | 'income' }
+      const category = budget.findOrCreateCategory(i.categoryName, i.kind ?? 'expense')
+      return budget.updateTransactionCategory(i.transactionId, category.id)
+    }
+    case 'update_budget_category_limit': {
+      const i = input as { categoryName: string; monthlyLimit: number }
+      const match = budget
+        .listCategories()
+        .find((c) => c.name.toLowerCase().includes(i.categoryName.toLowerCase()))
+      if (!match) return { error: `No budget category found matching "${i.categoryName}"` }
+      return budget.updateCategory(match.id, { monthlyLimit: i.monthlyLimit })
     }
     case 'get_overview': {
       const today = new Date().toISOString().slice(0, 10)
