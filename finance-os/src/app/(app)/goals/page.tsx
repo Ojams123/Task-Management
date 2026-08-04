@@ -1,10 +1,6 @@
-import { ComingNext } from "@/components/ui/coming-next";
+import { GoalsGrid } from "@/components/goals/goals-grid";
+import { goals } from "@/lib/mock-data";
 
 export default function GoalsPage() {
-  return (
-    <ComingNext
-      title="Goals"
-      detail="Full goal cards with progress rings, contribution controls, and AI recommendations land in the next phase."
-    />
-  );
+  return <GoalsGrid goals={goals} />;
 }

@@ -1,10 +1,7 @@
-import { ComingNext } from "@/components/ui/coming-next";
+import { TransactionsTable } from "@/components/transactions/transactions-table";
+import { accounts, transactions } from "@/lib/mock-data";
 
 export default function TransactionsPage() {
-  return (
-    <ComingNext
-      title="Transactions"
-      detail="Full list/table view with search, bulk categorization, tags, and receipts lands in the next phase."
-    />
-  );
+  const sorted = [...transactions].sort((a, b) => +new Date(b.date) - +new Date(a.date));
+  return <TransactionsTable transactions={sorted} accounts={accounts} />;
 }

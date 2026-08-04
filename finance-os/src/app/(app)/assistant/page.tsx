@@ -1,10 +1,6 @@
-import { ComingNext } from "@/components/ui/coming-next";
+import { ChatPanel } from "@/components/assistant/chat-panel";
+import { aiConversationStarter, suggestedQuestions } from "@/lib/mock-data";
 
 export default function AssistantPage() {
-  return (
-    <ComingNext
-      title="Assistant"
-      detail="The full chat panel with streaming responses and rich answer cards lands in the next phase."
-    />
-  );
+  return <ChatPanel initialMessages={aiConversationStarter} suggestions={suggestedQuestions} />;
 }

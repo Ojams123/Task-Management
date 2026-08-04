@@ -1,10 +1,8 @@
-import { ComingNext } from "@/components/ui/coming-next";
+import { RecurringList } from "@/components/recurring/recurring-list";
+import { recurringPayments } from "@/lib/mock-data";
 
 export default function RecurringPage() {
-  return (
-    <ComingNext
-      title="Recurring payments"
-      detail="Full subscription list with cancel/ignore actions and detection-confidence detail lands in the next phase."
-    />
-  );
+  // eslint-disable-next-line react-hooks/purity -- reference timestamp for "in Nd" labels, computed once per request
+  const now = Date.now();
+  return <RecurringList payments={recurringPayments} now={now} />;
 }

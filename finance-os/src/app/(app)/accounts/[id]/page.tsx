@@ -1,10 +1,17 @@
-import { ComingNext } from "@/components/ui/coming-next";
+import { notFound } from "next/navigation";
+import { AccountDetailView } from "@/components/accounts/account-detail-view";
+import { accountById, institutionById, transactionsForAccount } from "@/lib/mock-data";
 
-export default function AccountDetailPage() {
+export default async function AccountDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const account = accountById(id);
+  if (!account) notFound();
+
   return (
-    <ComingNext
-      title="Account detail"
-      detail="Balance history, full transaction search/filters, and account settings land in the next phase."
+    <AccountDetailView
+      account={account}
+      institution={institutionById(account.institutionId)}
+      transactions={transactionsForAccount(account.id)}
     />
   );
 }
