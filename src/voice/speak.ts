@@ -52,6 +52,18 @@ async function preferredVoice(): Promise<SpeechSynthesisVoice | null> {
   return cachedVoice
 }
 
+// Debug helper for diagnosing "wrong voice" reports — lists every voice the
+// browser can see (name/lang, ranked) plus which one the picker chose, so a
+// mismatch between "I downloaded voice X" and "the app can't see it" is
+// visible directly instead of guessed at.
+export async function debugListVoices(): Promise<{ name: string; lang: string; score: number }[]> {
+  cachedVoice = undefined
+  const voices = await loadVoices()
+  return voices
+    .map((v) => ({ name: v.name, lang: v.lang, score: scoreVoice(v) }))
+    .sort((a, b) => b.score - a.score)
+}
+
 const MUTE_KEY = 'devicehub.voiceMuted'
 
 export function isVoiceMuted(): boolean {

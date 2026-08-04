@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IS_ELECTRON } from '../bootstrap'
+import { debugListVoices } from '../voice/speak'
 import type { AssistantProvider, GoogleAuthStatus, LinkedInProfile } from '../shared/types'
 import {
   CanvasIcon,
@@ -41,6 +42,7 @@ export function Settings() {
   const [managedAgentConfigured, setManagedAgentConfigured] = useState(false)
   const [managedAgentSaved, setManagedAgentSaved] = useState(false)
   const [managedAgentError, setManagedAgentError] = useState<string | null>(null)
+  const [voiceList, setVoiceList] = useState<{ name: string; lang: string; score: number }[] | null>(null)
 
   const [ouraToken, setOuraToken] = useState('')
   const [ouraConfigured, setOuraConfigured] = useState(false)
@@ -877,6 +879,44 @@ export function Settings() {
               </p>
             )}
           </>
+        )}
+
+        <hr style={{ margin: '18px 0', border: 'none', borderTop: '1px solid var(--border)' }} />
+        <p className="muted" style={{ marginBottom: 10 }}>
+          Spoken replies use whatever text-to-speech voices this device has installed — DeviceHub can't add new
+          voices itself. If replies don't sound like you expect, check what this browser can actually see:
+        </p>
+        <button className="btn btn-sm" onClick={() => debugListVoices().then(setVoiceList)}>
+          Check available voices
+        </button>
+        {voiceList && (
+          <div style={{ marginTop: 10, fontSize: 12 }}>
+            {voiceList.length === 0 ? (
+              <p className="muted">This browser reports no speech voices at all.</p>
+            ) : (
+              <>
+                <p className="muted" style={{ marginBottom: 6 }}>
+                  Currently picked: <strong>{voiceList[0].name}</strong> ({voiceList[0].lang})
+                </p>
+                <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  {voiceList.map((v, i) => (
+                    <div
+                      key={`${v.name}-${v.lang}`}
+                      style={{
+                        padding: '4px 8px',
+                        borderBottom: i < voiceList.length - 1 ? '1px solid var(--border)' : 'none',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <span>{v.name}</span>
+                      <span className="muted">{v.lang}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
 
