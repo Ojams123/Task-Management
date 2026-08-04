@@ -1269,3 +1269,177 @@ button.link:hover {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* Glyph — small circular avatar for institutions/merchants */
+
+.fin-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Account/transaction rows — wrap-friendly so labels never get squeezed
+   to nothing on narrow screens (fixed a real bug with this exact pattern
+   in an earlier iteration) */
+
+.fin-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+button.fin-row {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.fin-row:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-card-hover);
+}
+
+.fin-row-main {
+  min-width: 160px;
+  flex: 1;
+}
+
+.fin-row-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fin-row-sub {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.fin-row-amount {
+  margin-left: auto;
+  text-align: right;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.fin-row-amount-sub {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+/* Filter bar above transaction lists */
+
+.fin-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.fin-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+}
+
+.fin-search-wrap input {
+  width: 100%;
+  padding-left: 30px;
+}
+
+.fin-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* Drawer — slide-over detail panel */
+
+.fin-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fin-drawer {
+  width: 100%;
+  max-width: 420px;
+  height: 100%;
+  background: var(--bg-elevated);
+  border-left: 1px solid var(--border-strong);
+  box-shadow: -20px 0 40px -20px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+}
+
+.fin-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.fin-drawer-header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.fin-drawer-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.fin-drawer-close:hover {
+  background: var(--bg-card);
+  color: var(--text);
+}
+
+.fin-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.fin-drawer-amount {
+  font-size: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 14px 0;
+}

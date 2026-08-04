@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { BudgetCategory, SimplefinAccount, SimplefinTransaction, Transaction } from '../shared/types'
 import { Sparkline } from '../components/Sparkline'
+import { Glyph } from '../components/Glyph'
+import { Drawer } from '../components/Drawer'
 
 function currentMonth(): string {
   return new Date().toISOString().slice(0, 7)
@@ -53,6 +55,11 @@ export function Budget() {
 
   const [budgetError, setBudgetError] = useState<string | null>(null)
   const [seeding, setSeeding] = useState(false)
+
+  const [selectedAccount, setSelectedAccount] = useState<SimplefinAccount | null>(null)
+  const [selectedBankTx, setSelectedBankTx] = useState<SimplefinTransaction | null>(null)
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null)
+  const [txSearch, setTxSearch] = useState('')
 
   async function refresh() {
     const [cats, txs, sum, simplefinStatus] = await Promise.all([
@@ -264,15 +271,14 @@ export function Budget() {
           ) : (
             <div className="list">
               {simplefinAccounts.map((a) => (
-                <div className="list-row" key={a.id}>
-                  <div className="list-row-main">
-                    <div className="list-row-title">{a.name}</div>
-                    <div className="list-row-sub">{a.orgName ?? 'Bank'}</div>
+                <button key={a.id} className="fin-row" onClick={() => setSelectedAccount(a)}>
+                  <Glyph label={a.orgName ?? a.name} />
+                  <div className="fin-row-main">
+                    <div className="fin-row-title">{a.name}</div>
+                    <div className="fin-row-sub">{a.orgName ?? 'Bank'}</div>
                   </div>
-                  <div className="list-row-actions">
-                    <span className="badge">{formatMoney(a.balance)}</span>
-                  </div>
-                </div>
+                  <div className="fin-row-amount">{formatMoney(a.balance)}</div>
+                </button>
               ))}
             </div>
           )}
@@ -288,20 +294,19 @@ export function Budget() {
           </p>
           <div className="list">
             {simplefinTransactions.slice(0, 15).map((t) => (
-              <div className="list-row" key={t.id}>
-                <div className="list-row-main">
-                  <div className="list-row-title">{t.description}</div>
-                  <div className="list-row-sub">
+              <button key={t.id} className="fin-row" onClick={() => setSelectedBankTx(t)}>
+                <Glyph label={t.description} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{t.description}</div>
+                  <div className="fin-row-sub">
                     {new Date(t.date).toLocaleDateString()}
                     {t.pending && ' · pending'}
                   </div>
                 </div>
-                <div className="list-row-actions">
-                  <span className={`badge${t.amount < 0 ? ' danger' : ' success'}`}>
-                    {formatMoney(Math.abs(t.amount))}
-                  </span>
+                <div className="fin-row-amount" style={{ color: t.amount < 0 ? 'var(--danger)' : 'var(--success)' }}>
+                  {formatMoney(Math.abs(t.amount))}
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -445,45 +450,144 @@ export function Budget() {
           {transactions.length === 0 ? (
             <div className="empty-state">No transactions logged this month.</div>
           ) : (
-            <div className="list">
-              {transactions.map((t) => (
-                <div className="list-row" key={t.id}>
-                  <div className="list-row-main">
-                    <div className="list-row-title">
-                      {t.description || categoryName(t.categoryId)}
-                      {(t.simplefinTransactionId || t.plaidTransactionId) && (
-                        <span className="badge" style={{ marginLeft: 6, fontSize: 10 }} title="Auto-synced from your bank">
-                          synced
-                        </span>
-                      )}
-                    </div>
-                    <div className="list-row-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <select
-                        value={t.categoryId}
-                        onChange={(e) => reassignTransaction(t.id, e.target.value)}
-                        style={{ fontSize: 12, padding: '2px 4px' }}
-                      >
-                        {categories.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                      <span>· {new Date(t.occurredAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                  <div className="list-row-actions">
-                    <span className="badge">{formatMoney(t.amount)}</span>
-                    <button className="btn btn-sm btn-danger" onClick={() => removeTransaction(t.id)}>
-                      Delete
-                    </button>
-                  </div>
+            <>
+              <div className="fin-filter-bar">
+                <div className="fin-search-wrap">
+                  <span className="fin-search-icon" aria-hidden="true">
+                    🔎
+                  </span>
+                  <input
+                    placeholder="Search description or category…"
+                    value={txSearch}
+                    onChange={(e) => setTxSearch(e.target.value)}
+                  />
                 </div>
-              ))}
-            </div>
+              </div>
+              {(() => {
+                const filtered = transactions.filter((t) => {
+                  if (!txSearch.trim()) return true
+                  const haystack = `${t.description ?? ''} ${categoryName(t.categoryId)}`.toLowerCase()
+                  return haystack.includes(txSearch.trim().toLowerCase())
+                })
+                return filtered.length === 0 ? (
+                  <div className="empty-state">No transactions match "{txSearch}".</div>
+                ) : (
+                  <div className="list">
+                    {filtered.map((t) => (
+                      <button key={t.id} className="fin-row" onClick={() => setSelectedTx(t)}>
+                        <Glyph label={t.description || categoryName(t.categoryId)} />
+                        <div className="fin-row-main">
+                          <div className="fin-row-title">
+                            {t.description || categoryName(t.categoryId)}
+                            {(t.simplefinTransactionId || t.plaidTransactionId) && (
+                              <span className="badge" style={{ fontSize: 10 }} title="Auto-synced from your bank">
+                                synced
+                              </span>
+                            )}
+                          </div>
+                          <div className="fin-row-sub">
+                            {categoryName(t.categoryId)} · {new Date(t.occurredAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <div className="fin-row-amount">{formatMoney(t.amount)}</div>
+                      </button>
+                    ))}
+                  </div>
+                )
+              })()}
+            </>
           )}
         </div>
       </div>
+
+      <Drawer open={!!selectedAccount} onClose={() => setSelectedAccount(null)} title={selectedAccount?.name ?? ''}>
+        {selectedAccount && (
+          <>
+            <div className="muted" style={{ marginBottom: 4 }}>
+              {selectedAccount.orgName ?? 'Bank'}
+            </div>
+            <div className="fin-drawer-amount">{formatMoney(selectedAccount.balance)}</div>
+            {selectedAccount.availableBalance != null && (
+              <p className="muted" style={{ marginBottom: 18 }}>
+                {formatMoney(selectedAccount.availableBalance)} available
+              </p>
+            )}
+            <h3 style={{ fontSize: 13, marginBottom: 10 }}>Recent activity</h3>
+            <div className="list">
+              {simplefinTransactions
+                .filter((t) => t.accountId === selectedAccount.id)
+                .slice(0, 10)
+                .map((t) => (
+                  <div className="fin-row" key={t.id}>
+                    <Glyph label={t.description} />
+                    <div className="fin-row-main">
+                      <div className="fin-row-title">{t.description}</div>
+                      <div className="fin-row-sub">{new Date(t.date).toLocaleDateString()}</div>
+                    </div>
+                    <div className="fin-row-amount" style={{ color: t.amount < 0 ? 'var(--danger)' : 'var(--success)' }}>
+                      {formatMoney(Math.abs(t.amount))}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </>
+        )}
+      </Drawer>
+
+      <Drawer open={!!selectedBankTx} onClose={() => setSelectedBankTx(null)} title="Transaction">
+        {selectedBankTx && (
+          <>
+            <div className="fin-drawer-amount" style={{ color: selectedBankTx.amount < 0 ? 'var(--danger)' : 'var(--success)' }}>
+              {formatMoney(Math.abs(selectedBankTx.amount))}
+            </div>
+            <div className="muted" style={{ marginBottom: 18 }}>
+              {selectedBankTx.description}
+              {selectedBankTx.pending && ' · pending'}
+            </div>
+            <div className="field">
+              <label>Date</label>
+              <div>{new Date(selectedBankTx.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+            </div>
+          </>
+        )}
+      </Drawer>
+
+      <Drawer open={!!selectedTx} onClose={() => setSelectedTx(null)} title="Transaction">
+        {selectedTx && (
+          <>
+            <div className="fin-drawer-amount">{formatMoney(selectedTx.amount)}</div>
+            <p className="muted" style={{ marginBottom: 18 }}>
+              {selectedTx.description || categoryName(selectedTx.categoryId)} ·{' '}
+              {new Date(selectedTx.occurredAt).toLocaleDateString()}
+            </p>
+            <div className="field" style={{ marginBottom: 16 }}>
+              <label>Category</label>
+              <select
+                value={selectedTx.categoryId}
+                onChange={(e) => {
+                  reassignTransaction(selectedTx.id, e.target.value)
+                  setSelectedTx(null)
+                }}
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                removeTransaction(selectedTx.id)
+                setSelectedTx(null)
+              }}
+            >
+              Delete transaction
+            </button>
+          </>
+        )}
+      </Drawer>
     </div>
   )
 }
