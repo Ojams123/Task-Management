@@ -321,8 +321,13 @@ export function registerIpcHandlers() {
     setSecret(ASSISTANT_PROVIDER_KEY, parseAssistantProvider(provider))
   })
   ipcMain.handle('assistant:saveManagedAgentConfig', (_e, agentId: string, environmentId: string) => {
-    setSecret(MANAGED_AGENT_ID_KEY, (agentId ?? '').trim())
-    setSecret(MANAGED_AGENT_ENV_KEY, (environmentId ?? '').trim())
+    const trimmedAgentId = (agentId ?? '').trim()
+    const trimmedEnvironmentId = (environmentId ?? '').trim()
+    if (!trimmedAgentId || !trimmedEnvironmentId) {
+      throw new Error('Agent ID and Environment ID are both required.')
+    }
+    setSecret(MANAGED_AGENT_ID_KEY, trimmedAgentId)
+    setSecret(MANAGED_AGENT_ENV_KEY, trimmedEnvironmentId)
     deleteSecret(MANAGED_AGENT_SESSION_KEY)
   })
   ipcMain.handle('assistant:getHistory', () => chat.listMessages())

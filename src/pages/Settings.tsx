@@ -40,6 +40,7 @@ export function Settings() {
   const [managedAgentEnvId, setManagedAgentEnvId] = useState('')
   const [managedAgentConfigured, setManagedAgentConfigured] = useState(false)
   const [managedAgentSaved, setManagedAgentSaved] = useState(false)
+  const [managedAgentError, setManagedAgentError] = useState<string | null>(null)
 
   const [ouraToken, setOuraToken] = useState('')
   const [ouraConfigured, setOuraConfigured] = useState(false)
@@ -204,10 +205,21 @@ export function Settings() {
   }
 
   async function saveManagedAgentConfig() {
-    await window.api.assistant.saveManagedAgentConfig(managedAgentId.trim(), managedAgentEnvId.trim())
-    setManagedAgentConfigured(!!managedAgentId.trim() && !!managedAgentEnvId.trim())
-    setManagedAgentSaved(true)
-    setTimeout(() => setManagedAgentSaved(false), 2000)
+    setManagedAgentError(null)
+    const agentId = managedAgentId.trim()
+    const environmentId = managedAgentEnvId.trim()
+    if (!agentId || !environmentId) {
+      setManagedAgentError('Both Agent ID and Environment ID are required.')
+      return
+    }
+    try {
+      await window.api.assistant.saveManagedAgentConfig(agentId, environmentId)
+      setManagedAgentConfigured(true)
+      setManagedAgentSaved(true)
+      setTimeout(() => setManagedAgentSaved(false), 2000)
+    } catch (e) {
+      setManagedAgentError(e instanceof Error ? e.message : 'Failed to save agent config')
+    }
   }
 
   async function saveOuraToken() {
@@ -835,7 +847,7 @@ export function Settings() {
               <input
                 value={managedAgentId}
                 onChange={(e) => setManagedAgentId(e.target.value)}
-                placeholder="agent_01Gc5UadD65MnzgfnRRVyZQg"
+                placeholder="agent_..."
               />
             </div>
             <div className="field" style={{ marginBottom: 10 }}>
@@ -857,6 +869,11 @@ export function Settings() {
             {managedAgentSaved && (
               <p className="muted" style={{ marginTop: 10 }}>
                 Saved.
+              </p>
+            )}
+            {managedAgentError && (
+              <p className="muted" style={{ color: 'var(--danger)', marginTop: 10 }}>
+                {managedAgentError}
               </p>
             )}
           </>

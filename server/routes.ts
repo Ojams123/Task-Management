@@ -399,8 +399,14 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
     res.json({ ok: true })
   })
   api.post('/assistant/managed-agent-config', (req, res) => {
-    setSecret(MANAGED_AGENT_ID_KEY, String(req.body.agentId ?? '').trim())
-    setSecret(MANAGED_AGENT_ENV_KEY, String(req.body.environmentId ?? '').trim())
+    const agentId = String(req.body.agentId ?? '').trim()
+    const environmentId = String(req.body.environmentId ?? '').trim()
+    if (!agentId || !environmentId) {
+      res.status(400).json({ error: 'Agent ID and Environment ID are both required.' })
+      return
+    }
+    setSecret(MANAGED_AGENT_ID_KEY, agentId)
+    setSecret(MANAGED_AGENT_ENV_KEY, environmentId)
     deleteSecret(MANAGED_AGENT_SESSION_KEY)
     res.json({ ok: true })
   })
