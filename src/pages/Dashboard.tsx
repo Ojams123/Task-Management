@@ -340,7 +340,18 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
                   <div className="muted" style={{ fontSize: 12, marginBottom: 2 }}>
                     You asked: "{assistantExchange.question}"
                   </div>
-                  <div style={{ fontSize: 13, whiteSpace: 'pre-wrap' }}>{assistantExchange.reply}</div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', flex: 1 }}>{assistantExchange.reply}</div>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={() => speak(assistantExchange.reply)}
+                      title="Play this reply aloud — tapping here is required for audio to play on iPhone/iPad"
+                      style={{ flexShrink: 0, padding: '4px 8px' }}
+                    >
+                      🔊
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="empty-state" style={{ marginBottom: 10 }}>

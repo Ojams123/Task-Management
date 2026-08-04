@@ -134,16 +134,35 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
               style={{
                 alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
                 maxWidth: '75%',
-                background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-elevated)',
-                color: m.role === 'user' ? 'var(--on-accent)' : 'var(--text)',
-                border: m.role === 'user' ? 'none' : '1px solid var(--border)',
-                borderRadius: 14,
-                padding: '8px 12px',
-                fontSize: 13,
-                whiteSpace: 'pre-wrap',
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: 6,
               }}
             >
-              {m.content}
+              <div
+                style={{
+                  background: m.role === 'user' ? 'var(--accent)' : 'var(--bg-elevated)',
+                  color: m.role === 'user' ? 'var(--on-accent)' : 'var(--text)',
+                  border: m.role === 'user' ? 'none' : '1px solid var(--border)',
+                  borderRadius: 14,
+                  padding: '8px 12px',
+                  fontSize: 13,
+                  whiteSpace: 'pre-wrap',
+                }}
+              >
+                {m.content}
+              </div>
+              {m.role === 'assistant' && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => speak(m.content)}
+                  title="Play this reply aloud — tapping here is required for audio to play on iPhone/iPad"
+                  style={{ flexShrink: 0, padding: '4px 8px' }}
+                >
+                  🔊
+                </button>
+              )}
             </div>
           ))
         )}
