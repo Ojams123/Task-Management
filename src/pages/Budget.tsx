@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { BudgetCategory, SimplefinAccount, SimplefinTransaction, Transaction } from '../shared/types'
+import { Sparkline } from '../components/Sparkline'
 
 function currentMonth(): string {
   return new Date().toISOString().slice(0, 7)
@@ -193,6 +194,23 @@ export function Budget() {
 
   const categoryName = (id: string) => categories.find((c) => c.id === id)?.name ?? 'Unknown'
 
+  const kindByCategoryId = new Map(categories.map((c) => [c.id, c.kind]))
+  const balancePoints = (() => {
+    const sorted = [...transactions].sort(
+      (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime()
+    )
+    let running = 0
+    const points = sorted.map((t) => {
+      const kind = kindByCategoryId.get(t.categoryId)
+      running += kind === 'income' ? t.amount : -t.amount
+      return {
+        label: new Date(t.occurredAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        value: running,
+      }
+    })
+    return points.length > 0 ? [{ label: 'Start of month', value: 0 }, ...points] : points
+  })()
+
   return (
     <div>
       <div className="grid grid-3" style={{ marginBottom: 20 }}>
@@ -218,6 +236,11 @@ export function Budget() {
             <span className="stat-value">{formatMoney(summary?.balance ?? 0)}</span>
           </div>
         </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h3>Balance trend this month</h3>
+        <Sparkline points={balancePoints} color="var(--accent)" formatValue={(v) => formatMoney(v)} />
       </div>
 
       {simplefinConfigured && (

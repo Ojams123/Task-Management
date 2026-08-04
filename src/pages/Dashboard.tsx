@@ -9,10 +9,12 @@ import type {
   NotificationDigest,
   OuraDailySummary,
   Reminder,
+  Transaction,
 } from '../shared/types'
 import { BellIcon, OuraIcon, TargetIcon, WalletIcon } from '../components/icons'
 import { AssistantAvatar } from '../components/AssistantAvatar'
 import { WeekCalendar } from '../components/WeekCalendar'
+import { Sparkline } from '../components/Sparkline'
 import { speak, startVoiceWarmup, stopVoiceWarmup } from '../voice/speak'
 
 function formatMoney(n: number): string {
@@ -39,34 +41,6 @@ function relativeDayLabel(date: Date, now: Date): string {
   return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 }
 
-function BudgetGauge({ pct }: { pct: number | null }) {
-  const r = 52
-  const circumference = 2 * Math.PI * r
-  const offset = circumference * (1 - (pct ?? 0) / 100)
-  return (
-    <div className="dv2-gauge">
-      <svg viewBox="0 0 120 120" width={140} height={140}>
-        <circle cx="60" cy="60" r={r} fill="none" stroke="var(--border)" strokeWidth="10" />
-        {pct != null && (
-          <circle
-            cx="60"
-            cy="60"
-            r={r}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth="10"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            transform="rotate(-90 60 60)"
-          />
-        )}
-      </svg>
-      <div className="dv2-gauge-value">{pct != null ? `${pct}%` : '—'}</div>
-    </div>
-  )
-}
-
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
@@ -90,6 +64,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
     byCategory: { categoryId: string; name: string; spent: number; limit: number }[]
   } | null>(null)
   const [categories, setCategories] = useState<BudgetCategory[]>([])
+  const [transactions, setTransactions] = useState<Transaction[]>([])
   const [assignments, setAssignments] = useState<CanvasAssignment[]>([])
   const [canvasConfigured, setCanvasConfigured] = useState(false)
   const [digest, setDigest] = useState<NotificationDigest | null>(null)
@@ -110,13 +85,14 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
 
   useEffect(() => {
     async function load() {
-      const [profileName, r, g, b, cats, canvasSettings, googleStatus, fitnessSummary, ouraStatus, assistantStatus] =
+      const [profileName, r, g, b, cats, txs, canvasSettings, googleStatus, fitnessSummary, ouraStatus, assistantStatus] =
         await Promise.all([
           window.api.profile.getName(),
           window.api.reminders.list(),
           window.api.goals.list(),
           window.api.budget.summary(),
           window.api.budget.listCategories(),
+          window.api.budget.listTransactions(),
           window.api.canvas.getSettings(),
           window.api.notifications.getGoogleAuthStatus(),
           window.api.fitness.dailySummary(),
@@ -128,6 +104,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       setGoals(g)
       setBudgetSummary(b)
       setCategories(cats)
+      setTransactions(txs)
       setCanvasConfigured(!!canvasSettings)
       setGoogleConnected(googleStatus.connected)
       setFitness(fitnessSummary)
@@ -253,6 +230,22 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
 
   const dateLabel = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 
+  const balancePoints = (() => {
+    const sorted = [...transactions].sort(
+      (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime()
+    )
+    let running = 0
+    const points = sorted.map((t) => {
+      const kind = kindByCategoryId.get(t.categoryId)
+      running += kind === 'income' ? t.amount : -t.amount
+      return {
+        label: new Date(t.occurredAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        value: running,
+      }
+    })
+    return points.length > 0 ? [{ label: 'Start of month', value: 0 }, ...points] : points
+  })()
+
   return (
     <div className="dv2-root">
       <div className="dv2-hero">
@@ -311,13 +304,34 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       </div>
 
       <div className="grid grid-2">
-      <div className="card dv2-gauge-card">
-        <h3>Income spent this month</h3>
-        <BudgetGauge pct={incomePct} />
-        <p className="muted" style={{ marginTop: 8 }}>
-          {budgetSummary
-            ? `${formatMoney(budgetSummary.expenses)} of ${formatMoney(budgetSummary.income)}`
-            : 'No budget data yet.'}
+      <div className="card" style={{ gridColumn: 'span 2' }}>
+        <h3>
+          <span className="heading-with-icon">
+            <WalletIcon size={16} />
+            Finance pulse
+          </span>
+          <button className="link" onClick={() => onNavigate('budget')}>
+            Open Budget
+          </button>
+        </h3>
+        <div className="finance-pulse-top">
+          <span className="finance-pulse-value">
+            {budgetSummary ? formatMoney(budgetSummary.balance) : '—'}
+          </span>
+          {budgetSummary && (
+            <div className="finance-pulse-deltas">
+              <span className="finance-pulse-pill up">↑ {formatMoney(budgetSummary.income)}</span>
+              <span className="finance-pulse-pill down">↓ {formatMoney(budgetSummary.expenses)}</span>
+            </div>
+          )}
+        </div>
+        <Sparkline
+          points={balancePoints}
+          color="var(--accent)"
+          formatValue={(v) => formatMoney(v)}
+        />
+        <p className="finance-pulse-caption">
+          {incomePct != null ? `${incomePct}% of income spent this month` : 'No budget data yet'}
         </p>
       </div>
 
