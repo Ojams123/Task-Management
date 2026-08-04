@@ -23,28 +23,30 @@ const CATEGORY_LABEL: Record<Integration["category"], string> = {
 
 function IntegrationCard({ integration, onToggle, onRetry }: { integration: Integration; onToggle: (id: string) => void; onRetry: (id: string) => void }) {
   return (
-    <Card className="flex items-center gap-3.5">
+    <Card className="flex flex-wrap items-center gap-x-3.5 gap-y-2.5">
       <Glyph label={integration.glyph} size={38} />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-[140px] flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate text-[13.5px] font-medium text-text-primary">{integration.name}</span>
+          <span className="text-[13.5px] font-medium text-text-primary">{integration.name}</span>
           {integration.status === "error" && <AlertTriangle size={13} className="shrink-0 text-negative" />}
         </div>
         <div className="text-[11.5px] text-text-muted">{integration.detail}</div>
       </div>
-      <Badge tone={STATUS_TONE[integration.status]}>
-        {integration.status === "syncing" && <RefreshCw size={11} className="animate-spin" />}
-        {integration.status[0].toUpperCase() + integration.status.slice(1)}
-      </Badge>
-      {integration.status === "error" ? (
-        <Button variant="secondary" size="sm" onClick={() => onRetry(integration.id)}>
-          Retry
-        </Button>
-      ) : (
-        <Button variant={integration.status === "disconnected" ? "primary" : "ghost"} size="sm" onClick={() => onToggle(integration.id)}>
-          {integration.status === "disconnected" ? "Connect" : "Disconnect"}
-        </Button>
-      )}
+      <div className="ml-auto flex items-center gap-2.5 sm:ml-0">
+        <Badge tone={STATUS_TONE[integration.status]}>
+          {integration.status === "syncing" && <RefreshCw size={11} className="animate-spin" />}
+          {integration.status[0].toUpperCase() + integration.status.slice(1)}
+        </Badge>
+        {integration.status === "error" ? (
+          <Button variant="secondary" size="sm" onClick={() => onRetry(integration.id)}>
+            Retry
+          </Button>
+        ) : (
+          <Button variant={integration.status === "disconnected" ? "primary" : "ghost"} size="sm" onClick={() => onToggle(integration.id)}>
+            {integration.status === "disconnected" ? "Connect" : "Disconnect"}
+          </Button>
+        )}
+      </div>
     </Card>
   );
 }
