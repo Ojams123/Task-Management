@@ -7,7 +7,6 @@ import * as calendarRepo from '../core/db/repos/calendar'
 import * as fitness from '../core/db/repos/fitness'
 import * as chat from '../core/db/repos/chat'
 import * as ouraRepo from '../core/db/repos/oura'
-import * as plaidRepo from '../core/db/repos/plaid'
 import * as simplefinRepo from '../core/db/repos/simplefin'
 import * as weatherRepo from '../core/db/repos/weather'
 import * as spotifyRepo from '../core/db/repos/spotify'
@@ -22,10 +21,8 @@ import { runOAuthFlow } from './integrations/googleAuth'
 import { runAssistantTurn } from '../core/integrations/assistant'
 import { runManagedAgentTurn } from '../core/integrations/managedAgent'
 import { fetchOuraSummary } from '../core/integrations/oura'
-import * as plaid from '../core/integrations/plaid'
 import * as simplefin from '../core/integrations/simplefin'
-import { autoCategorizePlaidTransactions, autoCategorizeSimplefinTransactions } from '../core/integrations/budgetAutoSync'
-import type { PlaidEnvironment } from '../core/integrations/plaid'
+import { autoCategorizeSimplefinTransactions } from '../core/integrations/budgetAutoSync'
 import { fetchWeather } from '../core/integrations/weather'
 import {
   fetchSpotifySnapshot,
@@ -64,9 +61,6 @@ const MANAGED_AGENT_ENV_KEY = 'assistant.managedAgentEnvironmentId'
 const MANAGED_AGENT_SESSION_KEY = 'assistant.managedAgentSessionId'
 const OURA_TOKEN_KEY = 'oura.token'
 const PROFILE_NAME_KEY = 'profile.name'
-const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
-const PLAID_SECRET_KEY = 'plaid.secret'
-const PLAID_ENV_KEY = 'plaid.environment'
 const SIMPLEFIN_ACCESS_URL_KEY = 'simplefin.accessUrl'
 const WEATHER_API_KEY = 'weather.apiKey'
 const WEATHER_LOCATION_KEY = 'weather.location'
@@ -109,28 +103,6 @@ function getStravaCreds(): StravaCreds | null {
   const clientSecret = getSecret(STRAVA_CLIENT_SECRET_KEY)
   if (!clientId || !clientSecret) return null
   return { clientId, clientSecret }
-}
-
-function getPlaidCreds(): { clientId: string; secret: string; environment: PlaidEnvironment } | null {
-  const clientId = getSecret(PLAID_CLIENT_ID_KEY)
-  const secret = getSecret(PLAID_SECRET_KEY)
-  const environment = (getSecret(PLAID_ENV_KEY) as PlaidEnvironment | null) ?? 'sandbox'
-  if (!clientId || !secret) return null
-  return { clientId, secret, environment }
-}
-
-async function syncAllPlaidItems() {
-  const creds = getPlaidCreds()
-  if (!creds) throw new Error('Add your Plaid client ID and secret in Settings first.')
-  const items = plaidRepo.listItemsWithTokens()
-  for (const item of items) {
-    const accounts = await plaid.fetchAccounts(creds, item.accessToken)
-    plaidRepo.replaceCachedAccounts(item.id, accounts)
-    const transactions = await plaid.fetchTransactions(creds, item.accessToken)
-    plaidRepo.replaceCachedTransactions(item.id, transactions)
-  }
-  autoCategorizePlaidTransactions()
-  return { accounts: plaidRepo.listCachedAccounts(), transactions: plaidRepo.listCachedTransactions() }
 }
 
 async function syncSimplefin() {
@@ -395,42 +367,6 @@ export function registerIpcHandlers() {
   ipcMain.handle('profile:getName', () => getSecret(PROFILE_NAME_KEY))
   ipcMain.handle('profile:setName', (_e, name: string) => {
     setSecret(PROFILE_NAME_KEY, name)
-  })
-
-  // Plaid
-  ipcMain.handle('plaid:getSettings', () => {
-    const creds = getPlaidCreds()
-    return { configured: !!creds, environment: creds?.environment ?? 'sandbox' }
-  })
-  ipcMain.handle('plaid:saveSettings', (_e, input: { clientId: string; secret: string; environment: string }) => {
-    setSecret(PLAID_CLIENT_ID_KEY, input.clientId)
-    setSecret(PLAID_SECRET_KEY, input.secret)
-    setSecret(PLAID_ENV_KEY, input.environment)
-  })
-  ipcMain.handle('plaid:createLinkToken', async () => {
-    const creds = getPlaidCreds()
-    if (!creds) throw new Error('Add your Plaid client ID and secret in Settings first.')
-    const linkToken = await plaid.createLinkToken(creds, 'devicehub-user')
-    return { linkToken }
-  })
-  ipcMain.handle('plaid:exchangePublicToken', async (_e, publicToken: string, institutionName: string | null) => {
-    const creds = getPlaidCreds()
-    if (!creds) throw new Error('Add your Plaid client ID and secret in Settings first.')
-    const { accessToken, itemId } = await plaid.exchangePublicToken(creds, publicToken)
-    plaidRepo.saveItem(itemId, accessToken, institutionName)
-  })
-  ipcMain.handle('plaid:sync', () => syncAllPlaidItems())
-  ipcMain.handle('plaid:listItems', () => plaidRepo.listItems())
-  ipcMain.handle('plaid:listAccounts', () => plaidRepo.listCachedAccounts())
-  ipcMain.handle('plaid:listTransactions', () => plaidRepo.listCachedTransactions())
-  ipcMain.handle('plaid:removeItem', async (_e, itemId: string) => {
-    const creds = getPlaidCreds()
-    const items = plaidRepo.listItemsWithTokens()
-    const item = items.find((i) => i.id === itemId)
-    if (creds && item) {
-      await plaid.removeItem(creds, item.accessToken).catch(() => {})
-    }
-    plaidRepo.removeItem(itemId)
   })
 
   // SimpleFIN

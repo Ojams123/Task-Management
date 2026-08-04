@@ -185,18 +185,6 @@ export function createHttpClient(): DeviceHubApi {
       },
       disconnect: () => request('POST', '/linkedin/disconnect'),
     },
-    plaid: {
-      getSettings: () => request('GET', '/plaid/settings'),
-      saveSettings: (input) => request('POST', '/plaid/settings', input),
-      createLinkToken: () => request('POST', '/plaid/link-token'),
-      exchangePublicToken: (publicToken, institutionName) =>
-        request('POST', '/plaid/exchange', { publicToken, institutionName }),
-      sync: () => request('POST', '/plaid/sync'),
-      listItems: () => request('GET', '/plaid/items'),
-      listAccounts: () => request('GET', '/plaid/accounts'),
-      listTransactions: () => request('GET', '/plaid/transactions'),
-      removeItem: (itemId) => request('DELETE', `/plaid/items/${itemId}`),
-    },
     simplefin: {
       getStatus: () => request('GET', '/simplefin/status'),
       saveSetupToken: (setupToken) => request('POST', '/simplefin/setup-token', { setupToken }),

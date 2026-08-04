@@ -89,14 +89,6 @@ export function updateTransactionCategory(id: string, categoryId: string): Trans
   return db.prepare('SELECT * FROM transactions WHERE id = ?').get(id) as Transaction
 }
 
-export function linkedPlaidTransactionIds(): Set<string> {
-  const db = getDb()
-  const rows = db
-    .prepare("SELECT plaidTransactionId FROM transactions WHERE plaidTransactionId IS NOT NULL")
-    .all() as { plaidTransactionId: string }[]
-  return new Set(rows.map((r) => r.plaidTransactionId))
-}
-
 export function linkedSimplefinTransactionIds(): Set<string> {
   const db = getDb()
   const rows = db

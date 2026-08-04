@@ -12,7 +12,6 @@ import {
   MicrosoftIcon,
   OpenAIIcon,
   OuraIcon,
-  PlaidIcon,
   SpotifyIcon,
   StravaIcon,
 } from '../components/icons'
@@ -80,12 +79,6 @@ export function Settings() {
   const [linkedinConnecting, setLinkedinConnecting] = useState(false)
   const [linkedinError, setLinkedinError] = useState<string | null>(null)
 
-  const [plaidClientId, setPlaidClientId] = useState('')
-  const [plaidSecret, setPlaidSecret] = useState('')
-  const [plaidEnvironment, setPlaidEnvironment] = useState('sandbox')
-  const [plaidConfigured, setPlaidConfigured] = useState(false)
-  const [plaidSaved, setPlaidSaved] = useState(false)
-
   const [simplefinToken, setSimplefinToken] = useState('')
   const [simplefinConfigured, setSimplefinConfigured] = useState(false)
   const [simplefinSaving, setSimplefinSaving] = useState(false)
@@ -110,10 +103,6 @@ export function Settings() {
       if (s.managedAgentEnvironmentId) setManagedAgentEnvId(s.managedAgentEnvironmentId)
     })
     window.api.oura.getStatus().then((s) => setOuraConfigured(s.configured))
-    window.api.plaid.getSettings().then((s) => {
-      setPlaidConfigured(s.configured)
-      setPlaidEnvironment(s.environment)
-    })
     window.api.simplefin.getStatus().then((s) => setSimplefinConfigured(s.configured))
     window.api.weather.getSettings().then((s) => {
       setWeatherConfigured(s.configured)
@@ -340,17 +329,6 @@ export function Settings() {
     setWeatherConfigured(true)
     setWeatherSaved(true)
     setTimeout(() => setWeatherSaved(false), 2000)
-  }
-
-  async function savePlaidSettings() {
-    await window.api.plaid.saveSettings({
-      clientId: plaidClientId.trim(),
-      secret: plaidSecret.trim(),
-      environment: plaidEnvironment,
-    })
-    setPlaidConfigured(true)
-    setPlaidSaved(true)
-    setTimeout(() => setPlaidSaved(false), 2000)
   }
 
   async function saveSimplefinToken() {
@@ -1035,62 +1013,12 @@ export function Settings() {
       <div className="card settings-section">
         <h3>
           <span className="heading-with-icon">
-            <PlaidIcon size={20} />
-            Bank accounts (via Plaid)
-          </span>
-        </h3>
-        <p className="muted" style={{ marginBottom: 12 }}>
-          Rocket Money doesn't have a public API, but Plaid — the same bank-data aggregator Rocket Money uses
-          under the hood — does. Create a free app at{' '}
-          <a href="https://dashboard.plaid.com/signup" target="_blank" rel="noreferrer">
-            dashboard.plaid.com
-          </a>
-          , then under Developers → Keys request Production access (a short form, usually fast to approve for
-          personal use), copy your client ID and Production secret, and paste them below. Then go to{' '}
-          <strong>Budget</strong> to connect a real bank account.
-        </p>
-        {plaidConfigured && (
-          <p className="muted" style={{ marginBottom: 10 }}>
-            Plaid credentials are currently saved.
-          </p>
-        )}
-        <div className="field" style={{ marginBottom: 10 }}>
-          <label>Client ID</label>
-          <input value={plaidClientId} onChange={(e) => setPlaidClientId(e.target.value)} placeholder="6123abc..." />
-        </div>
-        <div className="field" style={{ marginBottom: 10 }}>
-          <label>Secret</label>
-          <input
-            type="password"
-            value={plaidSecret}
-            onChange={(e) => setPlaidSecret(e.target.value)}
-            placeholder="Paste your Plaid secret"
-          />
-        </div>
-        <div className="field" style={{ marginBottom: 10 }}>
-          <label>Environment</label>
-          <select value={plaidEnvironment} onChange={(e) => setPlaidEnvironment(e.target.value)}>
-            <option value="sandbox">Sandbox (test data)</option>
-            <option value="production">Production (real accounts)</option>
-            <option value="development">Development (legacy — most new Plaid accounts don't have this)</option>
-          </select>
-        </div>
-        <button className="btn btn-primary" onClick={savePlaidSettings}>
-          Save Plaid settings
-        </button>
-        {plaidSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
-      </div>
-
-      <div className="card settings-section">
-        <h3>
-          <span className="heading-with-icon">
             <span aria-hidden="true">🏦</span>
             Bank accounts (via SimpleFIN)
           </span>
         </h3>
         <p className="muted" style={{ marginBottom: 12 }}>
-          A lighter, personal-finance-friendly alternative to Plaid — flat-rate pricing instead of per-account
-          billing. Set up your banks once at{' '}
+          Set up your banks once at{' '}
           <a href="https://beta-bridge.simplefin.org/" target="_blank" rel="noreferrer">
             beta-bridge.simplefin.org
           </a>

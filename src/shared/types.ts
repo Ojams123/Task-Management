@@ -59,10 +59,11 @@ export interface Transaction {
   description: string | null
   occurredAt: string
   createdAt: string
-  // Set when this transaction was auto-created from a synced Plaid bank
-  // transaction, so re-syncing never double-counts it.
+  // Legacy field from the retired Plaid integration; kept optional so old
+  // rows still deserialize cleanly.
   plaidTransactionId?: string | null
-  // Same, for a synced SimpleFIN bank transaction.
+  // Set when this transaction was auto-created from a synced SimpleFIN bank
+  // transaction, so re-syncing never double-counts it.
   simplefinTransactionId?: string | null
 }
 
@@ -199,37 +200,6 @@ export interface OuraDailySummary {
   totalSleepMinutes: number | null
   steps: number | null
   activeCalories: number | null
-}
-
-export interface PlaidItem {
-  id: string
-  institutionName: string | null
-  createdAt: string
-}
-
-export interface PlaidAccount {
-  id: string
-  itemId: string
-  name: string
-  mask: string | null
-  type: string | null
-  subtype: string | null
-  currentBalance: number | null
-  availableBalance: number | null
-  isoCurrencyCode: string | null
-}
-
-export interface PlaidTransaction {
-  id: string
-  accountId: string
-  itemId: string
-  amount: number
-  isoCurrencyCode: string | null
-  category: string | null
-  merchantName: string | null
-  name: string
-  pending: boolean
-  date: string
 }
 
 export interface SimplefinAccount {
@@ -476,17 +446,6 @@ export interface DeviceHubApi {
     saveCredentials(clientId: string, clientSecret: string): Promise<void>
     connect(): Promise<LinkedInProfile>
     disconnect(): Promise<void>
-  }
-  plaid: {
-    getSettings(): Promise<{ configured: boolean; environment: string }>
-    saveSettings(input: { clientId: string; secret: string; environment: string }): Promise<void>
-    createLinkToken(): Promise<{ linkToken: string }>
-    exchangePublicToken(publicToken: string, institutionName: string | null): Promise<void>
-    sync(): Promise<{ accounts: PlaidAccount[]; transactions: PlaidTransaction[] }>
-    listItems(): Promise<PlaidItem[]>
-    listAccounts(): Promise<PlaidAccount[]>
-    listTransactions(): Promise<PlaidTransaction[]>
-    removeItem(itemId: string): Promise<void>
   }
   simplefin: {
     getStatus(): Promise<{ configured: boolean }>

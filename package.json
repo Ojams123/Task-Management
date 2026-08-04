@@ -49,8 +49,7 @@
     "googleapis": "^173.0.0",
     "openai": "^7.3.0",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-plaid-link": "^5.0.0"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.2.0",
