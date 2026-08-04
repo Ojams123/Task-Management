@@ -62,6 +62,8 @@ export interface Transaction {
   // Set when this transaction was auto-created from a synced Plaid bank
   // transaction, so re-syncing never double-counts it.
   plaidTransactionId?: string | null
+  // Same, for a synced SimpleFIN bank transaction.
+  simplefinTransactionId?: string | null
 }
 
 export type NewTransaction = Omit<Transaction, 'id' | 'createdAt'>
@@ -226,6 +228,26 @@ export interface PlaidTransaction {
   category: string | null
   merchantName: string | null
   name: string
+  pending: boolean
+  date: string
+}
+
+export interface SimplefinAccount {
+  id: string
+  name: string
+  orgName: string | null
+  currency: string | null
+  balance: number
+  availableBalance: number | null
+}
+
+// SimpleFIN's sign convention is the opposite of Plaid's: positive = income
+// (money in), negative = expense (money out) — standard accounting convention.
+export interface SimplefinTransaction {
+  id: string
+  accountId: string
+  amount: number
+  description: string
   pending: boolean
   date: string
 }
@@ -465,6 +487,14 @@ export interface DeviceHubApi {
     listAccounts(): Promise<PlaidAccount[]>
     listTransactions(): Promise<PlaidTransaction[]>
     removeItem(itemId: string): Promise<void>
+  }
+  simplefin: {
+    getStatus(): Promise<{ configured: boolean }>
+    saveSetupToken(setupToken: string): Promise<void>
+    disconnect(): Promise<void>
+    sync(): Promise<{ accounts: SimplefinAccount[]; transactions: SimplefinTransaction[] }>
+    listAccounts(): Promise<SimplefinAccount[]>
+    listTransactions(): Promise<SimplefinTransaction[]>
   }
   system: {
     notify(title: string, body: string): Promise<void>

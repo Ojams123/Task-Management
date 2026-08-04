@@ -197,6 +197,14 @@ export function createHttpClient(): DeviceHubApi {
       listTransactions: () => request('GET', '/plaid/transactions'),
       removeItem: (itemId) => request('DELETE', `/plaid/items/${itemId}`),
     },
+    simplefin: {
+      getStatus: () => request('GET', '/simplefin/status'),
+      saveSetupToken: (setupToken) => request('POST', '/simplefin/setup-token', { setupToken }),
+      disconnect: () => request('POST', '/simplefin/disconnect'),
+      sync: () => request('POST', '/simplefin/sync'),
+      listAccounts: () => request('GET', '/simplefin/accounts'),
+      listTransactions: () => request('GET', '/simplefin/transactions'),
+    },
     system: {
       notify: async (title, body) => {
         if (await requestNotificationPermissionIfNeeded()) {

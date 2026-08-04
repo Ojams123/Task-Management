@@ -64,9 +64,18 @@ export function createTransaction(input: NewTransaction): Transaction {
   const id = randomUUID()
   const createdAt = new Date().toISOString()
   db.prepare(
-    'INSERT INTO transactions (id, categoryId, amount, description, occurredAt, createdAt, plaidTransactionId) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(id, input.categoryId, input.amount, input.description ?? null, input.occurredAt, createdAt, input.plaidTransactionId ?? null)
-  return { id, createdAt, plaidTransactionId: null, ...input }
+    'INSERT INTO transactions (id, categoryId, amount, description, occurredAt, createdAt, plaidTransactionId, simplefinTransactionId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(
+    id,
+    input.categoryId,
+    input.amount,
+    input.description ?? null,
+    input.occurredAt,
+    createdAt,
+    input.plaidTransactionId ?? null,
+    input.simplefinTransactionId ?? null
+  )
+  return { id, createdAt, plaidTransactionId: null, simplefinTransactionId: null, ...input }
 }
 
 export function removeTransaction(id: string) {
@@ -86,6 +95,14 @@ export function linkedPlaidTransactionIds(): Set<string> {
     .prepare("SELECT plaidTransactionId FROM transactions WHERE plaidTransactionId IS NOT NULL")
     .all() as { plaidTransactionId: string }[]
   return new Set(rows.map((r) => r.plaidTransactionId))
+}
+
+export function linkedSimplefinTransactionIds(): Set<string> {
+  const db = getDb()
+  const rows = db
+    .prepare("SELECT simplefinTransactionId FROM transactions WHERE simplefinTransactionId IS NOT NULL")
+    .all() as { simplefinTransactionId: string }[]
+  return new Set(rows.map((r) => r.simplefinTransactionId))
 }
 
 export function summary(month?: string) {

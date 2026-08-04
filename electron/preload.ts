@@ -132,6 +132,14 @@ const api: DeviceHubApi = {
     listTransactions: () => ipcRenderer.invoke('plaid:listTransactions'),
     removeItem: (itemId) => ipcRenderer.invoke('plaid:removeItem', itemId),
   },
+  simplefin: {
+    getStatus: () => ipcRenderer.invoke('simplefin:getStatus'),
+    saveSetupToken: (setupToken) => ipcRenderer.invoke('simplefin:saveSetupToken', setupToken),
+    disconnect: () => ipcRenderer.invoke('simplefin:disconnect'),
+    sync: () => ipcRenderer.invoke('simplefin:sync'),
+    listAccounts: () => ipcRenderer.invoke('simplefin:listAccounts'),
+    listTransactions: () => ipcRenderer.invoke('simplefin:listTransactions'),
+  },
   system: {
     notify: (title, body) => ipcRenderer.invoke('system:notify', title, body),
   },

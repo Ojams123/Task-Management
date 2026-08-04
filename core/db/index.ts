@@ -216,6 +216,26 @@ function migrate(database: Database.Database) {
       connectedAt TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS simplefin_accounts (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      orgName TEXT,
+      currency TEXT,
+      balance REAL,
+      availableBalance REAL,
+      syncedAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS simplefin_transactions (
+      id TEXT PRIMARY KEY,
+      accountId TEXT NOT NULL REFERENCES simplefin_accounts(id) ON DELETE CASCADE,
+      amount REAL NOT NULL,
+      description TEXT NOT NULL,
+      pending INTEGER NOT NULL DEFAULT 0,
+      date TEXT NOT NULL,
+      syncedAt TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS weather_cache (
       id TEXT PRIMARY KEY,
       locationName TEXT NOT NULL,
@@ -233,6 +253,9 @@ function migrate(database: Database.Database) {
   const transactionColumns = database.prepare("PRAGMA table_info(transactions)").all() as { name: string }[]
   if (!transactionColumns.some((c) => c.name === 'plaidTransactionId')) {
     database.exec('ALTER TABLE transactions ADD COLUMN plaidTransactionId TEXT')
+  }
+  if (!transactionColumns.some((c) => c.name === 'simplefinTransactionId')) {
+    database.exec('ALTER TABLE transactions ADD COLUMN simplefinTransactionId TEXT')
   }
 }
 

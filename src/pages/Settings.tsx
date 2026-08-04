@@ -86,6 +86,12 @@ export function Settings() {
   const [plaidConfigured, setPlaidConfigured] = useState(false)
   const [plaidSaved, setPlaidSaved] = useState(false)
 
+  const [simplefinToken, setSimplefinToken] = useState('')
+  const [simplefinConfigured, setSimplefinConfigured] = useState(false)
+  const [simplefinSaving, setSimplefinSaving] = useState(false)
+  const [simplefinSaved, setSimplefinSaved] = useState(false)
+  const [simplefinError, setSimplefinError] = useState<string | null>(null)
+
   useEffect(() => {
     window.api.profile.getName().then((n) => setName(n ?? ''))
     window.api.canvas.getSettings().then((s) => {
@@ -108,6 +114,7 @@ export function Settings() {
       setPlaidConfigured(s.configured)
       setPlaidEnvironment(s.environment)
     })
+    window.api.simplefin.getStatus().then((s) => setSimplefinConfigured(s.configured))
     window.api.weather.getSettings().then((s) => {
       setWeatherConfigured(s.configured)
       setWeatherLocation(s.location)
@@ -344,6 +351,33 @@ export function Settings() {
     setPlaidConfigured(true)
     setPlaidSaved(true)
     setTimeout(() => setPlaidSaved(false), 2000)
+  }
+
+  async function saveSimplefinToken() {
+    const token = simplefinToken.trim()
+    if (!token) {
+      setSimplefinError('Paste a setup token first.')
+      return
+    }
+    setSimplefinSaving(true)
+    setSimplefinError(null)
+    try {
+      await window.api.simplefin.saveSetupToken(token)
+      setSimplefinConfigured(true)
+      setSimplefinToken('')
+      setSimplefinSaved(true)
+      setTimeout(() => setSimplefinSaved(false), 2000)
+    } catch (e) {
+      setSimplefinError(e instanceof Error ? e.message : 'Could not connect to SimpleFIN')
+    } finally {
+      setSimplefinSaving(false)
+    }
+  }
+
+  async function disconnectSimplefin() {
+    if (!window.confirm('Disconnect SimpleFIN? Cached accounts and transactions will be cleared.')) return
+    await window.api.simplefin.disconnect()
+    setSimplefinConfigured(false)
   }
 
   async function saveCanvas() {
@@ -1045,6 +1079,55 @@ export function Settings() {
           Save Plaid settings
         </button>
         {plaidSaved && <span className="muted" style={{ marginLeft: 10 }}>Saved.</span>}
+      </div>
+
+      <div className="card settings-section">
+        <h3>
+          <span className="heading-with-icon">
+            <span aria-hidden="true">🏦</span>
+            Bank accounts (via SimpleFIN)
+          </span>
+        </h3>
+        <p className="muted" style={{ marginBottom: 12 }}>
+          A lighter, personal-finance-friendly alternative to Plaid — flat-rate pricing instead of per-account
+          billing. Set up your banks once at{' '}
+          <a href="https://beta-bridge.simplefin.org/" target="_blank" rel="noreferrer">
+            beta-bridge.simplefin.org
+          </a>
+          , generate a one-time setup token there, and paste it below. The token is used once to establish the
+          connection and then discarded — DeviceHub stores the resulting access credential (encrypted), not the
+          token itself.
+        </p>
+        {simplefinConfigured ? (
+          <>
+            <p className="muted" style={{ marginBottom: 10 }}>
+              SimpleFIN is connected. Go to <strong>Budget</strong> to sync accounts and transactions.
+            </p>
+            <button className="btn btn-sm" onClick={disconnectSimplefin}>
+              Disconnect SimpleFIN
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="field" style={{ marginBottom: 10 }}>
+              <label>Setup token</label>
+              <input
+                value={simplefinToken}
+                onChange={(e) => setSimplefinToken(e.target.value)}
+                placeholder="Paste the setup token from SimpleFIN Bridge"
+              />
+            </div>
+            <button className="btn btn-primary" onClick={saveSimplefinToken} disabled={simplefinSaving}>
+              {simplefinSaving ? 'Connecting…' : 'Connect SimpleFIN'}
+            </button>
+            {simplefinSaved && <span className="muted" style={{ marginLeft: 10 }}>Connected.</span>}
+            {simplefinError && (
+              <p className="muted" style={{ color: 'var(--danger)', marginTop: 10 }}>
+                {simplefinError}
+              </p>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

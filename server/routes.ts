@@ -9,6 +9,7 @@ import * as fitness from '../core/db/repos/fitness'
 import * as chat from '../core/db/repos/chat'
 import * as ouraRepo from '../core/db/repos/oura'
 import * as plaidRepo from '../core/db/repos/plaid'
+import * as simplefinRepo from '../core/db/repos/simplefin'
 import * as weatherRepo from '../core/db/repos/weather'
 import * as spotifyRepo from '../core/db/repos/spotify'
 import * as stravaRepo from '../core/db/repos/strava'
@@ -22,7 +23,8 @@ import { runAssistantTurn } from '../core/integrations/assistant'
 import { runManagedAgentTurn } from '../core/integrations/managedAgent'
 import { fetchOuraSummary } from '../core/integrations/oura'
 import * as plaid from '../core/integrations/plaid'
-import { autoCategorizePlaidTransactions } from '../core/integrations/budgetAutoSync'
+import * as simplefin from '../core/integrations/simplefin'
+import { autoCategorizePlaidTransactions, autoCategorizeSimplefinTransactions } from '../core/integrations/budgetAutoSync'
 import type { PlaidEnvironment } from '../core/integrations/plaid'
 import { fetchWeather } from '../core/integrations/weather'
 import {
@@ -67,6 +69,7 @@ const PROFILE_NAME_KEY = 'profile.name'
 const PLAID_CLIENT_ID_KEY = 'plaid.clientId'
 const PLAID_SECRET_KEY = 'plaid.secret'
 const PLAID_ENV_KEY = 'plaid.environment'
+const SIMPLEFIN_ACCESS_URL_KEY = 'simplefin.accessUrl'
 const WEATHER_API_KEY = 'weather.apiKey'
 const WEATHER_LOCATION_KEY = 'weather.location'
 const SPOTIFY_CLIENT_ID_KEY = 'spotify.clientId'
@@ -147,6 +150,16 @@ async function syncAllPlaidItems() {
   }
   autoCategorizePlaidTransactions()
   return { accounts: plaidRepo.listCachedAccounts(), transactions: plaidRepo.listCachedTransactions() }
+}
+
+async function syncSimplefin() {
+  const accessUrl = getSecret(SIMPLEFIN_ACCESS_URL_KEY)
+  if (!accessUrl) throw new Error('Connect SimpleFIN in Settings first.')
+  const { accounts, transactions } = await simplefin.fetchAccounts(accessUrl)
+  simplefinRepo.replaceCachedAccounts(accounts)
+  simplefinRepo.replaceCachedTransactions(transactions)
+  autoCategorizeSimplefinTransactions()
+  return { accounts: simplefinRepo.listCachedAccounts(), transactions: simplefinRepo.listCachedTransactions() }
 }
 
 function asyncHandler(fn: (req: import('express').Request, res: import('express').Response) => Promise<unknown>) {
@@ -537,6 +550,32 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
       res.json({ ok: true })
     })
   )
+
+  // SimpleFIN
+  api.get('/simplefin/status', (_req, res) => {
+    res.json({ configured: !!getSecret(SIMPLEFIN_ACCESS_URL_KEY) })
+  })
+  api.post(
+    '/simplefin/setup-token',
+    asyncHandler(async (req, res) => {
+      const setupToken = String(req.body.setupToken ?? '').trim()
+      if (!setupToken) {
+        res.status(400).json({ error: 'Paste a setup token first.' })
+        return
+      }
+      const accessUrl = await simplefin.claimSetupToken(setupToken)
+      setSecret(SIMPLEFIN_ACCESS_URL_KEY, accessUrl)
+      res.json({ ok: true })
+    })
+  )
+  api.post('/simplefin/disconnect', (_req, res) => {
+    deleteSecret(SIMPLEFIN_ACCESS_URL_KEY)
+    simplefinRepo.clearAll()
+    res.json({ ok: true })
+  })
+  api.post('/simplefin/sync', asyncHandler(async (_req, res) => res.json(await syncSimplefin())))
+  api.get('/simplefin/accounts', (_req, res) => res.json(simplefinRepo.listCachedAccounts()))
+  api.get('/simplefin/transactions', (_req, res) => res.json(simplefinRepo.listCachedTransactions()))
 
   // Weather
   api.get('/weather/settings', (_req, res) => {

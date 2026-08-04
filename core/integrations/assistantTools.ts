@@ -7,6 +7,7 @@ import * as canvasRepo from '../db/repos/canvas'
 import * as calendarRepo from '../db/repos/calendar'
 import * as ouraRepo from '../db/repos/oura'
 import * as plaidRepo from '../db/repos/plaid'
+import * as simplefinRepo from '../db/repos/simplefin'
 import * as weatherRepo from '../db/repos/weather'
 import * as spotifyRepo from '../db/repos/spotify'
 import * as stravaRepo from '../db/repos/strava'
@@ -392,8 +393,11 @@ export async function executeTool(name: string, input: Record<string, unknown>):
         calendarEvents: calendarRepo.listCachedEvents().slice(0, 15),
         fitnessToday: fitness.dailyTotals(today),
         ouraRecent: ouraRepo.listCachedOuraDays().slice(0, 7),
-        bankAccounts: plaidRepo.listCachedAccounts(),
-        bankTransactionsRecent: plaidRepo.listCachedTransactions().slice(0, 10),
+        bankAccounts: [...plaidRepo.listCachedAccounts(), ...simplefinRepo.listCachedAccounts()],
+        bankTransactionsRecent: [
+          ...plaidRepo.listCachedTransactions().slice(0, 10),
+          ...simplefinRepo.listCachedTransactions().slice(0, 10),
+        ],
         weather: weatherRepo.getCachedSnapshot(),
         spotify: spotifyRepo.getCachedSnapshot(),
         strava: stravaRepo.getCachedSnapshot(),

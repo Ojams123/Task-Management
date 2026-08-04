@@ -1,6 +1,7 @@
 import * as plaidRepo from '../db/repos/plaid'
+import * as simplefinRepo from '../db/repos/simplefin'
 import * as budgetRepo from '../db/repos/budget'
-import type { BudgetCategory, PlaidTransaction } from '../../src/shared/types'
+import type { BudgetCategory, PlaidTransaction, SimplefinTransaction } from '../../src/shared/types'
 
 // Extra keywords per common category name, so a Plaid merchant/category string
 // like "Food and Drink" or "Rent and Utilities" can match a budget category
@@ -23,13 +24,11 @@ function tokenize(name: string): string[] {
     .filter((w) => w.length >= 3 && !['and', 'the', 'for'].includes(w))
 }
 
-function haystackFor(tx: PlaidTransaction): string {
+function haystackForPlaid(tx: PlaidTransaction): string {
   return `${tx.merchantName ?? ''} ${tx.name} ${tx.category ?? ''}`.toLowerCase()
 }
 
-function matchCategory(tx: PlaidTransaction, categories: BudgetCategory[]): BudgetCategory | null {
-  const kind = tx.amount >= 0 ? 'expense' : 'income'
-  const haystack = haystackFor(tx)
+function matchCategory(haystack: string, kind: 'expense' | 'income', categories: BudgetCategory[]): BudgetCategory | null {
   let best: { category: BudgetCategory; hits: number } | null = null
 
   for (const category of categories.filter((c) => c.kind === kind)) {
@@ -63,8 +62,9 @@ export function autoCategorizePlaidTransactions(): { created: number } {
   let created = 0
 
   for (const tx of pending) {
+    // Plaid convention: positive amount = money out (expense), negative = money in (income).
     const kind = tx.amount >= 0 ? 'expense' : 'income'
-    let category = matchCategory(tx, categories)
+    let category = matchCategory(haystackForPlaid(tx), kind, categories)
     if (!category) {
       category = budgetRepo.findOrCreateCategory('Uncategorized', kind)
       if (!categories.some((c) => c.id === category!.id)) categories = [...categories, category]
@@ -76,6 +76,41 @@ export function autoCategorizePlaidTransactions(): { created: number } {
       description: tx.merchantName || tx.name,
       occurredAt: new Date(tx.date).toISOString(),
       plaidTransactionId: tx.id,
+    })
+    created++
+  }
+
+  return { created }
+}
+
+/**
+ * Same as autoCategorizePlaidTransactions, for SimpleFIN. Note SimpleFIN's
+ * sign convention is the opposite of Plaid's: positive = income (money in),
+ * negative = expense (money out) — the standard accounting convention.
+ */
+export function autoCategorizeSimplefinTransactions(): { created: number } {
+  const allTransactions = simplefinRepo.listCachedTransactions()
+  const alreadyLinked = budgetRepo.linkedSimplefinTransactionIds()
+  const pending = allTransactions.filter((tx: SimplefinTransaction) => !alreadyLinked.has(tx.id) && tx.amount !== 0)
+  if (pending.length === 0) return { created: 0 }
+
+  let categories = budgetRepo.listCategories()
+  let created = 0
+
+  for (const tx of pending) {
+    const kind = tx.amount >= 0 ? 'income' : 'expense'
+    let category = matchCategory(tx.description.toLowerCase(), kind, categories)
+    if (!category) {
+      category = budgetRepo.findOrCreateCategory('Uncategorized', kind)
+      if (!categories.some((c) => c.id === category!.id)) categories = [...categories, category]
+    }
+
+    budgetRepo.createTransaction({
+      categoryId: category.id,
+      amount: Math.abs(tx.amount),
+      description: tx.description,
+      occurredAt: new Date(tx.date).toISOString(),
+      simplefinTransactionId: tx.id,
     })
     created++
   }

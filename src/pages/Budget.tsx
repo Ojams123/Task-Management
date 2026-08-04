@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { usePlaidLink } from 'react-plaid-link'
-import type { BudgetCategory, PlaidAccount, PlaidItem, PlaidTransaction, Transaction } from '../shared/types'
+import type {
+  BudgetCategory,
+  PlaidAccount,
+  PlaidItem,
+  PlaidTransaction,
+  SimplefinAccount,
+  SimplefinTransaction,
+  Transaction,
+} from '../shared/types'
 import { PlaidIcon } from '../components/icons'
 
 function currentMonth(): string {
@@ -78,6 +86,12 @@ export function Budget() {
   const [plaidSyncing, setPlaidSyncing] = useState(false)
   const [plaidError, setPlaidError] = useState<string | null>(null)
 
+  const [simplefinConfigured, setSimplefinConfigured] = useState<boolean | null>(null)
+  const [simplefinAccounts, setSimplefinAccounts] = useState<SimplefinAccount[]>([])
+  const [simplefinTransactions, setSimplefinTransactions] = useState<SimplefinTransaction[]>([])
+  const [simplefinSyncing, setSimplefinSyncing] = useState(false)
+  const [simplefinError, setSimplefinError] = useState<string | null>(null)
+
   const [categories, setCategories] = useState<BudgetCategory[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [summary, setSummary] = useState<{
@@ -104,11 +118,12 @@ export function Budget() {
   const [seeding, setSeeding] = useState(false)
 
   async function refresh() {
-    const [cats, txs, sum, plaidStatus] = await Promise.all([
+    const [cats, txs, sum, plaidStatus, simplefinStatus] = await Promise.all([
       window.api.budget.listCategories(),
       window.api.budget.listTransactions(month),
       window.api.budget.summary(month),
       window.api.plaid.getSettings(),
+      window.api.simplefin.getStatus(),
     ])
     setCategories(cats)
     setTransactions(txs)
@@ -124,6 +139,15 @@ export function Budget() {
       setPlaidItems(items)
       setPlaidAccounts(accounts)
       setPlaidTransactions(bankTxs)
+    }
+    setSimplefinConfigured(simplefinStatus.configured)
+    if (simplefinStatus.configured) {
+      const [accounts, bankTxs] = await Promise.all([
+        window.api.simplefin.listAccounts(),
+        window.api.simplefin.listTransactions(),
+      ])
+      setSimplefinAccounts(accounts)
+      setSimplefinTransactions(bankTxs)
     }
   }
 
@@ -149,6 +173,20 @@ export function Budget() {
   async function disconnectItem(itemId: string) {
     await window.api.plaid.removeItem(itemId)
     await refresh()
+  }
+
+  async function syncSimplefin() {
+    setSimplefinSyncing(true)
+    setSimplefinError(null)
+    try {
+      const { accounts, transactions: bankTxs } = await window.api.simplefin.sync()
+      setSimplefinAccounts(accounts)
+      setSimplefinTransactions(bankTxs)
+    } catch (e) {
+      setSimplefinError(e instanceof Error ? e.message : 'Sync failed')
+    } finally {
+      setSimplefinSyncing(false)
+    }
   }
 
   function institutionName(itemId: string): string {
@@ -371,6 +409,70 @@ export function Budget() {
                 </div>
                 <div className="list-row-actions">
                   <span className={`badge${t.amount > 0 ? ' danger' : ' success'}`}>
+                    {formatMoney(Math.abs(t.amount))}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {simplefinConfigured && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h3>
+            <span className="heading-with-icon">
+              <span aria-hidden="true">🏦</span>
+              Bank accounts (SimpleFIN)
+            </span>
+            <button className="btn btn-sm" onClick={syncSimplefin} disabled={simplefinSyncing}>
+              {simplefinSyncing ? 'Syncing…' : 'Sync'}
+            </button>
+          </h3>
+          {simplefinError && (
+            <p className="muted" style={{ color: 'var(--danger)', marginBottom: 10 }}>
+              {simplefinError}
+            </p>
+          )}
+          {simplefinAccounts.length === 0 ? (
+            <div className="empty-state">No accounts synced yet — click "Sync".</div>
+          ) : (
+            <div className="list">
+              {simplefinAccounts.map((a) => (
+                <div className="list-row" key={a.id}>
+                  <div className="list-row-main">
+                    <div className="list-row-title">{a.name}</div>
+                    <div className="list-row-sub">{a.orgName ?? 'Bank'}</div>
+                  </div>
+                  <div className="list-row-actions">
+                    <span className="badge">{formatMoney(a.balance)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {simplefinConfigured && simplefinTransactions.length > 0 && (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h3>Bank transactions (SimpleFIN)</h3>
+          <p className="muted" style={{ marginTop: -6, marginBottom: 12 }}>
+            Every sync automatically files new transactions into a matching budget category below — reassign any
+            that get miscategorized from the "Recent transactions" list.
+          </p>
+          <div className="list">
+            {simplefinTransactions.slice(0, 15).map((t) => (
+              <div className="list-row" key={t.id}>
+                <div className="list-row-main">
+                  <div className="list-row-title">{t.description}</div>
+                  <div className="list-row-sub">
+                    {new Date(t.date).toLocaleDateString()}
+                    {t.pending && ' · pending'}
+                  </div>
+                </div>
+                <div className="list-row-actions">
+                  <span className={`badge${t.amount < 0 ? ' danger' : ' success'}`}>
                     {formatMoney(Math.abs(t.amount))}
                   </span>
                 </div>
