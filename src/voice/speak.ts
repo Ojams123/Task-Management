@@ -62,22 +62,38 @@ export function setVoiceMuted(muted: boolean) {
   localStorage.setItem(MUTE_KEY, muted ? '1' : '0')
 }
 
-// iOS/iPadOS Safari only allows speechSynthesis.speak() to produce audio when
-// called synchronously inside a real user gesture (tap/click). A reply that
-// arrives after a long async wait (e.g. a multi-round-trip Managed Agent
-// session) falls outside that window and gets silently dropped — no error,
-// just no sound. Calling speak() once, synchronously, at the moment of the
-// gesture (even on near-silent text) unlocks the speech engine for the rest
-// of that page session, so the later real utterance still plays.
-export function primeVoice() {
-  if (!('speechSynthesis' in window) || isVoiceMuted()) return
+// iOS/iPadOS Safari only reliably allows speechSynthesis to produce audio
+// close to a real user gesture (tap/click) — a single one-shot "unlock" call
+// doesn't survive a long async wait (e.g. a multi-round-trip Managed Agent
+// reply), so audio silently never plays. Keeping the engine continuously
+// busy with near-silent utterances from the moment of the tap onward — each
+// one queuing the next as soon as it ends — keeps that gesture association
+// alive for as long as the reply takes, instead of letting it lapse.
+let warmupActive = false
+
+function pumpWarmup() {
+  if (!warmupActive || !('speechSynthesis' in window)) return
   const utterance = new SpeechSynthesisUtterance(' ')
   utterance.volume = 0
+  utterance.onend = pumpWarmup
+  utterance.onerror = pumpWarmup
   window.speechSynthesis.speak(utterance)
 }
 
+export function startVoiceWarmup() {
+  if (!('speechSynthesis' in window) || isVoiceMuted() || warmupActive) return
+  warmupActive = true
+  pumpWarmup()
+}
+
+export function stopVoiceWarmup() {
+  warmupActive = false
+}
+
 export async function speak(text: string) {
+  stopVoiceWarmup()
   if (!text.trim() || !('speechSynthesis' in window) || isVoiceMuted()) return
+  window.speechSynthesis.cancel()
   const utterance = new SpeechSynthesisUtterance(text)
   const voice = await preferredVoice()
   if (voice) {

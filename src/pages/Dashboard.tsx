@@ -13,7 +13,7 @@ import type {
 import { BellIcon, OuraIcon, TargetIcon, WalletIcon } from '../components/icons'
 import { AssistantAvatar } from '../components/AssistantAvatar'
 import { WeekCalendar } from '../components/WeekCalendar'
-import { speak, primeVoice } from '../voice/speak'
+import { speak, startVoiceWarmup, stopVoiceWarmup } from '../voice/speak'
 
 function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
@@ -150,7 +150,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   async function askAssistant() {
     const question = assistantInput.trim()
     if (!question || assistantSending) return
-    primeVoice()
+    startVoiceWarmup()
     setAssistantSending(true)
     setAssistantError(null)
     setAssistantInput('')
@@ -165,6 +165,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       setAssistantError(e instanceof Error ? e.message : 'Failed to reach the assistant')
     } finally {
       setAssistantSending(false)
+      stopVoiceWarmup()
     }
   }
 
