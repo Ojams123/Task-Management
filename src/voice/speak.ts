@@ -1,24 +1,32 @@
 // Shared text-to-speech for the assistant's spoken replies and voice-command
-// confirmations. Picks the best available British English female voice from
-// whatever the OS/browser has installed — there's no way to synthesize an
-// accent that isn't already provided by the platform's speech engine.
-
+// confirmations. Picks the best available female English voice from whatever
+// the OS/browser has installed — there's no way to synthesize a voice that
+// isn't already provided by the platform's speech engine. Gender is weighted
+// above accent (a female voice in any English accent beats a male one, even
+// a "more correct" British male), since many devices only expose a single
+// non-US English voice and it's frequently male (e.g. "Daniel" on iOS/iPadOS
+// Safari, which — unlike the OS's own Accessibility voice picker — only
+// surfaces a small legacy voice list to web content).
 const FEMALE_NAME_HINTS = [
   'female', 'serena', 'kate', 'hazel', 'martha', 'stephanie', 'emily', 'fiona', 'amy', 'olivia', 'sonia', 'libby',
+  'karen', 'moira', 'samantha', 'tessa', 'victoria', 'catherine', 'susan',
 ]
 const MALE_NAME_HINTS = ['male', 'daniel', 'arthur', 'george', 'oliver', 'ryan']
 
 function scoreVoice(voice: SpeechSynthesisVoice): number {
   const lang = voice.lang?.toLowerCase() ?? ''
   const name = voice.name?.toLowerCase() ?? ''
-  let score = 0
-  if (lang === 'en-gb') score += 10
-  else if (lang.startsWith('en-gb')) score += 8
-  else if (lang.startsWith('en')) score += 1
-  else return -100
+  if (!lang.startsWith('en')) return -100
 
-  if (FEMALE_NAME_HINTS.some((hint) => name.includes(hint))) score += 5
-  if (MALE_NAME_HINTS.some((hint) => name.includes(hint))) score -= 5
+  let score = 0
+  if (lang === 'en-gb') score += 3
+  else if (lang === 'en-us') score += 1
+  else score += 2 // en-AU, en-IE, en-NZ, en-ZA, etc — a non-US accent, just not the ideal GB one
+
+  if (FEMALE_NAME_HINTS.some((hint) => name.includes(hint))) score += 10
+  if (MALE_NAME_HINTS.some((hint) => name.includes(hint))) score -= 10
+  if (name.includes('karen')) score += 1 // explicit tie-break — the voice picked for this setup
+
   return score
 }
 
