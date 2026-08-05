@@ -54,6 +54,14 @@ export function Assignments({ onNavigate }: { onNavigate?: (page: Page) => void 
   }
   const courseGroups = Array.from(byCourse.entries()).sort(([a], [b]) => a.localeCompare(b))
 
+  const activeAssignments = assignments.filter((a) => !a.submitted && !a.completedLocally)
+  const overdueCount = activeAssignments.filter((a) => a.dueAt !== null && new Date(a.dueAt).getTime() < now).length
+  const weekFromNow = now + 7 * 24 * 60 * 60 * 1000
+  const dueThisWeekCount = activeAssignments.filter(
+    (a) => a.dueAt !== null && new Date(a.dueAt).getTime() >= now && new Date(a.dueAt).getTime() < weekFromNow
+  ).length
+  const activeCourseCount = new Set(activeAssignments.map((a) => a.courseName)).size
+
   if (configured === false) {
     return (
       <div className="card">
@@ -92,6 +100,31 @@ export function Assignments({ onNavigate }: { onNavigate?: (page: Page) => void 
             {error}
           </p>
         )}
+      </div>
+
+      <div className="grid-editorial" style={{ marginBottom: 20 }}>
+        <div className="card hero-card span-2">
+          <div className="hero-label">Due this week</div>
+          <div className="hero-value">{dueThisWeekCount}</div>
+          <p className="muted" style={{ marginTop: 8 }}>
+            {activeAssignments.length} active assignment{activeAssignments.length === 1 ? '' : 's'} across {activeCourseCount} course
+            {activeCourseCount === 1 ? '' : 's'}
+          </p>
+        </div>
+        <div className="card span-1">
+          <div className="stat">
+            <span className="stat-label">Overdue</span>
+            <span className="hero-value" style={{ fontSize: 34, color: overdueCount > 0 ? 'var(--danger)' : undefined }}>
+              {overdueCount}
+            </span>
+          </div>
+        </div>
+        <div className="card span-1">
+          <div className="stat">
+            <span className="stat-label">Total synced</span>
+            <span className="hero-value" style={{ fontSize: 34 }}>{assignments.length}</span>
+          </div>
+        </div>
       </div>
 
       <div className="card">

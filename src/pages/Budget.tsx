@@ -271,33 +271,15 @@ export function Budget() {
         </div>
       </div>
 
-      <div className="grid grid-3" style={{ marginBottom: 20 }}>
-        <div className="card">
-          <div className="stat">
-            <span className="stat-label">Income {isCurrentMonth ? 'this month' : `in ${monthLabel(month)}`}</span>
-            <span className="stat-value" style={{ color: 'var(--success)' }}>
-              {formatMoney(summary?.income ?? 0)}
-            </span>
-          </div>
-        </div>
-        <div className="card">
-          <div className="stat">
-            <span className="stat-label">Expenses {isCurrentMonth ? 'this month' : `in ${monthLabel(month)}`}</span>
-            <span className="stat-value" style={{ color: 'var(--danger)' }}>
-              {formatMoney(summary?.expenses ?? 0)}
-            </span>
-          </div>
-        </div>
-        <div className="card">
-          <div className="stat">
-            <span className="stat-label">Balance</span>
-            <span className="stat-value">{formatMoney(summary?.balance ?? 0)}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div className="card hero-card" style={{ marginBottom: 20 }}>
         <h3>Balance trend {isCurrentMonth ? 'this month' : `— ${monthLabel(month)}`}</h3>
+        <div className="finance-pulse-top">
+          <span className="finance-pulse-value">{formatMoney(summary?.balance ?? 0)}</span>
+          <div className="finance-pulse-deltas">
+            <span className="finance-pulse-pill up">↑ {formatMoney(summary?.income ?? 0)}</span>
+            <span className="finance-pulse-pill down">↓ {formatMoney(summary?.expenses ?? 0)}</span>
+          </div>
+        </div>
         <Sparkline points={balancePoints} color="var(--accent)" formatValue={(v) => formatMoney(v)} />
       </div>
 

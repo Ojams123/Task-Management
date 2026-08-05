@@ -37,7 +37,7 @@ export type Page =
   | 'assistant'
   | 'settings'
 
-const NAV_ITEMS: { id: Page; label: string; icon: ComponentType<IconProps> }[] = [
+export const NAV_ITEMS: { id: Page; label: string; icon: ComponentType<IconProps> }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: DashboardIcon },
   { id: 'reminders', label: 'Reminders', icon: BellIcon },
   { id: 'goals', label: 'Goals & Progress', icon: TargetIcon },

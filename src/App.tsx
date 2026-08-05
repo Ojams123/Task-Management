@@ -3,6 +3,7 @@ import './App.css'
 import { IS_ELECTRON } from './bootstrap'
 import { Sidebar, type Page } from './components/Sidebar'
 import { MobileNav } from './components/MobileNav'
+import { CommandPalette } from './components/CommandPalette'
 import { VoiceBar } from './components/VoiceBar'
 import { AuthGate } from './components/AuthGate'
 import { useBrowserNotifications } from './hooks/useBrowserNotifications'
@@ -54,6 +55,7 @@ function App() {
   const [narrowViewport, setNarrowViewport] = useState(
     () => window.matchMedia('(max-width: 860px)').matches
   )
+  const [commandOpen, setCommandOpen] = useState(false)
   useBrowserNotifications(!IS_ELECTRON)
 
   useEffect(() => {
@@ -61,6 +63,17 @@ function App() {
     const handler = (e: MediaQueryListEvent) => setNarrowViewport(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setCommandOpen((open) => !open)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   useEffect(() => {
@@ -85,6 +98,14 @@ function App() {
           </button>
           <h2>{PAGE_TITLES[page]}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              className="view-toggle-btn"
+              onClick={() => setCommandOpen(true)}
+              title="Search pages and quick actions (⌘K)"
+            >
+              <span aria-hidden="true">🔎</span>
+              <span className="view-toggle-label">Search</span>
+            </button>
             <button
               className="view-toggle-btn"
               onClick={() => setViewMode(isMobile ? 'desktop' : 'mobile')}
@@ -116,6 +137,7 @@ function App() {
         </div>
       </div>
       <MobileNav page={page} onNavigate={navigate} onMore={() => setNavOpen(true)} />
+      {commandOpen && <CommandPalette onNavigate={navigate} onClose={() => setCommandOpen(false)} />}
     </div>
   )
 

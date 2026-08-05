@@ -127,6 +127,13 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
   }
 
   const mergedEvents = [...events, ...assignmentEvents, ...reminderEvents]
+  const now = new Date()
+  const todayCount = mergedEvents.filter((e) => new Date(e.start).toDateString() === now.toDateString()).length
+  const weekAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000)
+  const weekCount = mergedEvents.filter((e) => {
+    const t = new Date(e.start)
+    return t >= now && t < weekAhead
+  }).length
 
   if (connected === null) return null
 
@@ -179,6 +186,24 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
               {error}
             </p>
           )}
+        </div>
+      )}
+
+      {mergedEvents.length > 0 && (
+        <div className="grid-editorial" style={{ marginBottom: 20 }}>
+          <div className="card hero-card span-3">
+            <div className="hero-label">Coming up this week</div>
+            <div className="hero-value">{weekCount}</div>
+            <p className="muted" style={{ marginTop: 8 }}>
+              {mergedEvents.length} total on your calendar, meetings, assignments, and reminders combined
+            </p>
+          </div>
+          <div className="card span-1">
+            <div className="stat">
+              <span className="stat-label">Today</span>
+              <span className="hero-value" style={{ fontSize: 34 }}>{todayCount}</span>
+            </div>
+          </div>
         </div>
       )}
 

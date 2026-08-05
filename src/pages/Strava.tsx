@@ -214,43 +214,36 @@ export function Strava({ onNavigate }: { onNavigate?: (page: Page) => void }) {
       )}
 
       {activities.length > 0 && (
-        <>
-          <div className="grid grid-3" style={{ marginBottom: 20 }}>
-            <div className="card">
-              <div className="stat">
-                <span className="stat-label">This week</span>
-                <span className="stat-value strava-stat-value">{weekDistance.toFixed(1)} mi</span>
-              </div>
+        <div className="grid-editorial" style={{ marginBottom: 20 }}>
+          <div className="card hero-card span-2">
+            <div className="hero-label">This week</div>
+            <div className="hero-value" style={{ color: STRAVA_ORANGE }}>
+              {weekDistance.toFixed(1)} mi
             </div>
-            <div className="card">
-              <div className="stat">
-                <span className="stat-label">Time</span>
-                <span className="stat-value strava-stat-value">{formatDuration(weekMinutes)}</span>
-              </div>
+            <p className="muted" style={{ marginTop: 8 }}>
+              {formatDuration(weekMinutes)} across {thisWeekActivities.length} activit
+              {thisWeekActivities.length === 1 ? 'y' : 'ies'}
+            </p>
+          </div>
+          <div className="card strava-streak-card span-1">
+            <h3>Streak</h3>
+            <div className="strava-streak-flame" aria-hidden="true">
+              🔥
             </div>
-            <div className="card">
-              <div className="stat">
-                <span className="stat-label">Activities</span>
-                <span className="stat-value strava-stat-value">{thisWeekActivities.length}</span>
-              </div>
+            <div className="strava-streak-count">{weekStreak}</div>
+            <div className="muted">{weekStreak === 1 ? 'week' : 'weeks'}</div>
+          </div>
+          <div className="card span-1">
+            <div className="stat">
+              <span className="stat-label">Activities</span>
+              <span className="hero-value" style={{ fontSize: 34 }}>{thisWeekActivities.length}</span>
             </div>
           </div>
-
-          <div className="grid grid-2" style={{ marginBottom: 20 }}>
-            <div className="card strava-streak-card">
-              <h3>Streak</h3>
-              <div className="strava-streak-flame" aria-hidden="true">
-                🔥
-              </div>
-              <div className="strava-streak-count">{weekStreak}</div>
-              <div className="muted">{weekStreak === 1 ? 'week' : 'weeks'}</div>
-            </div>
-            <div className="card">
-              <h3>Past 12 weeks</h3>
-              <Sparkline points={trendPoints} color={STRAVA_ORANGE} formatValue={(v) => `${v} mi`} />
-            </div>
+          <div className="card span-4">
+            <h3>Past 12 weeks</h3>
+            <Sparkline points={trendPoints} color={STRAVA_ORANGE} formatValue={(v) => `${v} mi`} />
           </div>
-        </>
+        </div>
       )}
 
       <div className="card">

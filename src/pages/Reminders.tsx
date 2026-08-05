@@ -82,6 +82,7 @@ export function Reminders() {
 
   const upcoming = reminders.filter((r) => !r.completed)
   const completed = reminders.filter((r) => r.completed)
+  const overdueCount = upcoming.filter((r) => new Date(r.dueAt) < new Date()).length
 
   return (
     <div>
@@ -111,42 +112,52 @@ export function Reminders() {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h3>Upcoming ({upcoming.length})</h3>
-        {loading ? (
-          <div className="empty-state">Loading…</div>
-        ) : upcoming.length === 0 ? (
-          <div className="empty-state">Nothing on your list. Add a reminder above.</div>
-        ) : (
-          <div className="list">
-            {upcoming.map((r) => (
-              <div className="fin-row" key={r.id} onClick={() => openReminder(r)} style={{ cursor: 'pointer' }}>
-                <Glyph label={r.title} />
-                <div className="fin-row-main">
-                  <div className="fin-row-title">{r.title}</div>
-                  <div className="fin-row-sub">
-                    {new Date(r.dueAt).toLocaleString(undefined, {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                    {r.recurrence !== 'none' && ` · repeats ${r.recurrence}`}
+      <div className="grid-editorial" style={{ marginBottom: 20 }}>
+        <div className="card hero-card span-3">
+          <h3>Upcoming ({upcoming.length})</h3>
+          {loading ? (
+            <div className="empty-state">Loading…</div>
+          ) : upcoming.length === 0 ? (
+            <div className="empty-state">Nothing on your list. Add a reminder above.</div>
+          ) : (
+            <div className="list">
+              {upcoming.map((r) => (
+                <div className="fin-row" key={r.id} onClick={() => openReminder(r)} style={{ cursor: 'pointer' }}>
+                  <Glyph label={r.title} />
+                  <div className="fin-row-main">
+                    <div className="fin-row-title">{r.title}</div>
+                    <div className="fin-row-sub">
+                      {new Date(r.dueAt).toLocaleString(undefined, {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                      })}
+                      {r.recurrence !== 'none' && ` · repeats ${r.recurrence}`}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                    <button className="btn btn-sm" onClick={() => toggleComplete(r)}>
+                      Done
+                    </button>
+                    <button className="btn btn-sm btn-danger" onClick={() => remove(r.id)}>
+                      Delete
+                    </button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
-                  <button className="btn btn-sm" onClick={() => toggleComplete(r)}>
-                    Done
-                  </button>
-                  <button className="btn btn-sm btn-danger" onClick={() => remove(r.id)}>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="card span-1">
+          <div className="stat">
+            <span className="stat-label">Overdue</span>
+            <span className="hero-value" style={{ fontSize: 34, color: overdueCount > 0 ? 'var(--danger)' : undefined }}>
+              {overdueCount}
+            </span>
           </div>
-        )}
+        </div>
       </div>
 
       {completed.length > 0 && (

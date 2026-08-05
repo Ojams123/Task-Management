@@ -54,39 +54,47 @@ export function Microsoft({ onNavigate }: { onNavigate?: (page: Page) => void })
 
   return (
     <div>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h3>
-          <span className="heading-with-icon">
-            <MicrosoftIcon size={20} />
-            {snapshot?.displayName ?? 'Outlook'}
-          </span>
-          <button className="btn btn-sm" onClick={sync} disabled={syncing}>
-            {syncing ? 'Syncing…' : 'Sync'}
-          </button>
-        </h3>
-        {error && (
-          <p className="muted" style={{ color: 'var(--danger)', marginBottom: 10 }}>
-            {error}
-          </p>
-        )}
-        {!snapshot || snapshot.unreadItems.length === 0 ? (
-          <div className="empty-state">
-            {snapshot ? "You're all caught up." : 'No data synced yet — click "Sync".'}
-          </div>
-        ) : (
-          <div className="list">
-            {snapshot.unreadItems.map((item, i) => (
-              <div className="fin-row" key={i}>
-                <Glyph label={item.from} />
-                <div className="fin-row-main">
-                  <div className="fin-row-title">{item.subject}</div>
-                  <div className="fin-row-sub">{item.from}</div>
+      <div className="grid-editorial" style={{ marginBottom: 20 }}>
+        <div className="card hero-card span-3">
+          <h3>
+            <span className="heading-with-icon">
+              <MicrosoftIcon size={20} />
+              {snapshot?.displayName ?? 'Outlook'}
+            </span>
+            <button className="btn btn-sm" onClick={sync} disabled={syncing}>
+              {syncing ? 'Syncing…' : 'Sync'}
+            </button>
+          </h3>
+          {error && (
+            <p className="muted" style={{ color: 'var(--danger)', marginBottom: 10 }}>
+              {error}
+            </p>
+          )}
+          {!snapshot || snapshot.unreadItems.length === 0 ? (
+            <div className="empty-state">
+              {snapshot ? "You're all caught up." : 'No data synced yet — click "Sync".'}
+            </div>
+          ) : (
+            <div className="list">
+              {snapshot.unreadItems.map((item, i) => (
+                <div className="fin-row" key={i}>
+                  <Glyph label={item.from} />
+                  <div className="fin-row-main">
+                    <div className="fin-row-title">{item.subject}</div>
+                    <div className="fin-row-sub">{item.from}</div>
+                  </div>
+                  <span className="muted">{new Date(item.receivedAt).toLocaleDateString()}</span>
                 </div>
-                <span className="muted">{new Date(item.receivedAt).toLocaleDateString()}</span>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="card span-1">
+          <div className="stat">
+            <span className="stat-label">Unread</span>
+            <span className="hero-value" style={{ fontSize: 34 }}>{snapshot?.unreadItems.length ?? 0}</span>
           </div>
-        )}
+        </div>
       </div>
 
       {snapshot && snapshot.recentFiles.length > 0 && (

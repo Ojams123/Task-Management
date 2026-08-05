@@ -145,30 +145,30 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
 
   return (
     <div>
-      <div className="grid grid-3" style={{ marginBottom: 20 }}>
-        <div className="card">
+      <div className="grid-editorial" style={{ marginBottom: 20 }}>
+        <div className="card hero-card span-2">
+          <div className="hero-label">Net vs {summary?.target ?? 0} target</div>
+          <div className="hero-value" style={{ color: overTarget ? 'var(--danger)' : undefined }}>
+            {summary?.net ?? 0}
+          </div>
+          <div className="progress-bar" style={{ marginTop: 14 }}>
+            <div className={`progress-bar-fill${overTarget ? ' over' : ''}`} style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+        <div className="card span-1">
           <div className="stat">
             <span className="stat-label">Consumed today</span>
-            <span className="stat-value">{summary?.consumed ?? 0}</span>
+            <span className="hero-value" style={{ fontSize: 30 }}>
+              {summary?.consumed ?? 0}
+            </span>
           </div>
         </div>
-        <div className="card">
+        <div className="card span-1">
           <div className="stat">
             <span className="stat-label">Burned today</span>
-            <span className="stat-value" style={{ color: 'var(--success)' }}>
+            <span className="hero-value" style={{ fontSize: 30, color: 'var(--success)' }}>
               {summary?.burned ?? 0}
             </span>
-          </div>
-        </div>
-        <div className="card">
-          <div className="stat">
-            <span className="stat-label">Net vs {summary?.target ?? 0} target</span>
-            <span className="stat-value" style={{ color: overTarget ? 'var(--danger)' : undefined }}>
-              {summary?.net ?? 0}
-            </span>
-          </div>
-          <div className="progress-bar" style={{ marginTop: 8 }}>
-            <div className={`progress-bar-fill${overTarget ? ' over' : ''}`} style={{ width: `${pct}%` }} />
           </div>
         </div>
       </div>

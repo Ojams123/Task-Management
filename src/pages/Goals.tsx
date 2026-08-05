@@ -69,6 +69,14 @@ export function Goals() {
 
   const active = goals.filter((g) => !g.archived && (filter === 'all' || g.category.toLowerCase() === filter))
   const archived = goals.filter((g) => g.archived)
+  const allActive = goals.filter((g) => !g.archived)
+  const avgPct =
+    allActive.length > 0
+      ? Math.round(
+          allActive.reduce((sum, g) => sum + (g.targetValue > 0 ? Math.min(100, (g.currentValue / g.targetValue) * 100) : 0), 0) /
+            allActive.length
+        )
+      : 0
 
   return (
     <div>
@@ -109,6 +117,24 @@ export function Goals() {
           <button className="btn btn-primary" onClick={handleAdd}>
             Add goal
           </button>
+        </div>
+      </div>
+
+      <div className="grid-editorial" style={{ marginBottom: 20 }}>
+        <div className="card hero-card span-3">
+          <div className="hero-label">Active goals</div>
+          <div className="hero-value">{allActive.length}</div>
+          <p className="muted" style={{ marginTop: 8 }}>
+            {allActive.length > 0 ? `${avgPct}% average progress` : 'Add a goal below to start tracking'}
+          </p>
+        </div>
+        <div className="card span-1">
+          <div className="stat">
+            <span className="stat-label">Archived</span>
+            <span className="hero-value" style={{ fontSize: 34 }}>
+              {archived.length}
+            </span>
+          </div>
         </div>
       </div>
 

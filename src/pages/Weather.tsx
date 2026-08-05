@@ -57,53 +57,66 @@ export function Weather({ onNavigate }: { onNavigate?: (page: Page) => void }) {
 
   return (
     <div>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <h3>
-          <span className="heading-with-icon">
-            <CloudSunIcon size={20} />
-            {snapshot?.locationName ?? 'Current conditions'}
-          </span>
-          <button className="btn btn-sm" onClick={sync} disabled={syncing}>
-            {syncing ? 'Syncing…' : 'Sync'}
-          </button>
-        </h3>
-        {error && (
-          <p className="muted" style={{ color: 'var(--danger)', marginBottom: 10 }}>
-            {error}
-          </p>
-        )}
-        {!snapshot ? (
+      {error && (
+        <p className="muted" style={{ color: 'var(--danger)', marginBottom: 10 }}>
+          {error}
+        </p>
+      )}
+      {!snapshot ? (
+        <div className="card" style={{ marginBottom: 20 }}>
+          <h3>
+            <span className="heading-with-icon">
+              <CloudSunIcon size={20} />
+              Current conditions
+            </span>
+            <button className="btn btn-sm" onClick={sync} disabled={syncing}>
+              {syncing ? 'Syncing…' : 'Sync'}
+            </button>
+          </h3>
           <div className="empty-state">No data synced yet — click "Sync".</div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-            {snapshot.icon && (
-              <img src={iconUrl(snapshot.icon)} alt={snapshot.condition ?? ''} width={72} height={72} />
-            )}
-            <div className="stat">
-              <span className="stat-value" style={{ fontSize: 40 }}>
-                {snapshot.tempF != null ? `${snapshot.tempF}°F` : '—'}
+        </div>
+      ) : (
+        <div className="grid-editorial" style={{ marginBottom: 20 }}>
+          <div className="card hero-card span-3">
+            <h3>
+              <span className="heading-with-icon">
+                <CloudSunIcon size={20} />
+                {snapshot.locationName ?? 'Current conditions'}
               </span>
-              <span className="stat-label" style={{ textTransform: 'capitalize' }}>
-                {snapshot.condition ?? 'Unknown'} · feels like {snapshot.feelsLikeF ?? '—'}°F
-              </span>
-            </div>
-            <div className="grid grid-2" style={{ flex: 1, gap: 10 }}>
+              <button className="btn btn-sm" onClick={sync} disabled={syncing}>
+                {syncing ? 'Syncing…' : 'Sync'}
+              </button>
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+              {snapshot.icon && (
+                <img src={iconUrl(snapshot.icon)} alt={snapshot.condition ?? ''} width={72} height={72} />
+              )}
               <div className="stat">
-                <span className="stat-label">Humidity</span>
-                <span className="stat-value" style={{ fontSize: 18 }}>
-                  {snapshot.humidity != null ? `${snapshot.humidity}%` : '—'}
-                </span>
-              </div>
-              <div className="stat">
-                <span className="stat-label">Wind</span>
-                <span className="stat-value" style={{ fontSize: 18 }}>
-                  {snapshot.windMph != null ? `${snapshot.windMph} mph` : '—'}
+                <span className="hero-value">{snapshot.tempF != null ? `${snapshot.tempF}°F` : '—'}</span>
+                <span className="stat-label" style={{ textTransform: 'capitalize' }}>
+                  {snapshot.condition ?? 'Unknown'} · feels like {snapshot.feelsLikeF ?? '—'}°F
                 </span>
               </div>
             </div>
           </div>
-        )}
-      </div>
+          <div className="card span-1">
+            <div className="stat">
+              <span className="stat-label">Humidity</span>
+              <span className="hero-value" style={{ fontSize: 34 }}>
+                {snapshot.humidity != null ? `${snapshot.humidity}%` : '—'}
+              </span>
+            </div>
+          </div>
+          <div className="card span-1">
+            <div className="stat">
+              <span className="stat-label">Wind</span>
+              <span className="hero-value" style={{ fontSize: 34 }}>
+                {snapshot.windMph != null ? `${snapshot.windMph} mph` : '—'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {snapshot && snapshot.forecast.length > 0 && (
         <div className="card">

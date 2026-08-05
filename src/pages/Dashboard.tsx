@@ -394,8 +394,8 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         </button>
       </div>
 
-      <div className="grid grid-2">
-      <div className="card dv2-span-2">
+      <div className="grid-editorial">
+      <div className="card hero-card span-3">
         <h3>
           <span className="heading-with-icon">
             <WalletIcon size={16} />
@@ -426,34 +426,34 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         </p>
       </div>
 
-      {simplefinConfigured && (
-        <div className="card dv2-span-2">
-          <h3>
-            Accounts
-            <button className="link" onClick={() => onNavigate('budget')}>
-              See all
-            </button>
-          </h3>
-          {simplefinAccounts.length === 0 ? (
-            <div className="empty-state">No accounts synced yet — open Budget to sync.</div>
-          ) : (
-            <div className="list">
-              {simplefinAccounts.map((a) => (
-                <div className="fin-row" key={a.id}>
-                  <Glyph label={a.orgName ?? a.name} />
-                  <div className="fin-row-main">
-                    <div className="fin-row-title">{a.name}</div>
-                    <div className="fin-row-sub">{a.orgName ?? 'Bank'}</div>
-                  </div>
-                  <div className="fin-row-amount">{formatMoney(a.balance)}</div>
+      <div className="card span-1">
+        <h3>
+          Accounts
+          <button className="link" onClick={() => onNavigate('budget')}>
+            See all
+          </button>
+        </h3>
+        {!simplefinConfigured ? (
+          <div className="empty-state">Connect a bank in Settings to see accounts here.</div>
+        ) : simplefinAccounts.length === 0 ? (
+          <div className="empty-state">No accounts synced yet — open Budget to sync.</div>
+        ) : (
+          <div className="list">
+            {simplefinAccounts.map((a) => (
+              <div className="fin-row" key={a.id}>
+                <Glyph label={a.orgName ?? a.name} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{a.name}</div>
+                  <div className="fin-row-sub">{a.orgName ?? 'Bank'}</div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                <div className="fin-row-amount">{formatMoney(a.balance)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-      <div className="card">
+      <div className="card span-2">
         <h3>
           To-do
           <button className="link" onClick={() => onNavigate('reminders')}>
@@ -480,7 +480,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card">
+      <div className="card span-2">
         <h3>Today's schedule</h3>
         {todayScheduleItems.length === 0 ? (
           <div className="empty-state">Nothing on the calendar for today.</div>
@@ -504,7 +504,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card dv2-span-2">
+      <div className="card span-2">
         <h3>
           Assistant
           <button className="link" onClick={() => onNavigate('assistant')}>
@@ -564,7 +564,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card dv2-span-2">
+      <div className="card span-4">
         <h3>
           This week
           <button className="link" onClick={() => onNavigate('calendar')}>
@@ -585,7 +585,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card dv2-span-2">
+      <div className="card span-2">
         <h3>Latest activity</h3>
         <div className="oura-tabs">
           {(['all', 'reminder', 'assignment', 'event'] as const).map((f) => (
@@ -623,7 +623,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card">
+      <div className="card span-2">
         <h3>
           Goal progress
           <button className="link" onClick={() => onNavigate('goals')}>
@@ -654,7 +654,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card">
+      <div className="card span-2">
         <h3>
           Spending breakdown
           <button className="link" onClick={() => onNavigate('budget')}>
@@ -687,7 +687,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card">
+      <div className="card span-2">
         <h3>
           Fitness today
           <button className="link" onClick={() => onNavigate('fitness')}>
@@ -723,7 +723,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card">
+      <div className="card span-2">
         <h3>
           <span className="heading-with-icon">
             <OuraIcon size={18} />
@@ -767,7 +767,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card dv2-span-2">
+      <div className="card span-4">
         <h3>
           Missed notifications
           <button className="link" onClick={() => onNavigate('notifications')}>

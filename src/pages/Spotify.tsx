@@ -99,7 +99,7 @@ export function Spotify({ onNavigate }: { onNavigate?: (page: Page) => void }) {
 
   return (
     <div>
-      <div className="card" style={{ marginBottom: 20 }}>
+      <div className="card hero-card" style={{ marginBottom: 20 }}>
         <h3>Now playing</h3>
         {playbackError && (
           <p className="muted" style={{ color: 'var(--danger)', marginBottom: 10 }}>

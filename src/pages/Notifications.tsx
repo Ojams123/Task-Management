@@ -69,56 +69,63 @@ export function Notifications({ onNavigate }: { onNavigate?: (page: Page) => voi
 
   return (
     <div>
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontWeight: 600 }}>Connected: {status?.email}</div>
+      {error && (
+        <p className="muted" style={{ color: 'var(--danger)', marginBottom: 10 }}>
+          {error}
+        </p>
+      )}
+
+      <div className="grid-editorial" style={{ marginBottom: 20 }}>
+        <div className="card hero-card span-3">
+          <h3>
+            Missed while away
+            <button className="btn btn-sm" onClick={handleRefresh} disabled={loading}>
+              {loading ? 'Checking…' : 'Refresh'}
+            </button>
+          </h3>
+          {!digest || digest.items.length === 0 ? (
+            <div className="empty-state">You're all caught up.</div>
+          ) : (
+            <div className="list">
+              {digest.items.map((item) => (
+                <div className="fin-row" key={item.id}>
+                  <Glyph label={item.from} />
+                  <div className="fin-row-main">
+                    <div className="fin-row-title">{item.subject}</div>
+                    <div className="fin-row-sub">
+                      {item.from} · {new Date(item.receivedAt).toLocaleString()}
+                    </div>
+                    <div className="muted" style={{ marginTop: 4 }}>
+                      {item.snippet}
+                    </div>
+                  </div>
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => markAsRead(item.id)}
+                    disabled={markingId === item.id}
+                  >
+                    {markingId === item.id ? 'Marking…' : 'Mark as read'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="card span-1">
+          <div className="stat">
+            <span className="stat-label">Unread</span>
+            <span className="hero-value" style={{ fontSize: 34 }}>{digest?.totalUnread ?? 0}</span>
+          </div>
+          <div className="muted" style={{ marginTop: 12, fontSize: 12 }}>
+            Connected: {status?.email}
             {digest && (
-              <div className="muted">
-                Since {new Date(digest.sinceLastCheck).toLocaleString()} — {digest.totalUnread} unread
-              </div>
+              <>
+                <br />
+                Since {new Date(digest.sinceLastCheck).toLocaleString()}
+              </>
             )}
           </div>
-          <button className="btn btn-primary" onClick={handleRefresh} disabled={loading}>
-            {loading ? 'Checking…' : 'Refresh'}
-          </button>
         </div>
-        {error && (
-          <p className="muted" style={{ color: 'var(--danger)', marginTop: 10 }}>
-            {error}
-          </p>
-        )}
-      </div>
-
-      <div className="card">
-        <h3>Missed while away</h3>
-        {!digest || digest.items.length === 0 ? (
-          <div className="empty-state">You're all caught up.</div>
-        ) : (
-          <div className="list">
-            {digest.items.map((item) => (
-              <div className="fin-row" key={item.id}>
-                <Glyph label={item.from} />
-                <div className="fin-row-main">
-                  <div className="fin-row-title">{item.subject}</div>
-                  <div className="fin-row-sub">
-                    {item.from} · {new Date(item.receivedAt).toLocaleString()}
-                  </div>
-                  <div className="muted" style={{ marginTop: 4 }}>
-                    {item.snippet}
-                  </div>
-                </div>
-                <button
-                  className="btn btn-sm"
-                  onClick={() => markAsRead(item.id)}
-                  disabled={markingId === item.id}
-                >
-                  {markingId === item.id ? 'Marking…' : 'Mark as read'}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   )
