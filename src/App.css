@@ -1080,47 +1080,47 @@ button.link:hover {
   flex-wrap: wrap;
 }
 
-.assistant-avatar {
-  position: relative;
+.assistant-orb {
+  border-radius: 50%;
   margin: 0 auto;
+  background: radial-gradient(circle at 32% 28%, #eef8ff 0%, #a9defe 22%, #5fb3f7 48%, #2f7fe0 72%, #1c53a8 100%);
+  background-size: 220% 220%;
+  background-position: 30% 30%;
+  box-shadow: 0 0 26px rgba(63, 145, 255, 0.35), inset 0 0 18px rgba(255, 255, 255, 0.25);
+  animation: orb-idle 7s ease-in-out infinite;
 }
 
-.assistant-avatar-glow {
-  fill: var(--accent-soft);
-  opacity: 0.55;
-  transform-origin: 80px 80px;
+.assistant-orb.speaking {
+  animation: orb-speak 1s ease-in-out infinite;
+  box-shadow: 0 0 40px rgba(63, 145, 255, 0.55), inset 0 0 22px rgba(255, 255, 255, 0.35);
 }
 
-.assistant-avatar.speaking .assistant-avatar-glow {
-  animation: avatar-glow-pulse 1.1s ease-in-out infinite;
-}
-
-@keyframes avatar-glow-pulse {
+@keyframes orb-idle {
   0%, 100% {
+    background-position: 25% 25%;
     transform: scale(1);
-    opacity: 0.5;
   }
   50% {
-    transform: scale(1.08);
-    opacity: 0.85;
+    background-position: 65% 60%;
+    transform: scale(1.02);
   }
 }
 
-.assistant-avatar-mouth {
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.assistant-avatar.speaking .assistant-avatar-mouth {
-  animation: avatar-talk 0.42s ease-in-out infinite;
-}
-
-@keyframes avatar-talk {
+@keyframes orb-speak {
   0%, 100% {
-    transform: scaleY(1);
+    background-position: 20% 20%;
+    transform: scale(1);
   }
   50% {
-    transform: scaleY(2.6);
+    background-position: 75% 70%;
+    transform: scale(1.07);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-orb,
+  .assistant-orb.speaking {
+    animation: none;
   }
 }
 
@@ -1675,4 +1675,79 @@ button.fin-row {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   margin: 14px 0;
+}
+
+/* Strava page — styled closer to the real app: brand orange for key
+   numbers, a streak flame, and activity rows with a distance/pace/time
+   stat line instead of plain badges. */
+
+.strava-stat-value {
+  color: #fc4c02;
+}
+
+.strava-streak-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.strava-streak-flame {
+  font-size: 34px;
+  line-height: 1;
+  margin: 6px 0 2px;
+}
+
+.strava-streak-count {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fc4c02;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.strava-activity-row {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.strava-activity-row + .strava-activity-row {
+  margin-top: 10px;
+}
+
+.strava-activity-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.strava-activity-stats {
+  display: flex;
+  gap: 24px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.strava-activity-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.strava-activity-stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.strava-activity-stat-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
