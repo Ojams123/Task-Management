@@ -13,6 +13,7 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
   const [connected, setConnected] = useState<boolean | null>(null)
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [assignmentEvents, setAssignmentEvents] = useState<CalendarEvent[]>([])
+  const [reminderEvents, setReminderEvents] = useState<CalendarEvent[]>([])
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,11 +40,30 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
     )
   }
 
+  async function refreshReminders() {
+    const reminders = await window.api.reminders.list()
+    setReminderEvents(
+      reminders
+        .filter((r) => !r.completed)
+        .map((r) => ({
+          id: `reminder-${r.id}`,
+          title: r.title,
+          start: r.dueAt,
+          end: null,
+          allDay: false,
+          location: null,
+          htmlLink: null,
+          source: 'reminder' as const,
+        }))
+    )
+  }
+
   async function refresh() {
     const status = await window.api.notifications.getGoogleAuthStatus()
     setConnected(status.connected)
     if (status.connected) setEvents(await window.api.calendar.getEvents())
     await refreshAssignments()
+    await refreshReminders()
   }
 
   useEffect(() => {
@@ -87,10 +107,14 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
   }
 
   async function removeEvent(id: string) {
-    const target = [...events, ...assignmentEvents].find((e) => e.id === id)
+    const target = [...events, ...assignmentEvents, ...reminderEvents].find((e) => e.id === id)
     if (!target) return
     if (target.source === 'canvas') {
       if (target.htmlLink) window.open(target.htmlLink, '_blank', 'noreferrer')
+      return
+    }
+    if (target.source === 'reminder') {
+      onNavigate?.('reminders')
       return
     }
     if (!window.confirm(`Delete "${target.title}" from your Google Calendar?`)) return
@@ -102,7 +126,7 @@ export function Calendar({ onNavigate }: { onNavigate?: (page: Page) => void }) 
     }
   }
 
-  const mergedEvents = [...events, ...assignmentEvents]
+  const mergedEvents = [...events, ...assignmentEvents, ...reminderEvents]
 
   if (connected === null) return null
 

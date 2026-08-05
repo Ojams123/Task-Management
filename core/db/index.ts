@@ -248,6 +248,23 @@ function migrate(database: Database.Database) {
       forecastJson TEXT NOT NULL,
       syncedAt TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS journal_lists (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      icon TEXT,
+      sortOrder INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS journal_items (
+      id TEXT PRIMARY KEY,
+      listId TEXT NOT NULL REFERENCES journal_lists(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      notes TEXT,
+      checked INTEGER NOT NULL DEFAULT 0,
+      createdAt TEXT NOT NULL
+    );
   `)
 
   const transactionColumns = database.prepare("PRAGMA table_info(transactions)").all() as { name: string }[]

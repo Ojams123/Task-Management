@@ -129,7 +129,7 @@ export interface CalendarEvent {
   allDay: boolean
   location: string | null
   htmlLink: string | null
-  source?: 'google' | 'canvas'
+  source?: 'google' | 'canvas' | 'reminder'
 }
 
 export interface NewCalendarEvent {
@@ -324,6 +324,23 @@ export interface VoiceCommandResult {
   message: string
 }
 
+export interface JournalList {
+  id: string
+  name: string
+  icon: string | null
+  sortOrder: number
+  createdAt: string
+}
+
+export interface JournalItem {
+  id: string
+  listId: string
+  content: string
+  notes: string | null
+  checked: boolean
+  createdAt: string
+}
+
 // The API surface exposed on window.api by the preload script.
 export interface DeviceHubApi {
   reminders: {
@@ -457,5 +474,14 @@ export interface DeviceHubApi {
   }
   system: {
     notify(title: string, body: string): Promise<void>
+  }
+  journal: {
+    listLists(): Promise<JournalList[]>
+    createList(name: string, icon?: string | null): Promise<JournalList>
+    removeList(id: string): Promise<void>
+    listItems(listId: string): Promise<JournalItem[]>
+    addItem(listId: string, content: string): Promise<JournalItem>
+    toggleItem(id: string): Promise<JournalItem>
+    removeItem(id: string): Promise<void>
   }
 }

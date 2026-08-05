@@ -3,6 +3,11 @@ import type { CalendarEvent } from '../shared/types'
 
 const HOUR_HEIGHT = 68
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+// The grid shows a snapshot of the active part of the day (6am–midnight)
+// instead of the full 24 hours, so there's no dead scrolling through the
+// small hours most days have nothing scheduled in.
+const START_HOUR = 6
+const VISIBLE_HOURS = 24 - START_HOUR
 
 function startOfWeek(date: Date): Date {
   const d = new Date(date)
@@ -36,7 +41,7 @@ const CANVAS_CHIP_HEIGHT = 36
 // they get their own compact vertically-stacked list instead.
 function layoutCanvasStack(events: CalendarEvent[]): PositionedEvent[] {
   const withTimes = events
-    .map((e) => ({ event: e, startMin: minutesSinceMidnight(new Date(e.start)) }))
+    .map((e) => ({ event: e, startMin: Math.max(minutesSinceMidnight(new Date(e.start)) - START_HOUR * 60, 0) }))
     .sort((a, b) => a.startMin - b.startMin)
 
   let nextTop = -Infinity
@@ -52,7 +57,9 @@ function layoutDayEvents(events: CalendarEvent[]): PositionedEvent[] {
     .map((e) => {
       const start = new Date(e.start)
       const end = e.end ? new Date(e.end) : new Date(start.getTime() + 30 * 60000)
-      return { event: e, startMin: minutesSinceMidnight(start), endMin: Math.max(minutesSinceMidnight(end), minutesSinceMidnight(start) + 36) }
+      const rawStart = minutesSinceMidnight(start) - START_HOUR * 60
+      const rawEnd = Math.max(minutesSinceMidnight(end), minutesSinceMidnight(start) + 36) - START_HOUR * 60
+      return { event: e, startMin: Math.max(rawStart, 0), endMin: Math.max(rawEnd, 36) }
     })
     .sort((a, b) => a.startMin - b.startMin)
 
@@ -99,7 +106,7 @@ export function WeekCalendar({
 
   useEffect(() => {
     if (bodyRef.current) {
-      bodyRef.current.scrollTop = Math.max(0, minutesSinceMidnight(new Date()) / 60 - 2) * HOUR_HEIGHT
+      bodyRef.current.scrollTop = Math.max(0, minutesSinceMidnight(new Date()) / 60 - START_HOUR - 2) * HOUR_HEIGHT
     }
   }, [])
 
@@ -176,23 +183,36 @@ export function WeekCalendar({
 
       <div className="week-calendar-body" ref={bodyRef}>
         <div className="week-calendar-hour-gutter">
-          {Array.from({ length: 24 }, (_, h) => (
-            <div key={h} className="week-calendar-hour-label" style={{ height: HOUR_HEIGHT }}>
-              {h === 0 ? '' : new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric' })}
-            </div>
-          ))}
+          {Array.from({ length: VISIBLE_HOURS }, (_, i) => {
+            const h = i + START_HOUR
+            return (
+              <div key={h} className="week-calendar-hour-label" style={{ height: HOUR_HEIGHT }}>
+                {new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric' })}
+              </div>
+            )
+          })}
         </div>
         {days.map((d) => {
           const dayTimedEvents = timedEvents.filter((e) => isSameDay(new Date(e.start), d))
-          const dayEvents = layoutDayEvents(dayTimedEvents.filter((e) => e.source !== 'canvas'))
-          const canvasChips = layoutCanvasStack(dayTimedEvents.filter((e) => e.source === 'canvas'))
+          // Canvas due-dates and reminders are both point-in-time markers, not
+          // scheduled durations, so they share the compact stacked layout
+          // instead of the side-by-side overlap layout used for real events.
+          const dayEvents = layoutDayEvents(dayTimedEvents.filter((e) => e.source !== 'canvas' && e.source !== 'reminder'))
+          const markerChips = layoutCanvasStack(
+            dayTimedEvents.filter((e) => e.source === 'canvas' || e.source === 'reminder')
+          )
           const isToday = isSameDay(d, today)
           return (
-            <div key={d.toISOString()} className="week-calendar-day-col" style={{ height: 24 * HOUR_HEIGHT }}>
-              {Array.from({ length: 24 }, (_, h) => (
-                <div key={h} className="week-calendar-hour-row" style={{ top: h * HOUR_HEIGHT, height: HOUR_HEIGHT }} />
+            <div key={d.toISOString()} className="week-calendar-day-col" style={{ height: VISIBLE_HOURS * HOUR_HEIGHT }}>
+              {Array.from({ length: VISIBLE_HOURS }, (_, i) => (
+                <div key={i} className="week-calendar-hour-row" style={{ top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }} />
               ))}
-              {isToday && <div className="week-calendar-now-line" style={{ top: (nowMinutes / 60) * HOUR_HEIGHT }} />}
+              {isToday && nowMinutes >= START_HOUR * 60 && (
+                <div
+                  className="week-calendar-now-line"
+                  style={{ top: ((nowMinutes - START_HOUR * 60) / 60) * HOUR_HEIGHT }}
+                />
+              )}
               {dayEvents.map(({ event, left, width, top, height }) => {
                 const boxHeight = Math.max(height, 34)
                 return (
@@ -215,17 +235,28 @@ export function WeekCalendar({
                   </div>
                 )
               })}
-              {canvasChips.map(({ event, top, height }) => (
-                <div
-                  key={event.id}
-                  className="week-calendar-event-compact"
-                  style={{ top, height }}
-                  onClick={() => onDelete(event.id)}
-                  title={`${event.title} (${event.location}) — due ${new Date(event.start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}, click to open in Canvas`}
-                >
-                  📘 {event.title}
-                </div>
-              ))}
+              {markerChips.map(({ event, top, height }) => {
+                const isReminder = event.source === 'reminder'
+                const timeLabel = new Date(event.start).toLocaleTimeString(undefined, {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })
+                return (
+                  <div
+                    key={event.id}
+                    className={`week-calendar-event-compact${isReminder ? ' week-calendar-chip-reminder' : ''}`}
+                    style={{ top, height }}
+                    onClick={() => onDelete(event.id)}
+                    title={
+                      isReminder
+                        ? `${event.title} — due ${timeLabel}, click to open in Reminders`
+                        : `${event.title} (${event.location}) — due ${timeLabel}, click to open in Canvas`
+                    }
+                  >
+                    {isReminder ? '🔔' : '📘'} {event.title}
+                  </div>
+                )
+              })}
             </div>
           )
         })}

@@ -14,6 +14,7 @@ import * as spotifyRepo from '../core/db/repos/spotify'
 import * as stravaRepo from '../core/db/repos/strava'
 import * as microsoftRepo from '../core/db/repos/microsoft'
 import * as linkedinRepo from '../core/db/repos/linkedin'
+import * as journalRepo from '../core/db/repos/journal'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
 import { fetchUnreadDigest, markMessageAsRead } from '../core/integrations/gmail'
@@ -700,6 +701,22 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
   })
   api.post('/linkedin/disconnect', (_req, res) => {
     linkedinRepo.clearProfile()
+    res.json({ ok: true })
+  })
+
+  api.get('/journal/lists', (_req, res) => res.json(journalRepo.listLists()))
+  api.post('/journal/lists', (req, res) => res.json(journalRepo.createList(req.body.name, req.body.icon ?? null)))
+  api.delete('/journal/lists/:id', (req, res) => {
+    journalRepo.removeList(req.params.id)
+    res.json({ ok: true })
+  })
+  api.get('/journal/lists/:listId/items', (req, res) => res.json(journalRepo.listItems(req.params.listId)))
+  api.post('/journal/lists/:listId/items', (req, res) =>
+    res.json(journalRepo.addItem(req.params.listId, req.body.content))
+  )
+  api.post('/journal/items/:id/toggle', (req, res) => res.json(journalRepo.toggleItem(req.params.id)))
+  api.delete('/journal/items/:id', (req, res) => {
+    journalRepo.removeItem(req.params.id)
     res.json({ ok: true })
   })
 

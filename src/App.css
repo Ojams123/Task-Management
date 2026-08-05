@@ -929,6 +929,10 @@ button.link:hover {
   filter: brightness(1.1);
 }
 
+.week-calendar-chip-reminder {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+}
+
 .oura-tabs {
   display: flex;
   gap: 8px;

@@ -11,6 +11,7 @@ import { Reminders } from './pages/Reminders'
 import { Goals } from './pages/Goals'
 import { Budget } from './pages/Budget'
 import { Fitness } from './pages/Fitness'
+import { Lists } from './pages/Lists'
 import { Assignments } from './pages/Assignments'
 import { Calendar } from './pages/Calendar'
 import { Weather } from './pages/Weather'
@@ -28,6 +29,7 @@ const PAGE_TITLES: Record<Page, string> = {
   goals: 'Goals & Progress',
   budget: 'Budget',
   fitness: 'Fitness',
+  lists: 'Lists',
   assignments: 'Assignments',
   calendar: 'Calendar',
   weather: 'Weather',
@@ -100,6 +102,7 @@ function App() {
           {page === 'goals' && <Goals />}
           {page === 'budget' && <Budget />}
           {page === 'fitness' && <Fitness onNavigate={setPage} />}
+          {page === 'lists' && <Lists />}
           {page === 'assignments' && <Assignments onNavigate={setPage} />}
           {page === 'calendar' && <Calendar onNavigate={setPage} />}
           {page === 'weather' && <Weather onNavigate={setPage} />}

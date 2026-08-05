@@ -4,6 +4,7 @@ import type { Page } from '../components/Sidebar'
 import { OuraIcon } from '../components/icons'
 import { OuraPanel } from '../components/OuraPanel'
 import { Glyph } from '../components/Glyph'
+import { Drawer } from '../components/Drawer'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -38,6 +39,7 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const [food, setFood] = useState<FoodEntry[]>([])
   const [exercise, setExercise] = useState<ExerciseEntry[]>([])
   const [exerciseHistory, setExerciseHistory] = useState<ExerciseEntry[]>([])
+  const [selectedWorkout, setSelectedWorkout] = useState<ExerciseEntry | null>(null)
   const [fitnessGoals, setFitnessGoals] = useState<Goal[]>([])
   const [targetInput, setTargetInput] = useState('2000')
 
@@ -288,7 +290,7 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
                 </div>
                 <div className="list">
                   {day.items.map((ex) => (
-                    <div className="fin-row" key={ex.id}>
+                    <button className="fin-row" key={ex.id} onClick={() => setSelectedWorkout(ex)}>
                       <Glyph label={ex.activity} />
                       <div className="fin-row-main">
                         <div className="fin-row-title">{ex.activity}</div>
@@ -297,13 +299,8 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
                           {ex.durationMinutes != null && ` · ${ex.durationMinutes} min`}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {ex.caloriesBurned != null && <span className="badge">{ex.caloriesBurned} cal</span>}
-                        <button className="btn btn-sm btn-danger" onClick={() => removeExercise(ex.id)}>
-                          Delete
-                        </button>
-                      </div>
-                    </div>
+                      {ex.caloriesBurned != null && <div className="fin-row-amount">{ex.caloriesBurned} cal</div>}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -369,6 +366,52 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
           </div>
         )}
       </div>
+
+      <Drawer open={!!selectedWorkout} onClose={() => setSelectedWorkout(null)} title={selectedWorkout?.activity ?? ''}>
+        {selectedWorkout && (
+          <>
+            <div className="muted" style={{ marginBottom: 18 }}>
+              {new Date(selectedWorkout.occurredAt).toLocaleString(undefined, {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              })}
+            </div>
+            <div className="grid grid-2" style={{ marginBottom: 18 }}>
+              <div className="stat">
+                <span className="stat-label">Duration</span>
+                <span className="stat-value" style={{ fontSize: 20 }}>
+                  {selectedWorkout.durationMinutes != null ? `${selectedWorkout.durationMinutes} min` : '—'}
+                </span>
+              </div>
+              <div className="stat">
+                <span className="stat-label">Calories burned</span>
+                <span className="stat-value" style={{ fontSize: 20, color: 'var(--success)' }}>
+                  {selectedWorkout.caloriesBurned ?? '—'}
+                </span>
+              </div>
+            </div>
+            {selectedWorkout.notes && (
+              <div className="field" style={{ marginBottom: 18 }}>
+                <label>Notes</label>
+                <div>{selectedWorkout.notes}</div>
+              </div>
+            )}
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                removeExercise(selectedWorkout.id)
+                setSelectedWorkout(null)
+              }}
+            >
+              Delete workout
+            </button>
+          </>
+        )}
+      </Drawer>
     </div>
   )
 }

@@ -200,5 +200,14 @@ export function createHttpClient(): DeviceHubApi {
         }
       },
     },
+    journal: {
+      listLists: () => request('GET', '/journal/lists'),
+      createList: (name, icon) => request('POST', '/journal/lists', { name, icon }),
+      removeList: (id) => request('DELETE', `/journal/lists/${id}`),
+      listItems: (listId) => request('GET', `/journal/lists/${listId}/items`),
+      addItem: (listId, content) => request('POST', `/journal/lists/${listId}/items`, { content }),
+      toggleItem: (id) => request('POST', `/journal/items/${id}/toggle`),
+      removeItem: (id) => request('DELETE', `/journal/items/${id}`),
+    },
   }
 }

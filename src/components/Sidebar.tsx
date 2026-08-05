@@ -9,6 +9,7 @@ import {
   GmailIcon,
   GoogleCalendarIcon,
   LinkedInIcon,
+  ListIcon,
   MicrosoftIcon,
   SlidersIcon,
   SpotifyIcon,
@@ -26,6 +27,7 @@ export type Page =
   | 'assignments'
   | 'calendar'
   | 'fitness'
+  | 'lists'
   | 'weather'
   | 'spotify'
   | 'strava'
@@ -41,6 +43,7 @@ const NAV_ITEMS: { id: Page; label: string; icon: ComponentType<IconProps> }[] =
   { id: 'goals', label: 'Goals & Progress', icon: TargetIcon },
   { id: 'budget', label: 'Budget', icon: WalletIcon },
   { id: 'fitness', label: 'Fitness', icon: DumbbellIcon },
+  { id: 'lists', label: 'Lists', icon: ListIcon },
   { id: 'assignments', label: 'Assignments', icon: CanvasIcon },
   { id: 'calendar', label: 'Calendar', icon: GoogleCalendarIcon },
   { id: 'weather', label: 'Weather', icon: CloudSunIcon },

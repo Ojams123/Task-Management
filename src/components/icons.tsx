@@ -109,6 +109,17 @@ export function SlidersIcon(props: IconProps) {
   )
 }
 
+export function ListIcon(props: IconProps) {
+  return (
+    <Line {...props}>
+      <path d="M8.5 6h11M8.5 12h11M8.5 18h11" />
+      <path d="m4 5.5 1 1 1.5-1.8" />
+      <path d="m4 11.5 1 1 1.5-1.8" />
+      <path d="m4 17.5 1 1 1.5-1.8" />
+    </Line>
+  )
+}
+
 /* -- Brand icons, path data from simple-icons (CC0-1.0) -- */
 
 export function GmailIcon(props: IconProps) {

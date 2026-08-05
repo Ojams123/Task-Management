@@ -131,6 +131,15 @@ const api: DeviceHubApi = {
   system: {
     notify: (title, body) => ipcRenderer.invoke('system:notify', title, body),
   },
+  journal: {
+    listLists: () => ipcRenderer.invoke('journal:listLists'),
+    createList: (name, icon) => ipcRenderer.invoke('journal:createList', name, icon),
+    removeList: (id) => ipcRenderer.invoke('journal:removeList', id),
+    listItems: (listId) => ipcRenderer.invoke('journal:listItems', listId),
+    addItem: (listId, content) => ipcRenderer.invoke('journal:addItem', listId, content),
+    toggleItem: (id) => ipcRenderer.invoke('journal:toggleItem', id),
+    removeItem: (id) => ipcRenderer.invoke('journal:removeItem', id),
+  },
 }
 
 contextBridge.exposeInMainWorld('api', api)

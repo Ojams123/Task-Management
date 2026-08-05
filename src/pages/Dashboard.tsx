@@ -181,6 +181,10 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       if (target.htmlLink) window.open(target.htmlLink, '_blank', 'noreferrer')
       return
     }
+    if (target.source === 'reminder') {
+      onNavigate('reminders')
+      return
+    }
     if (!window.confirm(`Delete "${target.title}" from your Google Calendar?`)) return
     setWeekCalError(null)
     try {
@@ -241,6 +245,20 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
             })
           )
       : []),
+    ...reminders
+      .filter((r) => !r.completed)
+      .map(
+        (r): CalendarEvent => ({
+          id: `reminder-${r.id}`,
+          title: r.title,
+          start: r.dueAt,
+          end: null,
+          allDay: false,
+          location: null,
+          htmlLink: null,
+          source: 'reminder',
+        })
+      ),
   ]
 
   const todayScheduleItems = weekEvents

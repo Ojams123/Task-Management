@@ -13,6 +13,7 @@ import * as spotifyRepo from '../core/db/repos/spotify'
 import * as stravaRepo from '../core/db/repos/strava'
 import * as microsoftRepo from '../core/db/repos/microsoft'
 import * as linkedinRepo from '../core/db/repos/linkedin'
+import * as journalRepo from '../core/db/repos/journal'
 import { getSecret, setSecret, deleteSecret } from '../core/db/repos/settings'
 import { fetchAssignments } from '../core/integrations/canvas'
 import { fetchUnreadDigest, markMessageAsRead } from '../core/integrations/gmail'
@@ -548,4 +549,13 @@ export function registerIpcHandlers() {
       new Notification({ title, body }).show()
     }
   })
+
+  // Journal (custom lists — shopping, movies to watch, etc.)
+  ipcMain.handle('journal:listLists', () => journalRepo.listLists())
+  ipcMain.handle('journal:createList', (_e, name: string, icon?: string | null) => journalRepo.createList(name, icon ?? null))
+  ipcMain.handle('journal:removeList', (_e, id: string) => journalRepo.removeList(id))
+  ipcMain.handle('journal:listItems', (_e, listId: string) => journalRepo.listItems(listId))
+  ipcMain.handle('journal:addItem', (_e, listId: string, content: string) => journalRepo.addItem(listId, content))
+  ipcMain.handle('journal:toggleItem', (_e, id: string) => journalRepo.toggleItem(id))
+  ipcMain.handle('journal:removeItem', (_e, id: string) => journalRepo.removeItem(id))
 }
