@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import { IS_ELECTRON } from './bootstrap'
 import { Sidebar, type Page } from './components/Sidebar'
+import { MobileNav } from './components/MobileNav'
 import { VoiceBar } from './components/VoiceBar'
 import { AuthGate } from './components/AuthGate'
 import { useBrowserReminderNotifications } from './hooks/useBrowserReminderNotifications'
@@ -41,13 +42,23 @@ const PAGE_TITLES: Record<Page, string> = {
 
 function App() {
   const [page, setPage] = useState<Page>('dashboard')
+  const [navOpen, setNavOpen] = useState(false)
   useBrowserReminderNotifications(!IS_ELECTRON)
+
+  function navigate(p: Page) {
+    setPage(p)
+    setNavOpen(false)
+  }
 
   const shell = (
     <div className="app-shell">
-      <Sidebar page={page} onNavigate={setPage} />
+      <Sidebar page={page} onNavigate={navigate} mobileOpen={navOpen} />
+      {navOpen && <div className="sidebar-backdrop" onClick={() => setNavOpen(false)} />}
       <div className="main-area">
         <div className="top-bar">
+          <button className="hamburger-btn" onClick={() => setNavOpen(true)} aria-label="Open menu">
+            ☰
+          </button>
           <h2>{PAGE_TITLES[page]}</h2>
           <VoiceBar onNavigate={setPage} />
         </div>
@@ -69,6 +80,7 @@ function App() {
           {page === 'settings' && <Settings />}
         </div>
       </div>
+      <MobileNav page={page} onNavigate={navigate} onMore={() => setNavOpen(true)} />
     </div>
   )
 

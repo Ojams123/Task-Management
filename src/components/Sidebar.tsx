@@ -53,9 +53,17 @@ const NAV_ITEMS: { id: Page; label: string; icon: ComponentType<IconProps> }[] =
   { id: 'settings', label: 'Settings', icon: SlidersIcon },
 ]
 
-export function Sidebar({ page, onNavigate }: { page: Page; onNavigate: (p: Page) => void }) {
+export function Sidebar({
+  page,
+  onNavigate,
+  mobileOpen,
+}: {
+  page: Page
+  onNavigate: (p: Page) => void
+  mobileOpen?: boolean
+}) {
   return (
-    <nav className="sidebar">
+    <nav className={`sidebar${mobileOpen ? ' mobile-open' : ''}`}>
       <h1>
         Device<span>Hub</span>
       </h1>

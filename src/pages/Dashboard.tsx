@@ -9,12 +9,14 @@ import type {
   NotificationDigest,
   OuraDailySummary,
   Reminder,
+  SimplefinAccount,
   Transaction,
 } from '../shared/types'
 import { BellIcon, OuraIcon, TargetIcon, WalletIcon } from '../components/icons'
 import { AssistantAvatar } from '../components/AssistantAvatar'
 import { WeekCalendar } from '../components/WeekCalendar'
 import { Sparkline } from '../components/Sparkline'
+import { Glyph } from '../components/Glyph'
 import { speak, startVoiceWarmup, stopVoiceWarmup } from '../voice/speak'
 
 function formatMoney(n: number): string {
@@ -73,6 +75,8 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
   const [fitness, setFitness] = useState<DailyFitnessSummary | null>(null)
   const [ouraConfigured, setOuraConfigured] = useState(false)
   const [ouraToday, setOuraToday] = useState<OuraDailySummary | null>(null)
+  const [simplefinConfigured, setSimplefinConfigured] = useState(false)
+  const [simplefinAccounts, setSimplefinAccounts] = useState<SimplefinAccount[]>([])
 
   const [assistantConfigured, setAssistantConfigured] = useState(false)
   const [assistantInput, setAssistantInput] = useState('')
@@ -85,20 +89,33 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
 
   useEffect(() => {
     async function load() {
-      const [profileName, r, g, b, cats, txs, canvasSettings, googleStatus, fitnessSummary, ouraStatus, assistantStatus] =
-        await Promise.all([
-          window.api.profile.getName(),
-          window.api.reminders.list(),
-          window.api.goals.list(),
-          window.api.budget.summary(),
-          window.api.budget.listCategories(),
-          window.api.budget.listTransactions(),
-          window.api.canvas.getSettings(),
-          window.api.notifications.getGoogleAuthStatus(),
-          window.api.fitness.dailySummary(),
-          window.api.oura.getStatus(),
-          window.api.assistant.getStatus(),
-        ])
+      const [
+        profileName,
+        r,
+        g,
+        b,
+        cats,
+        txs,
+        canvasSettings,
+        googleStatus,
+        fitnessSummary,
+        ouraStatus,
+        assistantStatus,
+        simplefinStatus,
+      ] = await Promise.all([
+        window.api.profile.getName(),
+        window.api.reminders.list(),
+        window.api.goals.list(),
+        window.api.budget.summary(),
+        window.api.budget.listCategories(),
+        window.api.budget.listTransactions(),
+        window.api.canvas.getSettings(),
+        window.api.notifications.getGoogleAuthStatus(),
+        window.api.fitness.dailySummary(),
+        window.api.oura.getStatus(),
+        window.api.assistant.getStatus(),
+        window.api.simplefin.getStatus(),
+      ])
       setName(profileName ?? '')
       setReminders(r)
       setGoals(g)
@@ -110,6 +127,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       setFitness(fitnessSummary)
       setOuraConfigured(ouraStatus.configured)
       setAssistantConfigured(assistantStatus.configured)
+      setSimplefinConfigured(simplefinStatus.configured)
 
       if (canvasSettings) setAssignments(await window.api.canvas.listCached())
       if (googleStatus.connected) {
@@ -119,6 +137,9 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       if (ouraStatus.configured) {
         const days = await window.api.oura.listCached()
         setOuraToday(days[0] ?? null)
+      }
+      if (simplefinStatus.configured) {
+        setSimplefinAccounts(await window.api.simplefin.listAccounts())
       }
     }
     load()
@@ -264,6 +285,33 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         </div>
       </div>
 
+      <div className="dv2-action-row">
+        <button className="dv2-action-pill" onClick={() => onNavigate('reminders')}>
+          <span className="dv2-action-pill-icon" aria-hidden="true">
+            +
+          </span>
+          Add reminder
+        </button>
+        <button className="dv2-action-pill" onClick={() => onNavigate('goals')}>
+          <span className="dv2-action-pill-icon" aria-hidden="true">
+            ◎
+          </span>
+          New goal
+        </button>
+        <button className="dv2-action-pill" onClick={() => onNavigate('budget')}>
+          <span className="dv2-action-pill-icon" aria-hidden="true">
+            +
+          </span>
+          Log expense
+        </button>
+        <button className="dv2-action-pill" onClick={() => onNavigate('assistant')}>
+          <span className="dv2-action-pill-icon" aria-hidden="true">
+            ✦
+          </span>
+          Ask AI
+        </button>
+      </div>
+
       <div className="dv2-stat-row">
         <button className="dv2-stat-tile dv2-pastel-1" onClick={() => onNavigate('reminders')}>
           <div>
@@ -334,6 +382,33 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
           {incomePct != null ? `${incomePct}% of income spent this month` : 'No budget data yet'}
         </p>
       </div>
+
+      {simplefinConfigured && (
+        <div className="card" style={{ gridColumn: 'span 2' }}>
+          <h3>
+            Accounts
+            <button className="link" onClick={() => onNavigate('budget')}>
+              See all
+            </button>
+          </h3>
+          {simplefinAccounts.length === 0 ? (
+            <div className="empty-state">No accounts synced yet — open Budget to sync.</div>
+          ) : (
+            <div className="list">
+              {simplefinAccounts.map((a) => (
+                <div className="fin-row" key={a.id}>
+                  <Glyph label={a.orgName ?? a.name} />
+                  <div className="fin-row-main">
+                    <div className="fin-row-title">{a.name}</div>
+                    <div className="fin-row-sub">{a.orgName ?? 'Bank'}</div>
+                  </div>
+                  <div className="fin-row-amount">{formatMoney(a.balance)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="card" style={{ gridColumn: 'span 2' }}>
         <h3>
