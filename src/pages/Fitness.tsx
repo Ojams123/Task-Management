@@ -3,6 +3,7 @@ import type { DailyFitnessSummary, ExerciseEntry, FoodEntry, Goal, OuraDailySumm
 import type { Page } from '../components/Sidebar'
 import { OuraIcon } from '../components/icons'
 import { OuraPanel } from '../components/OuraPanel'
+import { Glyph } from '../components/Glyph'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -180,12 +181,13 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
           ) : (
             <div className="list">
               {food.map((f) => (
-                <div className="list-row" key={f.id}>
-                  <div className="list-row-main">
-                    <div className="list-row-title">{f.name}</div>
-                    <div className="list-row-sub">{new Date(f.consumedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
+                <div className="fin-row" key={f.id}>
+                  <Glyph label={f.name} />
+                  <div className="fin-row-main">
+                    <div className="fin-row-title">{f.name}</div>
+                    <div className="fin-row-sub">{new Date(f.consumedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</div>
                   </div>
-                  <div className="list-row-actions">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span className="badge">{f.calories} cal</span>
                     <button className="btn btn-sm btn-danger" onClick={() => removeFood(f.id)}>
                       Delete
@@ -226,19 +228,18 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
           ) : (
             <div className="list">
               {exercise.map((ex) => (
-                <div className="list-row" key={ex.id}>
-                  <div className="list-row-main">
-                    <div className="list-row-title">{ex.activity}</div>
-                    <div className="list-row-sub">
+                <div className="fin-row" key={ex.id}>
+                  <Glyph label={ex.activity} />
+                  <div className="fin-row-main">
+                    <div className="fin-row-title">{ex.activity}</div>
+                    <div className="fin-row-sub">
                       {ex.durationMinutes != null && `${ex.durationMinutes} min`}
                       {ex.caloriesBurned != null && ` · ${ex.caloriesBurned} cal`}
                     </div>
                   </div>
-                  <div className="list-row-actions">
-                    <button className="btn btn-sm btn-danger" onClick={() => removeExercise(ex.id)}>
-                      Delete
-                    </button>
-                  </div>
+                  <button className="btn btn-sm btn-danger" onClick={() => removeExercise(ex.id)}>
+                    Delete
+                  </button>
                 </div>
               ))}
             </div>

@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { GOAL_CATEGORIES, type Goal } from '../shared/types'
+import { GOAL_CATEGORIES, type Goal, type GoalLogEntry } from '../shared/types'
+import { Glyph } from '../components/Glyph'
+import { Drawer } from '../components/Drawer'
 
 export function Goals() {
   const [goals, setGoals] = useState<Goal[]>([])
@@ -10,6 +12,10 @@ export function Goals() {
   const [unit, setUnit] = useState('sessions')
   const [logInputs, setLogInputs] = useState<Record<string, string>>({})
   const [filter, setFilter] = useState<string>('all')
+
+  const [historyGoal, setHistoryGoal] = useState<Goal | null>(null)
+  const [history, setHistory] = useState<GoalLogEntry[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   async function refresh() {
     setGoals(await window.api.goals.list())
@@ -49,6 +55,16 @@ export function Goals() {
   async function remove(id: string) {
     await window.api.goals.remove(id)
     await refresh()
+  }
+
+  async function openHistory(goal: Goal) {
+    setHistoryGoal(goal)
+    setHistoryLoading(true)
+    try {
+      setHistory(await window.api.goals.history(goal.id))
+    } finally {
+      setHistoryLoading(false)
+    }
   }
 
   const active = goals.filter((g) => !g.archived && (filter === 'all' || g.category.toLowerCase() === filter))
@@ -119,7 +135,10 @@ export function Goals() {
             return (
               <div className="card" key={goal.id}>
                 <h3>
-                  {goal.title}
+                  <span className="heading-with-icon">
+                    <Glyph label={goal.title} size={26} />
+                    {goal.title}
+                  </span>
                   <button className="link" onClick={() => archive(goal)}>
                     Archive
                   </button>
@@ -148,6 +167,9 @@ export function Goals() {
                   >
                     Log progress
                   </button>
+                  <button className="btn btn-sm" onClick={() => openHistory(goal)}>
+                    History
+                  </button>
                   <button className="btn btn-sm btn-danger" onClick={() => remove(goal.id)}>
                     Delete
                   </button>
@@ -163,14 +185,15 @@ export function Goals() {
           <h3>Archived ({archived.length})</h3>
           <div className="list">
             {archived.map((goal) => (
-              <div className="list-row" key={goal.id}>
-                <div className="list-row-main">
-                  <div className="list-row-title">{goal.title}</div>
-                  <div className="list-row-sub">
+              <div className="fin-row" key={goal.id}>
+                <Glyph label={goal.title} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{goal.title}</div>
+                  <div className="fin-row-sub">
                     {goal.currentValue} / {goal.targetValue} {goal.unit}
                   </div>
                 </div>
-                <div className="list-row-actions">
+                <div style={{ display: 'flex', gap: 6 }}>
                   <button className="btn btn-sm" onClick={() => archive(goal)}>
                     Restore
                   </button>
@@ -183,6 +206,31 @@ export function Goals() {
           </div>
         </div>
       )}
+
+      <Drawer open={!!historyGoal} onClose={() => setHistoryGoal(null)} title={historyGoal ? `${historyGoal.title} history` : ''}>
+        {historyLoading ? (
+          <div className="empty-state">Loading…</div>
+        ) : history.length === 0 ? (
+          <div className="empty-state">No progress logged yet.</div>
+        ) : (
+          <div className="list">
+            {history.map((entry) => (
+              <div className="fin-row" key={entry.id}>
+                <div className="fin-row-main">
+                  <div className="fin-row-title">
+                    {entry.delta > 0 ? '+' : ''}
+                    {entry.delta} {historyGoal?.unit}
+                  </div>
+                  <div className="fin-row-sub">
+                    {new Date(entry.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    {entry.note && ` · ${entry.note}`}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Drawer>
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { StravaSnapshot } from '../shared/types'
 import type { Page } from '../components/Sidebar'
 import { StravaIcon } from '../components/icons'
+import { Glyph } from '../components/Glyph'
 
 const ACTIVITY_TYPES = ['Run', 'Ride', 'Walk', 'Swim', 'Hike', 'Workout', 'Yoga', 'WeightTraining']
 
@@ -149,10 +150,11 @@ export function Strava({ onNavigate }: { onNavigate?: (page: Page) => void }) {
         ) : (
           <div className="list">
             {snapshot.activities.map((activity) => (
-              <div className="list-row" key={activity.id}>
-                <div className="list-row-main">
-                  <div className="list-row-title">{activity.name}</div>
-                  <div className="list-row-sub">
+              <div className="fin-row" key={activity.id}>
+                <Glyph label={activity.type} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{activity.name}</div>
+                  <div className="fin-row-sub">
                     {activity.type} · {new Date(activity.startDate).toLocaleDateString(undefined, {
                       weekday: 'short',
                       month: 'short',
@@ -160,7 +162,7 @@ export function Strava({ onNavigate }: { onNavigate?: (page: Page) => void }) {
                     })}
                   </div>
                 </div>
-                <div className="list-row-actions">
+                <div style={{ display: 'flex', gap: 6 }}>
                   <span className="badge">{activity.distanceMiles} mi</span>
                   <span className="badge">{activity.movingMinutes} min</span>
                 </div>

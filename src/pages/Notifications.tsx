@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { GoogleAuthStatus, NotificationDigest } from '../shared/types'
 import type { Page } from '../components/Sidebar'
+import { Glyph } from '../components/Glyph'
 
 export function Notifications({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const [status, setStatus] = useState<GoogleAuthStatus | null>(null)
@@ -96,25 +97,24 @@ export function Notifications({ onNavigate }: { onNavigate?: (page: Page) => voi
         ) : (
           <div className="list">
             {digest.items.map((item) => (
-              <div className="list-row" key={item.id}>
-                <div className="list-row-main">
-                  <div className="list-row-title">{item.subject}</div>
-                  <div className="list-row-sub">
+              <div className="fin-row" key={item.id}>
+                <Glyph label={item.from} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{item.subject}</div>
+                  <div className="fin-row-sub">
                     {item.from} · {new Date(item.receivedAt).toLocaleString()}
                   </div>
                   <div className="muted" style={{ marginTop: 4 }}>
                     {item.snippet}
                   </div>
                 </div>
-                <div className="list-row-actions">
-                  <button
-                    className="btn btn-sm"
-                    onClick={() => markAsRead(item.id)}
-                    disabled={markingId === item.id}
-                  >
-                    {markingId === item.id ? 'Marking…' : 'Mark as read'}
-                  </button>
-                </div>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => markAsRead(item.id)}
+                  disabled={markingId === item.id}
+                >
+                  {markingId === item.id ? 'Marking…' : 'Mark as read'}
+                </button>
               </div>
             ))}
           </div>

@@ -168,25 +168,25 @@ export function Spotify({ onNavigate }: { onNavigate?: (page: Page) => void }) {
         ) : (
           <div className="list">
             {snapshot.recentlyPlayed.map((track, i) => (
-              <div className="list-row" key={`${track.trackName}-${track.playedAt}-${i}`}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                  {track.albumArt && (
-                    <img src={track.albumArt} alt="" width={40} height={40} style={{ borderRadius: 6 }} />
-                  )}
-                  <div className="list-row-main">
-                    <div className="list-row-title">{track.trackName}</div>
-                    <div className="list-row-sub">{track.artistName}</div>
+              <div className="fin-row" key={`${track.trackName}-${track.playedAt}-${i}`}>
+                {track.albumArt ? (
+                  <img src={track.albumArt} alt="" width={34} height={34} style={{ borderRadius: 8, flexShrink: 0 }} />
+                ) : (
+                  <div className="fin-glyph" style={{ width: 34, height: 34 }}>
+                    ♪
                   </div>
+                )}
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{track.trackName}</div>
+                  <div className="fin-row-sub">{track.artistName}</div>
                 </div>
-                <div className="list-row-actions">
-                  <span className="muted">
-                    {new Date(track.playedAt).toLocaleString(undefined, {
-                      weekday: 'short',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                </div>
+                <span className="muted">
+                  {new Date(track.playedAt).toLocaleString(undefined, {
+                    weekday: 'short',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })}
+                </span>
               </div>
             ))}
           </div>

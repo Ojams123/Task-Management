@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { MicrosoftSnapshot } from '../shared/types'
 import type { Page } from '../components/Sidebar'
 import { MicrosoftIcon } from '../components/icons'
+import { Glyph } from '../components/Glyph'
 
 export function Microsoft({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const [connected, setConnected] = useState<boolean | null>(null)
@@ -75,14 +76,13 @@ export function Microsoft({ onNavigate }: { onNavigate?: (page: Page) => void })
         ) : (
           <div className="list">
             {snapshot.unreadItems.map((item, i) => (
-              <div className="list-row" key={i}>
-                <div className="list-row-main">
-                  <div className="list-row-title">{item.subject}</div>
-                  <div className="list-row-sub">{item.from}</div>
+              <div className="fin-row" key={i}>
+                <Glyph label={item.from} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{item.subject}</div>
+                  <div className="fin-row-sub">{item.from}</div>
                 </div>
-                <div className="list-row-actions">
-                  <span className="muted">{new Date(item.receivedAt).toLocaleDateString()}</span>
-                </div>
+                <span className="muted">{new Date(item.receivedAt).toLocaleDateString()}</span>
               </div>
             ))}
           </div>
@@ -94,14 +94,15 @@ export function Microsoft({ onNavigate }: { onNavigate?: (page: Page) => void })
           <h3>Recent Word, Excel & PowerPoint files</h3>
           <div className="list">
             {snapshot.recentFiles.map((file) => (
-              <div className="list-row" key={file.webUrl}>
-                <div className="list-row-main">
-                  <div className="list-row-title">
+              <div className="fin-row" key={file.webUrl}>
+                <Glyph label={file.name} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">
                     <a href={file.webUrl} target="_blank" rel="noreferrer">
                       {file.name}
                     </a>
                   </div>
-                  <div className="list-row-sub">Modified {new Date(file.modifiedAt).toLocaleDateString()}</div>
+                  <div className="fin-row-sub">Modified {new Date(file.modifiedAt).toLocaleDateString()}</div>
                 </div>
               </div>
             ))}

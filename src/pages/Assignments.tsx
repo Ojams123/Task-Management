@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { CanvasAssignment } from '../shared/types'
 import type { Page } from '../components/Sidebar'
+import { Glyph } from '../components/Glyph'
 
 export function Assignments({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const [configured, setConfigured] = useState<boolean | null>(null)
@@ -112,28 +113,27 @@ export function Assignments({ onNavigate }: { onNavigate?: (page: Page) => void 
                 {courseAssignments.map((a) => {
                   const overdue = !a.submitted && a.dueAt !== null && new Date(a.dueAt).getTime() < now
                   return (
-                    <div className="list-row" key={a.id}>
-                      <div className="list-row-main" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <input
-                          type="checkbox"
-                          checked={a.completedLocally}
-                          onChange={(e) => toggleCompleted(a.id, e.target.checked)}
-                          title="Mark done (tracked in DeviceHub only — doesn't submit to Canvas)"
-                        />
-                        <div>
-                          <div
-                            className="list-row-title"
-                            style={a.completedLocally ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}
-                          >
-                            {a.name}
-                          </div>
-                          <div className="list-row-sub">
-                            {a.dueAt && `Due ${new Date(a.dueAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
-                            {a.pointsPossible != null && ` · ${a.pointsPossible} pts`}
-                          </div>
+                    <div className="fin-row" key={a.id}>
+                      <input
+                        type="checkbox"
+                        checked={a.completedLocally}
+                        onChange={(e) => toggleCompleted(a.id, e.target.checked)}
+                        title="Mark done (tracked in DeviceHub only — doesn't submit to Canvas)"
+                      />
+                      <Glyph label={courseName} />
+                      <div className="fin-row-main">
+                        <div
+                          className="fin-row-title"
+                          style={a.completedLocally ? { textDecoration: 'line-through', opacity: 0.6 } : undefined}
+                        >
+                          {a.name}
+                        </div>
+                        <div className="fin-row-sub">
+                          {a.dueAt && `Due ${new Date(a.dueAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`}
+                          {a.pointsPossible != null && ` · ${a.pointsPossible} pts`}
                         </div>
                       </div>
-                      <div className="list-row-actions">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         {a.completedLocally && <span className="badge success">Done</span>}
                         {a.submitted && <span className="badge success">Submitted</span>}
                         {overdue && !a.completedLocally && <span className="badge danger">Overdue</span>}

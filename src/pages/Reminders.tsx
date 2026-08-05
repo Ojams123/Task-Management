@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { Reminder } from '../shared/types'
+import { Glyph } from '../components/Glyph'
+import { Drawer } from '../components/Drawer'
 
 function toLocalInputValue(iso: string): string {
   const d = new Date(iso)
@@ -13,6 +15,13 @@ export function Reminders() {
   const [dueAt, setDueAt] = useState(() => toLocalInputValue(new Date(Date.now() + 60 * 60 * 1000).toISOString()))
   const [recurrence, setRecurrence] = useState<Reminder['recurrence']>('none')
   const [loading, setLoading] = useState(true)
+
+  const [selected, setSelected] = useState<Reminder | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDueAt, setEditDueAt] = useState('')
+  const [editRecurrence, setEditRecurrence] = useState<Reminder['recurrence']>('none')
+  const [editNotes, setEditNotes] = useState('')
+  const [saving, setSaving] = useState(false)
 
   async function refresh() {
     setReminders(await window.api.reminders.list())
@@ -44,6 +53,31 @@ export function Reminders() {
   async function remove(id: string) {
     await window.api.reminders.remove(id)
     await refresh()
+  }
+
+  function openReminder(r: Reminder) {
+    setSelected(r)
+    setEditTitle(r.title)
+    setEditDueAt(toLocalInputValue(r.dueAt))
+    setEditRecurrence(r.recurrence)
+    setEditNotes(r.notes ?? '')
+  }
+
+  async function saveReminder() {
+    if (!selected || !editTitle.trim()) return
+    setSaving(true)
+    try {
+      await window.api.reminders.update(selected.id, {
+        title: editTitle.trim(),
+        dueAt: new Date(editDueAt).toISOString(),
+        recurrence: editRecurrence,
+        notes: editNotes.trim() || null,
+      })
+      setSelected(null)
+      await refresh()
+    } finally {
+      setSaving(false)
+    }
   }
 
   const upcoming = reminders.filter((r) => !r.completed)
@@ -86,10 +120,11 @@ export function Reminders() {
         ) : (
           <div className="list">
             {upcoming.map((r) => (
-              <div className="list-row" key={r.id}>
-                <div className="list-row-main">
-                  <div className="list-row-title">{r.title}</div>
-                  <div className="list-row-sub">
+              <div className="fin-row" key={r.id} onClick={() => openReminder(r)} style={{ cursor: 'pointer' }}>
+                <Glyph label={r.title} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{r.title}</div>
+                  <div className="fin-row-sub">
                     {new Date(r.dueAt).toLocaleString(undefined, {
                       weekday: 'short',
                       month: 'short',
@@ -100,7 +135,7 @@ export function Reminders() {
                     {r.recurrence !== 'none' && ` · repeats ${r.recurrence}`}
                   </div>
                 </div>
-                <div className="list-row-actions">
+                <div style={{ display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
                   <button className="btn btn-sm" onClick={() => toggleComplete(r)}>
                     Done
                   </button>
@@ -119,13 +154,14 @@ export function Reminders() {
           <h3>Completed ({completed.length})</h3>
           <div className="list">
             {completed.slice(0, 10).map((r) => (
-              <div className="list-row" key={r.id}>
-                <div className="list-row-main">
-                  <div className="list-row-title" style={{ textDecoration: 'line-through', opacity: 0.6 }}>
+              <div className="fin-row" key={r.id}>
+                <Glyph label={r.title} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title" style={{ textDecoration: 'line-through', opacity: 0.6 }}>
                     {r.title}
                   </div>
                 </div>
-                <div className="list-row-actions">
+                <div style={{ display: 'flex', gap: 6 }}>
                   <button className="btn btn-sm" onClick={() => toggleComplete(r)}>
                     Undo
                   </button>
@@ -138,6 +174,42 @@ export function Reminders() {
           </div>
         </div>
       )}
+
+      <Drawer open={!!selected} onClose={() => setSelected(null)} title="Edit reminder">
+        {selected && (
+          <>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label>Title</label>
+              <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+            </div>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label>Due</label>
+              <input type="datetime-local" value={editDueAt} onChange={(e) => setEditDueAt(e.target.value)} />
+            </div>
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label>Repeat</label>
+              <select value={editRecurrence} onChange={(e) => setEditRecurrence(e.target.value as Reminder['recurrence'])}>
+                <option value="none">Doesn't repeat</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+            <div className="field" style={{ marginBottom: 16 }}>
+              <label>Notes</label>
+              <textarea
+                rows={4}
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="Add notes…"
+              />
+            </div>
+            <button className="btn btn-primary" onClick={saveReminder} disabled={saving}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
+          </>
+        )}
+      </Drawer>
     </div>
   )
 }
