@@ -112,17 +112,17 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
         <AssistantAvatar size={88} />
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-        <button className="btn btn-sm" onClick={toggleVoice}>
-          {voiceMuted ? 'Voice replies: off' : 'Voice replies: on'}
-        </button>
-      </div>
-
       <div
         ref={scrollRef}
         className="card"
         style={{ flex: 1, overflowY: 'auto', marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 10 }}
       >
+        <h3 style={{ marginBottom: 4 }}>
+          Assistant
+          <button className="link" onClick={toggleVoice}>
+            {voiceMuted ? 'Voice replies: off' : 'Voice replies: on'}
+          </button>
+        </h3>
         {messages.length === 0 ? (
           <div className="empty-state">
             Ask it anything — "what's due this week?", "log a 5k run, 32 minutes, 350 calories", "add a goal to
