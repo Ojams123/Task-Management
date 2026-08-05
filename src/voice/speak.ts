@@ -107,8 +107,13 @@ function pumpWarmup() {
     return
   }
   if (!warmupActive || !('speechSynthesis' in window)) return
-  const utterance = new SpeechSynthesisUtterance(' ')
-  utterance.volume = 0
+  const utterance = new SpeechSynthesisUtterance('.')
+  // Not truly 0 — iOS appears to treat a fully silent (volume 0) utterance as
+  // a no-op it can skip without ever engaging the audio session, which would
+  // make this chain pump through instantly without actually keeping anything
+  // "warm." A tiny but nonzero volume forces it to really play, so the
+  // gesture-linked audio session stays genuinely alive for the handoff below.
+  utterance.volume = 0.01
   utterance.onend = pumpWarmup
   utterance.onerror = pumpWarmup
   window.speechSynthesis.speak(utterance)
