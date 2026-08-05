@@ -129,18 +129,32 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       setAssistantConfigured(assistantStatus.configured)
       setSimplefinConfigured(simplefinStatus.configured)
 
-      if (canvasSettings) setAssignments(await window.api.canvas.listCached())
+      // Each of these is independent of the others — run them concurrently
+      // and isolate failures with .catch() so one integration erroring out
+      // (an expired Google token, a flaky SimpleFIN sync, etc.) can't cascade
+      // and silently block the rest from loading. A prior sequential-await
+      // version meant a single failure here left everything after it in the
+      // chain permanently unfetched for the rest of the session.
+      const followUps: Promise<void>[] = []
+      if (canvasSettings) {
+        followUps.push(window.api.canvas.listCached().then(setAssignments).catch(() => {}))
+      }
       if (googleStatus.connected) {
-        setDigest(await window.api.notifications.getDigest())
-        setEvents(await window.api.calendar.getEvents())
+        followUps.push(window.api.notifications.getDigest().then(setDigest).catch(() => {}))
+        followUps.push(window.api.calendar.getEvents().then(setEvents).catch(() => {}))
       }
       if (ouraStatus.configured) {
-        const days = await window.api.oura.listCached()
-        setOuraToday(days[0] ?? null)
+        followUps.push(
+          window.api.oura
+            .listCached()
+            .then((days) => setOuraToday(days[0] ?? null))
+            .catch(() => {})
+        )
       }
       if (simplefinStatus.configured) {
-        setSimplefinAccounts(await window.api.simplefin.listAccounts())
+        followUps.push(window.api.simplefin.listAccounts().then(setSimplefinAccounts).catch(() => {}))
       }
+      await Promise.allSettled(followUps)
     }
     load()
   }, [])
