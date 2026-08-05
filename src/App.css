@@ -90,10 +90,6 @@
   padding: 10px 10px 4px;
 }
 
-.sidebar-backdrop {
-  display: none;
-}
-
 .hamburger-btn {
   display: none;
   align-items: center;
@@ -250,91 +246,137 @@
   }
 }
 
-@media (max-width: 860px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-  }
+/* Mobile layout is driven by JS (App.tsx), not a width media query directly —
+   this lets the view-toggle force it on at any window size. JS applies
+   .mobile-layout automatically at narrow widths too, unless overridden. */
 
-  .sidebar {
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 70;
-    width: 250px;
-    max-width: 82vw;
-    transform: translateX(-100%);
-    transition: transform 0.22s ease;
-  }
+.app-shell.mobile-layout {
+  grid-template-columns: 1fr;
+}
 
-  .sidebar.mobile-open {
-    transform: translateX(0);
-    box-shadow: 30px 0 60px rgba(0, 0, 0, 0.5);
-  }
+.app-shell.mobile-layout .sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 70;
+  width: 250px;
+  max-width: 82vw;
+  transform: translateX(-100vw);
+  transition: transform 0.22s ease;
+}
 
-  .sidebar-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.55);
-    z-index: 60;
-  }
+.app-shell.mobile-layout .sidebar.mobile-open {
+  transform: translateX(0);
+  box-shadow: 30px 0 60px rgba(0, 0, 0, 0.5);
+}
 
-  .hamburger-btn {
-    display: inline-flex;
-  }
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 60;
+}
 
-  .top-bar {
-    padding: 16px 16px 14px;
-  }
+.app-shell.mobile-layout .hamburger-btn {
+  display: inline-flex;
+}
 
-  .page-content {
-    padding: 16px 16px calc(84px + env(safe-area-inset-bottom));
-  }
+.app-shell.mobile-layout .top-bar {
+  padding: 16px 16px 14px;
+}
 
-  .mobile-nav {
-    display: flex;
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 50;
-    align-items: stretch;
-    justify-content: space-around;
-    background: var(--bg-card);
-    border-top: 1px solid var(--border);
-    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-  }
+.app-shell.mobile-layout .page-content {
+  padding: 16px 16px calc(84px + env(safe-area-inset-bottom));
+}
 
-  .mobile-nav-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    padding: 6px 2px;
-    border-radius: var(--radius-sm);
-  }
+.dv2-span-2 {
+  grid-column: span 2;
+}
 
-  .mobile-nav-btn.active {
-    color: var(--accent);
-  }
+.app-shell.mobile-layout .grid-2,
+.app-shell.mobile-layout .grid-3 {
+  grid-template-columns: 1fr;
+}
 
-  .mobile-nav-menu-icon {
-    font-size: 16px;
-    line-height: 1;
-  }
+.app-shell.mobile-layout .dv2-span-2 {
+  grid-column: auto;
+}
 
-  .dv2-stat-row {
-    grid-template-columns: 1fr 1fr;
-  }
+.app-shell.mobile-layout .mobile-nav {
+  display: flex;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  align-items: stretch;
+  justify-content: space-around;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+}
+
+.mobile-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 6px 2px;
+  border-radius: var(--radius-sm);
+}
+
+.mobile-nav-btn.active {
+  color: var(--accent);
+}
+
+.mobile-nav-menu-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.app-shell.mobile-layout .dv2-stat-row {
+  grid-template-columns: 1fr 1fr;
+}
+
+.view-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.view-toggle-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.app-shell.mobile-layout .top-bar {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.app-shell.mobile-layout .view-toggle-btn {
+  padding: 8px 10px;
+}
+
+.app-shell.mobile-layout .view-toggle-label {
+  display: none;
 }
 
 .card {

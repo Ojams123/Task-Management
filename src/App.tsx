@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 import { IS_ELECTRON } from './bootstrap'
 import { Sidebar, type Page } from './components/Sidebar'
@@ -40,10 +40,32 @@ const PAGE_TITLES: Record<Page, string> = {
   settings: 'Settings',
 }
 
+type ViewMode = 'auto' | 'mobile' | 'desktop'
+
 function App() {
   const [page, setPage] = useState<Page>('dashboard')
   const [navOpen, setNavOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('dh-view-mode')
+    return saved === 'mobile' || saved === 'desktop' ? saved : 'auto'
+  })
+  const [narrowViewport, setNarrowViewport] = useState(
+    () => window.matchMedia('(max-width: 860px)').matches
+  )
   useBrowserReminderNotifications(!IS_ELECTRON)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 860px)')
+    const handler = (e: MediaQueryListEvent) => setNarrowViewport(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem('dh-view-mode', viewMode)
+  }, [viewMode])
+
+  const isMobile = viewMode === 'mobile' || (viewMode === 'auto' && narrowViewport)
 
   function navigate(p: Page) {
     setPage(p)
@@ -51,7 +73,7 @@ function App() {
   }
 
   const shell = (
-    <div className="app-shell">
+    <div className={`app-shell${isMobile ? ' mobile-layout' : ''}`}>
       <Sidebar page={page} onNavigate={navigate} mobileOpen={navOpen} />
       {navOpen && <div className="sidebar-backdrop" onClick={() => setNavOpen(false)} />}
       <div className="main-area">
@@ -60,7 +82,17 @@ function App() {
             ☰
           </button>
           <h2>{PAGE_TITLES[page]}</h2>
-          <VoiceBar onNavigate={setPage} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              className="view-toggle-btn"
+              onClick={() => setViewMode(isMobile ? 'desktop' : 'mobile')}
+              title="Force the layout regardless of window size"
+            >
+              <span aria-hidden="true">{isMobile ? '🖥' : '📱'}</span>
+              <span className="view-toggle-label">{isMobile ? 'Desktop view' : 'Mobile view'}</span>
+            </button>
+            <VoiceBar onNavigate={setPage} />
+          </div>
         </div>
         <div className="page-content">
           {page === 'dashboard' && <Dashboard onNavigate={setPage} />}

@@ -167,6 +167,11 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
     }
   }
 
+  async function toggleReminderComplete(r: Reminder) {
+    await window.api.reminders.update(r.id, { completed: !r.completed })
+    setReminders(await window.api.reminders.list())
+  }
+
   async function removeWeekEvent(id: string) {
     const target = weekEvents.find((e) => e.id === id)
     if (!target) return
@@ -235,6 +240,10 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
           )
       : []),
   ]
+
+  const todayScheduleItems = weekEvents
+    .filter((e) => isSameDay(new Date(e.start), now))
+    .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
 
   const kindByCategoryId = new Map(categories.map((c) => [c.id, c.kind]))
   const expenseRows = budgetSummary
@@ -352,7 +361,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       </div>
 
       <div className="grid grid-2">
-      <div className="card" style={{ gridColumn: 'span 2' }}>
+      <div className="card dv2-span-2">
         <h3>
           <span className="heading-with-icon">
             <WalletIcon size={16} />
@@ -384,7 +393,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       </div>
 
       {simplefinConfigured && (
-        <div className="card" style={{ gridColumn: 'span 2' }}>
+        <div className="card dv2-span-2">
           <h3>
             Accounts
             <button className="link" onClick={() => onNavigate('budget')}>
@@ -410,7 +419,58 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         </div>
       )}
 
-      <div className="card" style={{ gridColumn: 'span 2' }}>
+      <div className="card">
+        <h3>
+          To-do
+          <button className="link" onClick={() => onNavigate('reminders')}>
+            View all
+          </button>
+        </h3>
+        {upcomingReminders.length === 0 ? (
+          <div className="empty-state">Nothing on your list.</div>
+        ) : (
+          <div className="list">
+            {upcomingReminders.map((r) => (
+              <div className="fin-row" key={r.id}>
+                <Glyph label={r.title} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{r.title}</div>
+                  <div className="fin-row-sub">{relativeDayLabel(new Date(r.dueAt), now)}</div>
+                </div>
+                <button className="btn btn-sm" onClick={() => toggleReminderComplete(r)}>
+                  Done
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h3>Today's schedule</h3>
+        {todayScheduleItems.length === 0 ? (
+          <div className="empty-state">Nothing on the calendar for today.</div>
+        ) : (
+          <div className="list">
+            {todayScheduleItems.map((e) => (
+              <div className="fin-row" key={e.id}>
+                <Glyph label={e.title} />
+                <div className="fin-row-main">
+                  <div className="fin-row-title">{e.title}</div>
+                  <div className="fin-row-sub">{e.location ?? (e.source === 'canvas' ? 'Assignment due' : 'Event')}</div>
+                </div>
+                <div className="fin-row-amount" style={{ fontSize: 12, fontWeight: 500 }}>
+                  {e.allDay
+                    ? 'All day'
+                    : new Date(e.start).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="card dv2-span-2">
         <h3>
           Assistant
           <button className="link" onClick={() => onNavigate('assistant')}>
@@ -470,7 +530,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card" style={{ gridColumn: 'span 2' }}>
+      <div className="card dv2-span-2">
         <h3>
           This week
           <button className="link" onClick={() => onNavigate('calendar')}>
@@ -491,7 +551,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card" style={{ gridColumn: 'span 2' }}>
+      <div className="card dv2-span-2">
         <h3>Latest activity</h3>
         <div className="oura-tabs">
           {(['all', 'reminder', 'assignment', 'event'] as const).map((f) => (
@@ -673,7 +733,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         )}
       </div>
 
-      <div className="card" style={{ gridColumn: 'span 2' }}>
+      <div className="card dv2-span-2">
         <h3>
           Missed notifications
           <button className="link" onClick={() => onNavigate('notifications')}>
