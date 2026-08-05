@@ -41,6 +41,9 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
     if (last && last.role === 'assistant' && !spokenIdsRef.current.has(last.id)) {
       spokenIdsRef.current.add(last.id)
       speak(last.content)
+    } else {
+      // Nothing to speak this render — don't leave a warmup chain pumping forever.
+      stopVoiceWarmup()
     }
   }, [messages, historyLoaded])
 
@@ -65,12 +68,15 @@ export function Assistant({ onNavigate }: { onNavigate?: (page: Page) => void })
       try {
         const updated = await window.api.assistant.sendMessage(content)
         setMessages(updated)
+        // Don't stopVoiceWarmup() here on the success path — the messages
+        // effect above will speak the new reply and that consumes the
+        // warmup chain itself, which is what keeps it audible on iOS.
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to reach the assistant')
+        stopVoiceWarmup()
         await refresh()
       } finally {
         setSending(false)
-        stopVoiceWarmup()
       }
     },
     [input, sending]

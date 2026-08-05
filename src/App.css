@@ -935,6 +935,33 @@ button.link:hover {
   margin-bottom: 18px;
 }
 
+.fitness-journal {
+  max-height: 480px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-right: 4px;
+}
+
+.fitness-journal-day + .fitness-journal-day {
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.fitness-journal-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
 .oura-tab {
   flex: 1;
   padding: 8px 12px;

@@ -9,10 +9,35 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+type JournalDay = { date: string; label: string; items: ExerciseEntry[]; totalCalories: number }
+
+function groupExerciseByDay(entries: ExerciseEntry[]): JournalDay[] {
+  const byDay = new Map<string, ExerciseEntry[]>()
+  for (const entry of entries) {
+    const day = entry.occurredAt.slice(0, 10)
+    if (!byDay.has(day)) byDay.set(day, [])
+    byDay.get(day)!.push(entry)
+  }
+  return Array.from(byDay.entries())
+    .sort((a, b) => (a[0] < b[0] ? 1 : -1))
+    .map(([date, items]) => ({
+      date,
+      label: new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: date.slice(0, 4) === today().slice(0, 4) ? undefined : 'numeric',
+      }),
+      items,
+      totalCalories: items.reduce((sum, e) => sum + (e.caloriesBurned ?? 0), 0),
+    }))
+}
+
 export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
   const [summary, setSummary] = useState<DailyFitnessSummary | null>(null)
   const [food, setFood] = useState<FoodEntry[]>([])
   const [exercise, setExercise] = useState<ExerciseEntry[]>([])
+  const [exerciseHistory, setExerciseHistory] = useState<ExerciseEntry[]>([])
   const [fitnessGoals, setFitnessGoals] = useState<Goal[]>([])
   const [targetInput, setTargetInput] = useState('2000')
 
@@ -30,10 +55,11 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
 
   async function refresh() {
     const date = today()
-    const [sum, foodList, exerciseList, goals, target, ouraStatus] = await Promise.all([
+    const [sum, foodList, exerciseList, exerciseAll, goals, target, ouraStatus] = await Promise.all([
       window.api.fitness.dailySummary(date),
       window.api.fitness.listFood(date),
       window.api.fitness.listExercise(date),
+      window.api.fitness.listExercise(),
       window.api.goals.list(),
       window.api.fitness.getCalorieTarget(),
       window.api.oura.getStatus(),
@@ -41,6 +67,7 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
     setSummary(sum)
     setFood(foodList)
     setExercise(exerciseList)
+    setExerciseHistory(exerciseAll)
     setFitnessGoals(goals.filter((g) => !g.archived && g.category.toLowerCase() === 'fitness'))
     setTargetInput(String(target))
     setOuraConfigured(ouraStatus.configured)
@@ -245,6 +272,44 @@ export function Fitness({ onNavigate }: { onNavigate?: (page: Page) => void }) {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h3>Workout journal</h3>
+        {exerciseHistory.length === 0 ? (
+          <div className="empty-state">No workouts logged yet.</div>
+        ) : (
+          <div className="fitness-journal">
+            {groupExerciseByDay(exerciseHistory).map((day) => (
+              <div className="fitness-journal-day" key={day.date}>
+                <div className="fitness-journal-day-header">
+                  <span>{day.label}</span>
+                  {day.totalCalories > 0 && <span className="muted">{day.totalCalories} cal burned</span>}
+                </div>
+                <div className="list">
+                  {day.items.map((ex) => (
+                    <div className="fin-row" key={ex.id}>
+                      <Glyph label={ex.activity} />
+                      <div className="fin-row-main">
+                        <div className="fin-row-title">{ex.activity}</div>
+                        <div className="fin-row-sub">
+                          {new Date(ex.occurredAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                          {ex.durationMinutes != null && ` · ${ex.durationMinutes} min`}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {ex.caloriesBurned != null && <span className="badge">{ex.caloriesBurned} cal</span>}
+                        <button className="btn btn-sm btn-danger" onClick={() => removeExercise(ex.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>

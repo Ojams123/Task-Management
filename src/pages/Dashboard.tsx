@@ -158,12 +158,14 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
       if (reply && reply.role === 'assistant') {
         setAssistantExchange({ question, reply: reply.content })
         speak(reply.content)
+      } else {
+        stopVoiceWarmup()
       }
     } catch (e) {
       setAssistantError(e instanceof Error ? e.message : 'Failed to reach the assistant')
+      stopVoiceWarmup()
     } finally {
       setAssistantSending(false)
-      stopVoiceWarmup()
     }
   }
 

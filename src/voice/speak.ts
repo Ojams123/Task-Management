@@ -90,8 +90,22 @@ export function setVoiceMuted(muted: boolean) {
 // one queuing the next as soon as it ends — keeps that gesture association
 // alive for as long as the reply takes, instead of letting it lapse.
 let warmupActive = false
+// When a real reply becomes ready while the warmup chain is still pumping,
+// it's handed off here instead of being spoken directly. A "cold" speak()
+// call from an unrelated React effect (e.g. after an async assistant
+// round-trip) has no gesture association on iOS Safari and gets silently
+// dropped — but a speak() call made synchronously from inside another
+// utterance's onend handler stays part of the same chain the original tap
+// started, so it reliably plays. Pending handoff, one at a time.
+let pendingSpeak: (() => void) | null = null
 
 function pumpWarmup() {
+  if (pendingSpeak) {
+    const run = pendingSpeak
+    pendingSpeak = null
+    run()
+    return
+  }
   if (!warmupActive || !('speechSynthesis' in window)) return
   const utterance = new SpeechSynthesisUtterance(' ')
   utterance.volume = 0
@@ -108,24 +122,35 @@ export function startVoiceWarmup() {
 
 export function stopVoiceWarmup() {
   warmupActive = false
+  pendingSpeak = null
 }
 
 export async function speak(text: string) {
-  stopVoiceWarmup()
-  if (!text.trim() || !('speechSynthesis' in window) || isVoiceMuted()) return
-  window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
-  const voice = await preferredVoice()
-  if (voice) {
-    utterance.voice = voice
-    utterance.lang = voice.lang
-  } else {
-    utterance.lang = 'en-GB'
+  if (!text.trim() || !('speechSynthesis' in window) || isVoiceMuted()) {
+    stopVoiceWarmup()
+    return
   }
-  // Lets any avatar/UI listen for speaking state without prop drilling —
-  // same event-based pattern as the httpClient's devicehub:unauthorized.
-  utterance.onstart = () => window.dispatchEvent(new CustomEvent('devicehub:speaking-start'))
-  utterance.onend = () => window.dispatchEvent(new CustomEvent('devicehub:speaking-end'))
-  utterance.onerror = () => window.dispatchEvent(new CustomEvent('devicehub:speaking-end'))
-  window.speechSynthesis.speak(utterance)
+  const voice = await preferredVoice()
+  const doSpeak = () => {
+    window.speechSynthesis.cancel()
+    const utterance = new SpeechSynthesisUtterance(text)
+    if (voice) {
+      utterance.voice = voice
+      utterance.lang = voice.lang
+    } else {
+      utterance.lang = 'en-GB'
+    }
+    // Lets any avatar/UI listen for speaking state without prop drilling —
+    // same event-based pattern as the httpClient's devicehub:unauthorized.
+    utterance.onstart = () => window.dispatchEvent(new CustomEvent('devicehub:speaking-start'))
+    utterance.onend = () => window.dispatchEvent(new CustomEvent('devicehub:speaking-end'))
+    utterance.onerror = () => window.dispatchEvent(new CustomEvent('devicehub:speaking-end'))
+    window.speechSynthesis.speak(utterance)
+  }
+  if (warmupActive) {
+    warmupActive = false
+    pendingSpeak = doSpeak
+  } else {
+    doSpeak()
+  }
 }
