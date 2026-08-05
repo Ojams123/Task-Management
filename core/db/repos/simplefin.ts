@@ -28,11 +28,11 @@ export function replaceCachedTransactions(transactions: Omit<SimplefinTransactio
   const tx = db.transaction((rows: Omit<SimplefinTransaction, 'syncedAt'>[]) => {
     db.prepare('DELETE FROM simplefin_transactions').run()
     const insert = db.prepare(
-      `INSERT INTO simplefin_transactions (id, accountId, amount, description, pending, date, syncedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO simplefin_transactions (id, accountId, amount, description, memo, pending, date, syncedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const t of rows) {
-      insert.run(t.id, t.accountId, t.amount, t.description, t.pending ? 1 : 0, t.date, syncedAt)
+      insert.run(t.id, t.accountId, t.amount, t.description, t.memo ?? null, t.pending ? 1 : 0, t.date, syncedAt)
     }
   })
   tx(transactions)
@@ -43,6 +43,7 @@ interface TransactionRow {
   accountId: string
   amount: number
   description: string
+  memo: string | null
   pending: number
   date: string
 }

@@ -73,6 +73,8 @@ export function createHttpClient(): DeviceHubApi {
       listTransactions: (month) => request('GET', `/budget/transactions${query({ month })}`),
       createTransaction: (input) => request('POST', '/budget/transactions', input),
       updateTransactionCategory: (id, categoryId) => request('PUT', `/budget/transactions/${id}`, { categoryId }),
+      updateTransactionDescription: (id, description) =>
+        request('PUT', `/budget/transactions/${id}/description`, { description }),
       removeTransaction: (id) => request('DELETE', `/budget/transactions/${id}`),
       summary: (month) => request('GET', `/budget/summary${query({ month })}`),
     },

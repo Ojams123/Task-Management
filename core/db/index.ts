@@ -231,6 +231,7 @@ function migrate(database: Database.Database) {
       accountId TEXT NOT NULL REFERENCES simplefin_accounts(id) ON DELETE CASCADE,
       amount REAL NOT NULL,
       description TEXT NOT NULL,
+      memo TEXT,
       pending INTEGER NOT NULL DEFAULT 0,
       date TEXT NOT NULL,
       syncedAt TEXT NOT NULL
@@ -282,6 +283,11 @@ function migrate(database: Database.Database) {
   }
   if (!transactionColumns.some((c) => c.name === 'simplefinTransactionId')) {
     database.exec('ALTER TABLE transactions ADD COLUMN simplefinTransactionId TEXT')
+  }
+
+  const simplefinTxColumns = database.prepare('PRAGMA table_info(simplefin_transactions)').all() as { name: string }[]
+  if (simplefinTxColumns.length > 0 && !simplefinTxColumns.some((c) => c.name === 'memo')) {
+    database.exec('ALTER TABLE simplefin_transactions ADD COLUMN memo TEXT')
   }
 }
 

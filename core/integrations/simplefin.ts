@@ -39,6 +39,12 @@ interface SimplefinApiTransaction {
   posted: number
   amount: string
   description: string
+  // Not every bridge/institution populates these, but per the SimpleFIN
+  // protocol some do — `payee` is often a cleaner merchant name than the
+  // generic `description` some banks send for card/ACH activity (e.g.
+  // "RECURRING EXPENSE"), and `memo` can carry extra detail either way.
+  payee?: string
+  memo?: string
   pending?: boolean
 }
 
@@ -79,11 +85,14 @@ export async function fetchAccounts(
       availableBalance: a['available-balance'] != null ? Number(a['available-balance']) : null,
     })
     for (const t of a.transactions ?? []) {
+      const payee = t.payee?.trim()
+      const memo = t.memo?.trim()
       transactions.push({
         id: t.id,
         accountId: a.id,
         amount: Number(t.amount),
-        description: t.description,
+        description: payee && payee.length > 0 ? payee : t.description,
+        memo: memo && memo.length > 0 && memo !== payee ? memo : null,
         pending: !!t.pending,
         date: new Date(t.posted * 1000).toISOString(),
       })

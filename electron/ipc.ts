@@ -156,6 +156,7 @@ export function registerIpcHandlers() {
   ipcMain.handle('budget:listTransactions', (_e, month) => budget.listTransactions(month))
   ipcMain.handle('budget:createTransaction', (_e, input) => budget.createTransaction(input))
   ipcMain.handle('budget:updateTransactionCategory', (_e, id, categoryId) => budget.updateTransactionCategory(id, categoryId))
+  ipcMain.handle('budget:updateTransactionDescription', (_e, id, description) => budget.updateTransactionDescription(id, description))
   ipcMain.handle('budget:removeTransaction', (_e, id) => budget.removeTransaction(id))
   ipcMain.handle('budget:summary', (_e, month) => budget.summary(month))
 

@@ -72,6 +72,8 @@ export function Budget() {
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [txSearch, setTxSearch] = useState('')
+  const [editTxDescription, setEditTxDescription] = useState('')
+  const [savingTxDescription, setSavingTxDescription] = useState(false)
 
   async function refresh() {
     const [cats, txs, sum, simplefinStatus] = await Promise.all([
@@ -179,6 +181,26 @@ export function Budget() {
       await refresh()
     } catch (e) {
       setBudgetError(e instanceof Error ? e.message : 'Could not reassign transaction')
+    }
+  }
+
+  function openTx(t: Transaction) {
+    setSelectedTx(t)
+    setEditTxDescription(t.description ?? '')
+  }
+
+  async function saveTransactionDescription() {
+    if (!selectedTx || !editTxDescription.trim()) return
+    setSavingTxDescription(true)
+    setBudgetError(null)
+    try {
+      const updated = await window.api.budget.updateTransactionDescription(selectedTx.id, editTxDescription.trim())
+      setSelectedTx(updated)
+      await refresh()
+    } catch (e) {
+      setBudgetError(e instanceof Error ? e.message : 'Could not rename transaction')
+    } finally {
+      setSavingTxDescription(false)
     }
   }
 
@@ -532,7 +554,7 @@ export function Budget() {
                 ) : (
                   <div className="list">
                     {filtered.map((t) => (
-                      <button key={t.id} className="fin-row" onClick={() => setSelectedTx(t)}>
+                      <button key={t.id} className="fin-row" onClick={() => openTx(t)}>
                         <Glyph label={t.description || categoryName(t.categoryId)} />
                         <div className="fin-row-main">
                           <div className="fin-row-title">
@@ -598,10 +620,15 @@ export function Budget() {
             <div className="fin-drawer-amount" style={{ color: selectedBankTx.amount < 0 ? 'var(--danger)' : 'var(--success)' }}>
               {formatMoney(Math.abs(selectedBankTx.amount))}
             </div>
-            <div className="muted" style={{ marginBottom: 18 }}>
+            <div className="muted" style={{ marginBottom: selectedBankTx.memo ? 4 : 18 }}>
               {selectedBankTx.description}
               {selectedBankTx.pending && ' · pending'}
             </div>
+            {selectedBankTx.memo && (
+              <div className="muted" style={{ marginBottom: 18, fontSize: 12 }}>
+                {selectedBankTx.memo}
+              </div>
+            )}
             <div className="field">
               <label>Date</label>
               <div>{new Date(selectedBankTx.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</div>
@@ -615,9 +642,28 @@ export function Budget() {
           <>
             <div className="fin-drawer-amount">{formatMoney(selectedTx.amount)}</div>
             <p className="muted" style={{ marginBottom: 18 }}>
-              {selectedTx.description || categoryName(selectedTx.categoryId)} ·{' '}
               {new Date(selectedTx.occurredAt).toLocaleDateString()}
+              {selectedTx.simplefinTransactionId ? ' · synced from bank' : ''}
             </p>
+            <div className="field" style={{ marginBottom: 16 }}>
+              <label>Description</label>
+              <div className="inline-form">
+                <input
+                  style={{ flex: 1 }}
+                  value={editTxDescription}
+                  onChange={(e) => setEditTxDescription(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && saveTransactionDescription()}
+                  placeholder="e.g. Netflix, Spotify, landlord's name…"
+                />
+                <button className="btn btn-sm btn-primary" onClick={saveTransactionDescription} disabled={savingTxDescription}>
+                  {savingTxDescription ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+              <p className="muted" style={{ fontSize: 11, marginTop: 6 }}>
+                Rename this to whatever's actually clearest — banks sometimes send generic labels like "recurring
+                expense" instead of the merchant name.
+              </p>
+            </div>
             <div className="field" style={{ marginBottom: 16 }}>
               <label>Category</label>
               <select

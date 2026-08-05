@@ -89,6 +89,12 @@ export function updateTransactionCategory(id: string, categoryId: string): Trans
   return db.prepare('SELECT * FROM transactions WHERE id = ?').get(id) as Transaction
 }
 
+export function updateTransactionDescription(id: string, description: string): Transaction {
+  const db = getDb()
+  db.prepare('UPDATE transactions SET description = ? WHERE id = ?').run(description, id)
+  return db.prepare('SELECT * FROM transactions WHERE id = ?').get(id) as Transaction
+}
+
 export function linkedSimplefinTransactionIds(): Set<string> {
   const db = getDb()
   const rows = db

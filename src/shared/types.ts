@@ -226,6 +226,10 @@ export interface SimplefinTransaction {
   accountId: string
   amount: number
   description: string
+  // Extra bank-provided detail beyond `description` (e.g. a fuller merchant
+  // string) when the SimpleFIN bridge for this institution supplies one —
+  // shown as supplementary context, not present for every transaction.
+  memo: string | null
   pending: boolean
   date: string
 }
@@ -373,6 +377,7 @@ export interface DeviceHubApi {
     listTransactions(month?: string): Promise<Transaction[]>
     createTransaction(input: NewTransaction): Promise<Transaction>
     updateTransactionCategory(id: string, categoryId: string): Promise<Transaction>
+    updateTransactionDescription(id: string, description: string): Promise<Transaction>
     removeTransaction(id: string): Promise<void>
     summary(month?: string): Promise<{
       income: number

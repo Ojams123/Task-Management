@@ -24,6 +24,8 @@ const api: DeviceHubApi = {
     listTransactions: (month) => ipcRenderer.invoke('budget:listTransactions', month),
     createTransaction: (input) => ipcRenderer.invoke('budget:createTransaction', input),
     updateTransactionCategory: (id, categoryId) => ipcRenderer.invoke('budget:updateTransactionCategory', id, categoryId),
+    updateTransactionDescription: (id, description) =>
+      ipcRenderer.invoke('budget:updateTransactionDescription', id, description),
     removeTransaction: (id) => ipcRenderer.invoke('budget:removeTransaction', id),
     summary: (month) => ipcRenderer.invoke('budget:summary', month),
   },

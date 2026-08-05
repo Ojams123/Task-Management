@@ -188,6 +188,9 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
   api.put('/budget/transactions/:id', (req, res) =>
     res.json(budget.updateTransactionCategory(req.params.id, req.body.categoryId))
   )
+  api.put('/budget/transactions/:id/description', (req, res) =>
+    res.json(budget.updateTransactionDescription(req.params.id, req.body.description))
+  )
   api.delete('/budget/transactions/:id', (req, res) => {
     budget.removeTransaction(req.params.id)
     res.json({ ok: true })
