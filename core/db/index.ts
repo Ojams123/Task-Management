@@ -265,6 +265,15 @@ function migrate(database: Database.Database) {
       checked INTEGER NOT NULL DEFAULT 0,
       createdAt TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS budget_alerts (
+      id TEXT PRIMARY KEY,
+      categoryId TEXT NOT NULL,
+      month TEXT NOT NULL,
+      level TEXT NOT NULL,
+      firedAt TEXT NOT NULL,
+      UNIQUE(categoryId, month, level)
+    );
   `)
 
   const transactionColumns = database.prepare("PRAGMA table_info(transactions)").all() as { name: string }[]

@@ -1,4 +1,4 @@
-import type { DeviceHubApi } from '../shared/types'
+import type { BudgetAlert, DeviceHubApi } from '../shared/types'
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -39,6 +39,14 @@ async function requestNotificationPermissionIfNeeded(): Promise<boolean> {
  * DeviceHubApi surface since Electron doesn't need it. */
 export async function pollFiredReminders(sinceIso: string): Promise<{ id: string; title: string; notes: string | null }[]> {
   return request('GET', `/reminders/fired-since${query({ since: sinceIso })}`)
+}
+
+/** Same idea as pollFiredReminders but for budget near-limit/over-limit
+ * alerts — the server-side interval already records each alert once via a
+ * UNIQUE(categoryId, month, level) constraint, this just surfaces new rows
+ * to the browser so it can show a Web Notification. */
+export async function pollBudgetAlerts(sinceIso: string): Promise<BudgetAlert[]> {
+  return request('GET', `/budget/alerts-since${query({ since: sinceIso })}`)
 }
 
 export function createHttpClient(): DeviceHubApi {

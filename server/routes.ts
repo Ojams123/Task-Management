@@ -195,6 +195,10 @@ export function registerApiRoutes(app: Express, publicUrl: string) {
   api.get('/budget/summary', (req, res) =>
     res.json(budget.summary(req.query.month ? String(req.query.month) : undefined))
   )
+  api.get('/budget/alerts-since', (req, res) => {
+    const since = String(req.query.since ?? new Date(0).toISOString())
+    res.json(budget.listAlertsSince(since))
+  })
 
   // Canvas
   api.get('/canvas/settings', (_req, res) => res.json(getCanvasSettings()))

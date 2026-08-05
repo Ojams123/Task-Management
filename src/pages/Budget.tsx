@@ -8,6 +8,17 @@ function currentMonth(): string {
   return new Date().toISOString().slice(0, 7)
 }
 
+function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split('-').map(Number)
+  const d = new Date(y, m - 1 + delta, 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function monthLabel(month: string): string {
+  const [y, m] = month.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+}
+
 function formatMoney(n: number): string {
   return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' })
 }
@@ -39,7 +50,7 @@ export function Budget() {
     balance: number
     byCategory: { categoryId: string; name: string; spent: number; limit: number }[]
   } | null>(null)
-  const [month] = useState(currentMonth())
+  const [month, setMonth] = useState(currentMonth())
 
   const [catName, setCatName] = useState('')
   const [catKind, setCatKind] = useState<'expense' | 'income'>('expense')
@@ -59,6 +70,7 @@ export function Budget() {
   const [selectedAccount, setSelectedAccount] = useState<SimplefinAccount | null>(null)
   const [selectedBankTx, setSelectedBankTx] = useState<SimplefinTransaction | null>(null)
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [txSearch, setTxSearch] = useState('')
 
   async function refresh() {
@@ -86,7 +98,7 @@ export function Budget() {
   useEffect(() => {
     refresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [month])
 
   async function syncSimplefin() {
     setSimplefinSyncing(true)
@@ -218,12 +230,29 @@ export function Budget() {
     return points.length > 0 ? [{ label: 'Start of month', value: 0 }, ...points] : points
   })()
 
+  const isCurrentMonth = month === currentMonth()
+
   return (
     <div>
+      <div className="week-calendar-toolbar" style={{ marginBottom: 20 }}>
+        <div className="week-calendar-range">{monthLabel(month)}</div>
+        <div className="week-calendar-nav">
+          <button className="btn btn-sm" onClick={() => setMonth((m) => shiftMonth(m, -1))}>
+            ‹ Prev
+          </button>
+          <button className="btn btn-sm" onClick={() => setMonth(currentMonth())} disabled={isCurrentMonth}>
+            This month
+          </button>
+          <button className="btn btn-sm" onClick={() => setMonth((m) => shiftMonth(m, 1))} disabled={isCurrentMonth}>
+            Next ›
+          </button>
+        </div>
+      </div>
+
       <div className="grid grid-3" style={{ marginBottom: 20 }}>
         <div className="card">
           <div className="stat">
-            <span className="stat-label">Income this month</span>
+            <span className="stat-label">Income {isCurrentMonth ? 'this month' : `in ${monthLabel(month)}`}</span>
             <span className="stat-value" style={{ color: 'var(--success)' }}>
               {formatMoney(summary?.income ?? 0)}
             </span>
@@ -231,7 +260,7 @@ export function Budget() {
         </div>
         <div className="card">
           <div className="stat">
-            <span className="stat-label">Expenses this month</span>
+            <span className="stat-label">Expenses {isCurrentMonth ? 'this month' : `in ${monthLabel(month)}`}</span>
             <span className="stat-value" style={{ color: 'var(--danger)' }}>
               {formatMoney(summary?.expenses ?? 0)}
             </span>
@@ -246,7 +275,7 @@ export function Budget() {
       </div>
 
       <div className="card" style={{ marginBottom: 20 }}>
-        <h3>Balance trend this month</h3>
+        <h3>Balance trend {isCurrentMonth ? 'this month' : `— ${monthLabel(month)}`}</h3>
         <Sparkline points={balancePoints} color="var(--accent)" formatValue={(v) => formatMoney(v)} />
       </div>
 
@@ -361,6 +390,7 @@ export function Budget() {
               {summary.byCategory.map((c) => {
                 const pct = c.limit > 0 ? Math.min(100, (c.spent / c.limit) * 100) : 0
                 const over = c.limit > 0 && c.spent > c.limit
+                const near = !over && c.limit > 0 && c.spent / c.limit >= 0.85
                 const isEditing = editingCategoryId === c.categoryId
                 return (
                   <div key={c.categoryId} style={{ padding: '6px 0' }}>
@@ -387,17 +417,45 @@ export function Budget() {
                       </div>
                     ) : (
                       <>
-                        <div
-                          style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}
+                        <button
+                          onClick={() => setSelectedCategoryId(c.categoryId)}
+                          style={{
+                            display: 'block',
+                            width: '100%',
+                            textAlign: 'left',
+                            background: 'transparent',
+                            border: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                          }}
                         >
-                          <span>{c.name}</span>
-                          <span className="muted">
-                            {formatMoney(c.spent)} {c.limit > 0 ? `/ ${formatMoney(c.limit)}` : ''}
-                          </span>
-                        </div>
-                        <div className="progress-bar">
-                          <div className={`progress-bar-fill${over ? ' over' : ''}`} style={{ width: `${pct}%` }} />
-                        </div>
+                          <div
+                            style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 13 }}
+                          >
+                            <span>
+                              {c.name}
+                              {over && (
+                                <span className="badge" style={{ marginLeft: 6, color: 'var(--danger)' }}>
+                                  over
+                                </span>
+                              )}
+                              {near && (
+                                <span className="badge" style={{ marginLeft: 6, color: 'var(--warning)' }}>
+                                  near limit
+                                </span>
+                              )}
+                            </span>
+                            <span className="muted">
+                              {formatMoney(c.spent)} {c.limit > 0 ? `/ ${formatMoney(c.limit)}` : ''}
+                            </span>
+                          </div>
+                          <div className="progress-bar">
+                            <div
+                              className={`progress-bar-fill${over ? ' over' : near ? ' near' : ''}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </button>
                         <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
                           <button
                             className="btn btn-sm"
@@ -587,6 +645,45 @@ export function Budget() {
             </button>
           </>
         )}
+      </Drawer>
+
+      <Drawer
+        open={!!selectedCategoryId}
+        onClose={() => setSelectedCategoryId(null)}
+        title={categoryName(selectedCategoryId ?? '')}
+      >
+        {selectedCategoryId &&
+          (() => {
+            const catSummary = summary?.byCategory.find((c) => c.categoryId === selectedCategoryId)
+            const catTransactions = transactions.filter((t) => t.categoryId === selectedCategoryId)
+            return (
+              <>
+                <div className="fin-drawer-amount">{formatMoney(catSummary?.spent ?? 0)}</div>
+                <p className="muted" style={{ marginBottom: 18 }}>
+                  {catSummary && catSummary.limit > 0
+                    ? `${formatMoney(catSummary.limit)} monthly limit — ${monthLabel(month)}`
+                    : `No limit set — ${monthLabel(month)}`}
+                </p>
+                <h3 style={{ fontSize: 13, marginBottom: 10 }}>Transactions this period</h3>
+                {catTransactions.length === 0 ? (
+                  <div className="empty-state">Nothing logged in this category yet.</div>
+                ) : (
+                  <div className="list">
+                    {catTransactions.map((t) => (
+                      <div className="fin-row" key={t.id}>
+                        <Glyph label={t.description || categoryName(t.categoryId)} />
+                        <div className="fin-row-main">
+                          <div className="fin-row-title">{t.description || categoryName(t.categoryId)}</div>
+                          <div className="fin-row-sub">{new Date(t.occurredAt).toLocaleDateString()}</div>
+                        </div>
+                        <div className="fin-row-amount">{formatMoney(t.amount)}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )
+          })()}
       </Drawer>
     </div>
   )

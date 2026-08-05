@@ -602,6 +602,10 @@ button.link:hover {
   background: linear-gradient(90deg, var(--danger), #ff8a5c);
 }
 
+.progress-bar-fill.near {
+  background: linear-gradient(90deg, var(--warning), #ffb85c);
+}
+
 .badge {
   font-size: 11px;
   font-weight: 600;

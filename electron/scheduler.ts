@@ -1,5 +1,6 @@
 import { Notification } from 'electron'
 import { checkDueReminders } from '../core/reminderEngine'
+import { checkBudgetAlerts } from '../core/budgetEngine'
 
 const CHECK_INTERVAL_MS = 30_000
 
@@ -10,6 +11,16 @@ function checkReminders() {
       new Notification({
         title: reminder.title,
         body: reminder.notes || 'Reminder due now',
+      }).show()
+    }
+  }
+
+  const budgetAlerts = checkBudgetAlerts()
+  for (const alert of budgetAlerts) {
+    if (Notification.isSupported()) {
+      new Notification({
+        title: alert.level === 'over' ? `Over budget: ${alert.categoryName}` : `Approaching limit: ${alert.categoryName}`,
+        body: `$${alert.spent.toFixed(2)} of $${alert.limit.toFixed(2)} spent this month`,
       }).show()
     }
   }

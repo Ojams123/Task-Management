@@ -5,7 +5,7 @@ import { Sidebar, type Page } from './components/Sidebar'
 import { MobileNav } from './components/MobileNav'
 import { VoiceBar } from './components/VoiceBar'
 import { AuthGate } from './components/AuthGate'
-import { useBrowserReminderNotifications } from './hooks/useBrowserReminderNotifications'
+import { useBrowserNotifications } from './hooks/useBrowserNotifications'
 import { Dashboard } from './pages/Dashboard'
 import { Reminders } from './pages/Reminders'
 import { Goals } from './pages/Goals'
@@ -54,7 +54,7 @@ function App() {
   const [narrowViewport, setNarrowViewport] = useState(
     () => window.matchMedia('(max-width: 860px)').matches
   )
-  useBrowserReminderNotifications(!IS_ELECTRON)
+  useBrowserNotifications(!IS_ELECTRON)
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 860px)')

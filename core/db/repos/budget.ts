@@ -97,6 +97,35 @@ export function linkedSimplefinTransactionIds(): Set<string> {
   return new Set(rows.map((r) => r.simplefinTransactionId))
 }
 
+export function recordAlertIfNew(categoryId: string, month: string, level: 'near' | 'over'): boolean {
+  const db = getDb()
+  const id = randomUUID()
+  const firedAt = new Date().toISOString()
+  const result = db
+    .prepare('INSERT OR IGNORE INTO budget_alerts (id, categoryId, month, level, firedAt) VALUES (?, ?, ?, ?, ?)')
+    .run(id, categoryId, month, level, firedAt)
+  return result.changes > 0
+}
+
+export interface BudgetAlertRow {
+  categoryId: string
+  categoryName: string
+  month: string
+  level: 'near' | 'over'
+  firedAt: string
+}
+
+export function listAlertsSince(sinceIso: string): BudgetAlertRow[] {
+  const db = getDb()
+  return db
+    .prepare(
+      `SELECT a.categoryId, c.name AS categoryName, a.month, a.level, a.firedAt
+       FROM budget_alerts a JOIN budget_categories c ON c.id = a.categoryId
+       WHERE a.firedAt >= ? ORDER BY a.firedAt ASC`
+    )
+    .all(sinceIso) as BudgetAlertRow[]
+}
+
 export function summary(month?: string) {
   const db = getDb()
   const targetMonth = month ?? new Date().toISOString().slice(0, 7)

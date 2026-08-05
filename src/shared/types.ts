@@ -69,6 +69,14 @@ export interface Transaction {
 
 export type NewTransaction = Omit<Transaction, 'id' | 'createdAt'>
 
+export interface BudgetAlert {
+  categoryId: string
+  categoryName: string
+  month: string
+  level: 'near' | 'over'
+  firedAt: string
+}
+
 export interface BudgetCategoryUpdate {
   name?: string
   monthlyLimit?: number

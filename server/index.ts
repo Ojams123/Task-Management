@@ -6,6 +6,7 @@ import { configureServerAdapters } from './adapters'
 import { registerAuthRoutes } from './auth'
 import { registerApiRoutes } from './routes'
 import { checkDueReminders } from '../core/reminderEngine'
+import { checkBudgetAlerts } from '../core/budgetEngine'
 
 const PORT = Number(process.env.PORT ?? 4000)
 const DATA_DIR = process.env.DATA_DIR ?? path.join(os.homedir(), '.devicehub')
@@ -33,8 +34,10 @@ app.use((req, res, next) => {
 
 setInterval(() => {
   checkDueReminders()
+  checkBudgetAlerts()
 }, 30_000)
 checkDueReminders()
+checkBudgetAlerts()
 
 app.listen(PORT, () => {
   console.log(`DeviceHub server listening on port ${PORT}`)
