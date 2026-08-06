@@ -640,6 +640,20 @@ button.link:hover {
   gap: 5px;
 }
 
+/* Applied to a .stat, .grid, or list-row wrapper to signal it's a live
+   shortcut into the page that owns the data, not just a display value. */
+.stat-clickable {
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  padding: 6px;
+  margin: -6px;
+  transition: background 0.15s ease;
+}
+
+.stat-clickable:hover {
+  background: var(--bg-card-hover);
+}
+
 .stat-value {
   font-size: 28px;
   font-weight: 700;

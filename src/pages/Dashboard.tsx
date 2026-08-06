@@ -440,7 +440,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         ) : (
           <div className="list">
             {simplefinAccounts.map((a) => (
-              <div className="fin-row" key={a.id}>
+              <div className="fin-row" key={a.id} onClick={() => onNavigate('budget')} style={{ cursor: 'pointer' }}>
                 <Glyph label={a.orgName ?? a.name} />
                 <div className="fin-row-main">
                   <div className="fin-row-title">{a.name}</div>
@@ -465,13 +465,19 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         ) : (
           <div className="list">
             {upcomingReminders.map((r) => (
-              <div className="fin-row" key={r.id}>
+              <div className="fin-row" key={r.id} onClick={() => onNavigate('reminders')} style={{ cursor: 'pointer' }}>
                 <Glyph label={r.title} />
                 <div className="fin-row-main">
                   <div className="fin-row-title">{r.title}</div>
                   <div className="fin-row-sub">{relativeDayLabel(new Date(r.dueAt), now)}</div>
                 </div>
-                <button className="btn btn-sm" onClick={() => toggleReminderComplete(r)}>
+                <button
+                  className="btn btn-sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    toggleReminderComplete(r)
+                  }}
+                >
                   Done
                 </button>
               </div>
@@ -487,7 +493,12 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         ) : (
           <div className="list">
             {todayScheduleItems.map((e) => (
-              <div className="fin-row" key={e.id}>
+              <div
+                className="fin-row"
+                key={e.id}
+                onClick={() => onNavigate(e.source === 'canvas' ? 'assignments' : e.source === 'reminder' ? 'reminders' : 'calendar')}
+                style={{ cursor: 'pointer' }}
+              >
                 <Glyph label={e.title} />
                 <div className="fin-row-main">
                   <div className="fin-row-title">{e.title}</div>
@@ -606,7 +617,12 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         ) : (
           <div className="list" style={{ marginTop: 14 }}>
             {filteredActivity.map((item) => (
-              <div className="list-row" key={item.id}>
+              <div
+                className="list-row"
+                key={item.id}
+                onClick={() => onNavigate(item.type === 'reminder' ? 'reminders' : item.type === 'assignment' ? 'assignments' : 'calendar')}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="list-row-main">
                   <div className="list-row-title">
                     <span className={`dv2-dot dv2-dot-${item.type}`} aria-hidden />
@@ -637,7 +653,12 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
             {activeGoals.map((g) => {
               const pct = g.targetValue > 0 ? Math.min(100, (g.currentValue / g.targetValue) * 100) : 0
               return (
-                <div key={g.id} style={{ padding: '4px 0' }}>
+                <div
+                  key={g.id}
+                  className="stat-clickable"
+                  onClick={() => onNavigate('goals')}
+                  style={{ padding: '4px 0' }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
                     <span>{g.title}</span>
                     <span className="muted">
@@ -669,14 +690,19 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
               {expenseBreakdown.map((r) => (
                 <div
                   key={r.categoryId}
-                  style={{ flex: r.pct, background: r.color }}
+                  onClick={() => onNavigate('budget')}
+                  style={{ flex: r.pct, background: r.color, cursor: 'pointer' }}
                   title={`${r.name}: ${formatMoney(r.spent)} (${Math.round(r.pct)}%)`}
                 />
               ))}
             </div>
             <div className="dv2-legend">
               {expenseBreakdown.map((r) => (
-                <div className="dv2-legend-row" key={r.categoryId}>
+                <div
+                  className="dv2-legend-row stat-clickable"
+                  key={r.categoryId}
+                  onClick={() => onNavigate('budget')}
+                >
                   <span className="dv2-legend-dot" style={{ background: r.color }} />
                   <span className="dv2-legend-name">{r.name}</span>
                   <span className="muted">{Math.round(r.pct)}%</span>
@@ -695,7 +721,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
           </button>
         </h3>
         {fitness ? (
-          <div className="grid grid-3">
+          <div className="grid grid-3 stat-clickable" onClick={() => onNavigate('fitness')}>
             <div className="stat">
               <span className="stat-label">Consumed</span>
               <span className="stat-value" style={{ fontSize: 18 }}>
@@ -738,7 +764,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         ) : !ouraToday ? (
           <div className="empty-state">No data synced yet — sync from Fitness to check for updates.</div>
         ) : (
-          <div className="grid grid-2">
+          <div className="grid grid-2 stat-clickable" onClick={() => onNavigate('fitness')}>
             <div className="stat">
               <span className="stat-label">Sleep</span>
               <span className="stat-value" style={{ fontSize: 18 }}>
@@ -777,7 +803,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (page: Page) => void }) 
         {!googleConnected ? (
           <div className="empty-state">Connect Gmail in Settings to get a summary of what you missed.</div>
         ) : digest && digest.items.length > 0 ? (
-          <p className="muted">
+          <p className="muted stat-clickable" onClick={() => onNavigate('notifications')} style={{ margin: 0 }}>
             {digest.totalUnread} unread since {new Date(digest.sinceLastCheck).toLocaleString()} — including
             messages from {digest.items.slice(0, 3).map((i) => i.from.split('<')[0].trim()).join(', ')}
             {digest.items.length > 3 ? ' and others' : ''}.
