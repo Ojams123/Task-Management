@@ -106,9 +106,13 @@ export function Budget() {
     setSimplefinSyncing(true)
     setSimplefinError(null)
     try {
-      const { accounts, transactions: bankTxs } = await window.api.simplefin.sync()
+      const { accounts, transactions: bankTxs, warnings } = await window.api.simplefin.sync()
       setSimplefinAccounts(accounts)
       setSimplefinTransactions(bankTxs)
+      // A successful sync can still carry a per-connection problem from
+      // SimpleFIN (e.g. a bank needing re-authentication at the bridge) —
+      // that's why balances can look "stuck" for days with no visible error.
+      if (warnings.length > 0) setSimplefinError(warnings.join(' '))
     } catch (e) {
       setSimplefinError(e instanceof Error ? e.message : 'Sync failed')
     } finally {

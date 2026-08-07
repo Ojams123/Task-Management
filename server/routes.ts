@@ -128,11 +128,15 @@ function getCanvasSettings(): CanvasSettings | null {
 async function syncSimplefin() {
   const accessUrl = getSecret(SIMPLEFIN_ACCESS_URL_KEY)
   if (!accessUrl) throw new Error('Connect SimpleFIN in Settings first.')
-  const { accounts, transactions } = await simplefin.fetchAccounts(accessUrl)
+  const { accounts, transactions, warnings } = await simplefin.fetchAccounts(accessUrl)
   simplefinRepo.replaceCachedAccounts(accounts)
   simplefinRepo.replaceCachedTransactions(transactions)
   autoCategorizeSimplefinTransactions()
-  return { accounts: simplefinRepo.listCachedAccounts(), transactions: simplefinRepo.listCachedTransactions() }
+  return {
+    accounts: simplefinRepo.listCachedAccounts(),
+    transactions: simplefinRepo.listCachedTransactions(),
+    warnings,
+  }
 }
 
 function asyncHandler(fn: (req: import('express').Request, res: import('express').Response) => Promise<unknown>) {

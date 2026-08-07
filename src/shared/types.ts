@@ -481,7 +481,7 @@ export interface DeviceHubApi {
     getStatus(): Promise<{ configured: boolean }>
     saveSetupToken(setupToken: string): Promise<void>
     disconnect(): Promise<void>
-    sync(): Promise<{ accounts: SimplefinAccount[]; transactions: SimplefinTransaction[] }>
+    sync(): Promise<{ accounts: SimplefinAccount[]; transactions: SimplefinTransaction[]; warnings: string[] }>
     listAccounts(): Promise<SimplefinAccount[]>
     listTransactions(): Promise<SimplefinTransaction[]>
   }

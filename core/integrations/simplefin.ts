@@ -61,7 +61,17 @@ interface SimplefinApiAccount {
 export async function fetchAccounts(
   accessUrl: string,
   days = 30
-): Promise<{ accounts: Omit<SimplefinAccount, 'syncedAt'>[]; transactions: Omit<SimplefinTransaction, 'syncedAt'>[] }> {
+): Promise<{
+  accounts: Omit<SimplefinAccount, 'syncedAt'>[]
+  transactions: Omit<SimplefinTransaction, 'syncedAt'>[]
+  // SimpleFIN reports per-connection problems (e.g. "this account needs to
+  // be re-authenticated at your bank") inside a 200 OK response body rather
+  // than as an HTTP error — the request "succeeds" but the account data it
+  // came with can be stale for days until you fix it at the bridge. Surface
+  // these instead of silently accepting whatever (possibly old) data rode
+  // along with them.
+  warnings: string[]
+}> {
   const { base, authHeader } = splitAccessUrl(accessUrl)
   const startDate = Math.floor((Date.now() - days * 24 * 60 * 60 * 1000) / 1000)
   const res = await fetch(`${base}/accounts?start-date=${startDate}&pending=1`, {
@@ -71,6 +81,7 @@ export async function fetchAccounts(
     throw new Error(`SimpleFIN API error ${res.status}. The connection may need to be re-established in Settings.`)
   }
   const json = (await res.json()) as { accounts: SimplefinApiAccount[]; errors?: string[] }
+  const warnings = (json.errors ?? []).filter((e) => e.trim().length > 0)
 
   const accounts: Omit<SimplefinAccount, 'syncedAt'>[] = []
   const transactions: Omit<SimplefinTransaction, 'syncedAt'>[] = []
@@ -99,5 +110,5 @@ export async function fetchAccounts(
     }
   }
 
-  return { accounts, transactions }
+  return { accounts, transactions, warnings }
 }
