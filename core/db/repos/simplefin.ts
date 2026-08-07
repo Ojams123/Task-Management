@@ -7,11 +7,11 @@ export function replaceCachedAccounts(accounts: Omit<SimplefinAccount, 'syncedAt
   const tx = db.transaction((rows: Omit<SimplefinAccount, 'syncedAt'>[]) => {
     db.prepare('DELETE FROM simplefin_accounts').run()
     const insert = db.prepare(
-      `INSERT INTO simplefin_accounts (id, name, orgName, currency, balance, availableBalance, syncedAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO simplefin_accounts (id, name, orgName, currency, balance, availableBalance, balanceDate, syncedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     for (const a of rows) {
-      insert.run(a.id, a.name, a.orgName, a.currency, a.balance, a.availableBalance, syncedAt)
+      insert.run(a.id, a.name, a.orgName, a.currency, a.balance, a.availableBalance, a.balanceDate, syncedAt)
     }
   })
   tx(accounts)
@@ -19,7 +19,9 @@ export function replaceCachedAccounts(accounts: Omit<SimplefinAccount, 'syncedAt
 
 export function listCachedAccounts(): SimplefinAccount[] {
   const db = getDb()
-  return db.prepare('SELECT id, name, orgName, currency, balance, availableBalance FROM simplefin_accounts ORDER BY name').all() as SimplefinAccount[]
+  return db
+    .prepare('SELECT id, name, orgName, currency, balance, availableBalance, balanceDate FROM simplefin_accounts ORDER BY name')
+    .all() as SimplefinAccount[]
 }
 
 export function replaceCachedTransactions(transactions: Omit<SimplefinTransaction, 'syncedAt'>[]) {

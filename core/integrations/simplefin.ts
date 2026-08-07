@@ -54,6 +54,7 @@ interface SimplefinApiAccount {
   currency: string | null
   balance: string
   'available-balance'?: string
+  'balance-date'?: number
   org?: { name?: string | null }
   transactions?: SimplefinApiTransaction[]
 }
@@ -94,6 +95,7 @@ export async function fetchAccounts(
       currency: a.currency,
       balance: Number(a.balance),
       availableBalance: a['available-balance'] != null ? Number(a['available-balance']) : null,
+      balanceDate: a['balance-date'] != null ? new Date(a['balance-date'] * 1000).toISOString() : null,
     })
     for (const t of a.transactions ?? []) {
       const payee = t.payee?.trim()

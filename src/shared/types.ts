@@ -217,6 +217,11 @@ export interface SimplefinAccount {
   currency: string | null
   balance: number
   availableBalance: number | null
+  // When the bank itself last reported this balance to SimpleFIN — separate
+  // from `syncedAt` (when DeviceHub last asked). A balance that's "as of" a
+  // date days in the past despite syncing today means the bank connection
+  // needs attention at the SimpleFIN bridge, not a DeviceHub bug.
+  balanceDate: string | null
 }
 
 // SimpleFIN's sign convention is the opposite of Plaid's: positive = income

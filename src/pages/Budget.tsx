@@ -307,16 +307,31 @@ export function Budget() {
             <div className="empty-state">No accounts synced yet — click "Sync".</div>
           ) : (
             <div className="list">
-              {simplefinAccounts.map((a) => (
-                <button key={a.id} className="fin-row" onClick={() => setSelectedAccount(a)}>
-                  <Glyph label={a.orgName ?? a.name} />
-                  <div className="fin-row-main">
-                    <div className="fin-row-title">{a.name}</div>
-                    <div className="fin-row-sub">{a.orgName ?? 'Bank'}</div>
-                  </div>
-                  <div className="fin-row-amount">{formatMoney(a.balance)}</div>
-                </button>
-              ))}
+              {simplefinAccounts.map((a) => {
+                const staleDays = a.balanceDate
+                  ? Math.floor((Date.now() - new Date(a.balanceDate).getTime()) / (24 * 60 * 60 * 1000))
+                  : null
+                return (
+                  <button key={a.id} className="fin-row" onClick={() => setSelectedAccount(a)}>
+                    <Glyph label={a.orgName ?? a.name} />
+                    <div className="fin-row-main">
+                      <div className="fin-row-title">{a.name}</div>
+                      <div className="fin-row-sub">
+                        {a.orgName ?? 'Bank'}
+                        {a.balanceDate && (
+                          <span style={{ color: staleDays != null && staleDays >= 2 ? 'var(--danger)' : undefined }}>
+                            {' '}
+                            · balance as of{' '}
+                            {new Date(a.balanceDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            {staleDays != null && staleDays >= 2 ? ` (${staleDays}d old — check the bridge)` : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="fin-row-amount">{formatMoney(a.balance)}</div>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
@@ -574,8 +589,20 @@ export function Budget() {
             </div>
             <div className="fin-drawer-amount">{formatMoney(selectedAccount.balance)}</div>
             {selectedAccount.availableBalance != null && (
-              <p className="muted" style={{ marginBottom: 18 }}>
+              <p className="muted" style={{ marginBottom: 4 }}>
                 {formatMoney(selectedAccount.availableBalance)} available
+              </p>
+            )}
+            {selectedAccount.balanceDate && (
+              <p className="muted" style={{ marginBottom: 18, fontSize: 12 }}>
+                Balance reported by your bank as of{' '}
+                {new Date(selectedAccount.balanceDate).toLocaleString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+                {' — if this stays old after syncing, reconnect at your SimpleFIN bridge.'}
               </p>
             )}
             <h3 style={{ fontSize: 13, marginBottom: 10 }}>Recent activity</h3>

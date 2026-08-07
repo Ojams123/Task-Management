@@ -223,6 +223,7 @@ function migrate(database: Database.Database) {
       currency TEXT,
       balance REAL,
       availableBalance REAL,
+      balanceDate TEXT,
       syncedAt TEXT NOT NULL
     );
 
@@ -288,6 +289,11 @@ function migrate(database: Database.Database) {
   const simplefinTxColumns = database.prepare('PRAGMA table_info(simplefin_transactions)').all() as { name: string }[]
   if (simplefinTxColumns.length > 0 && !simplefinTxColumns.some((c) => c.name === 'memo')) {
     database.exec('ALTER TABLE simplefin_transactions ADD COLUMN memo TEXT')
+  }
+
+  const simplefinAcctColumns = database.prepare('PRAGMA table_info(simplefin_accounts)').all() as { name: string }[]
+  if (simplefinAcctColumns.length > 0 && !simplefinAcctColumns.some((c) => c.name === 'balanceDate')) {
+    database.exec('ALTER TABLE simplefin_accounts ADD COLUMN balanceDate TEXT')
   }
 }
 
