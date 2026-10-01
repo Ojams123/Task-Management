@@ -40,7 +40,17 @@ ts_serve() {
 }
 
 plist_path="$HOME/Library/LaunchAgents/$LABEL.plist"
-unit_path="$HOME/.config/systemd/user/devicehub.service"
+# As root (typical on a cloud server) install a normal system service; otherwise
+# a per-user one, which doesn't need sudo to manage.
+if [ "$(id -u)" = 0 ]; then
+  unit_path="/etc/systemd/system/devicehub.service"
+  sctl() { systemctl "$@"; }
+  wanted_by="multi-user.target"
+else
+  unit_path="$HOME/.config/systemd/user/devicehub.service"
+  sctl() { systemctl --user "$@"; }
+  wanted_by="default.target"
+fi
 
 uninstall() {
   TS="$(find_tailscale)"
@@ -51,9 +61,9 @@ uninstall() {
       launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
       rm -f "$plist_path" ;;
     Linux)
-      systemctl --user disable --now devicehub.service 2>/dev/null || true
+      sctl disable --now devicehub.service 2>/dev/null || true
       rm -f "$unit_path"
-      systemctl --user daemon-reload || true ;;
+      sctl daemon-reload || true ;;
   esac
   say "DeviceHub service removed. Your data in $LOG_DIR was left untouched."
 }
@@ -86,7 +96,7 @@ echo "This computer's permanent address will be: $PUBLIC_URL"
 
 if curl -fsS -o /dev/null "http://localhost:$PORT/" 2>/dev/null && ! {
   { [ "$OS" = "Darwin" ] && launchctl print "gui/$(id -u)/$LABEL" >/dev/null 2>&1; } ||
-  { [ "$OS" = "Linux" ] && systemctl --user is-active --quiet devicehub.service 2>/dev/null; }
+  { [ "$OS" = "Linux" ] && sctl is-active --quiet devicehub.service 2>/dev/null; }
 }; then
   die "Something is already using port $PORT — probably DeviceHub started by hand with 'npm run start:web'. Stop it (Ctrl+C in that terminal), and stop any 'cloudflared' tunnel too, then re-run."
 fi
@@ -151,14 +161,16 @@ StandardOutput=append:$LOG_DIR/server.log
 StandardError=append:$LOG_DIR/server.log
 
 [Install]
-WantedBy=default.target
+WantedBy=$wanted_by
 EOF
-    systemctl --user daemon-reload
-    systemctl --user enable devicehub.service
-    systemctl --user restart devicehub.service
+    sctl daemon-reload
+    sctl enable devicehub.service
+    sctl restart devicehub.service
     # Without lingering, user services only run while you're logged in.
-    loginctl enable-linger "$(id -un)" 2>/dev/null || sudo loginctl enable-linger "$(id -un)" || \
-      echo "Note: couldn't enable start-at-boot (loginctl enable-linger). DeviceHub will start when you log in."
+    if [ "$(id -u)" != 0 ]; then
+      loginctl enable-linger "$(id -un)" 2>/dev/null || sudo loginctl enable-linger "$(id -un)" || \
+        echo "Note: couldn't enable start-at-boot (loginctl enable-linger). DeviceHub will start when you log in."
+    fi
     ;;
 esac
 
