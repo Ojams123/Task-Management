@@ -49,7 +49,7 @@ function matchCategory(haystack: string, kind: 'expense' | 'income', categories:
  * convention: positive = income (money in), negative = expense (money out).
  */
 export function autoCategorizeSimplefinTransactions(): { created: number } {
-  const allTransactions = simplefinRepo.listCachedTransactions()
+  const allTransactions = simplefinRepo.listAllCachedTransactions()
   const alreadyLinked = budgetRepo.linkedSimplefinTransactionIds()
   const pending = allTransactions.filter((tx: SimplefinTransaction) => !alreadyLinked.has(tx.id) && tx.amount !== 0)
   if (pending.length === 0) return { created: 0 }

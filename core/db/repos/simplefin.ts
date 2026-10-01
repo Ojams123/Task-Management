@@ -24,6 +24,25 @@ export function listCachedAccounts(): SimplefinAccount[] {
     .all() as SimplefinAccount[]
 }
 
+const MIN_LOOKBACK_DAYS = 30
+// SimpleFIN Bridge only serves ~90 days of history per request.
+const MAX_LOOKBACK_DAYS = 90
+const LOOKBACK_OVERLAP_DAYS = 7
+
+// How far back the next sync should ask for transactions. Normally 30 days,
+// but if any account's data stopped updating (bank login expired at the
+// bridge, or the app was down) reach back past that point so the gap gets
+// filled in once the connection is fixed, instead of being skipped forever.
+export function syncLookbackDays(now = Date.now()): number {
+  const db = getDb()
+  const row = db
+    .prepare('SELECT MIN(balanceDate) AS oldest FROM simplefin_accounts WHERE balanceDate IS NOT NULL')
+    .get() as { oldest: string | null } | undefined
+  if (!row?.oldest) return MIN_LOOKBACK_DAYS
+  const staleDays = Math.ceil((now - new Date(row.oldest).getTime()) / (24 * 60 * 60 * 1000))
+  return Math.min(MAX_LOOKBACK_DAYS, Math.max(MIN_LOOKBACK_DAYS, staleDays + LOOKBACK_OVERLAP_DAYS))
+}
+
 export function replaceCachedTransactions(transactions: Omit<SimplefinTransaction, 'syncedAt'>[]) {
   const db = getDb()
   const syncedAt = new Date().toISOString()
@@ -53,6 +72,14 @@ interface TransactionRow {
 export function listCachedTransactions(): SimplefinTransaction[] {
   const db = getDb()
   const rows = db.prepare('SELECT * FROM simplefin_transactions ORDER BY date DESC LIMIT 200').all() as TransactionRow[]
+  return rows.map((r) => ({ ...r, pending: !!r.pending }))
+}
+
+// Every cached transaction, not just the newest 200 shown in the UI, so a
+// long catch-up sync gets fully filed into the budget.
+export function listAllCachedTransactions(): SimplefinTransaction[] {
+  const db = getDb()
+  const rows = db.prepare('SELECT * FROM simplefin_transactions ORDER BY date DESC').all() as TransactionRow[]
   return rows.map((r) => ({ ...r, pending: !!r.pending }))
 }
 

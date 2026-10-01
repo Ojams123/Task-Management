@@ -128,7 +128,7 @@ function getCanvasSettings(): CanvasSettings | null {
 async function syncSimplefin() {
   const accessUrl = getSecret(SIMPLEFIN_ACCESS_URL_KEY)
   if (!accessUrl) throw new Error('Connect SimpleFIN in Settings first.')
-  const { accounts, transactions, warnings } = await simplefin.fetchAccounts(accessUrl)
+  const { accounts, transactions, warnings } = await simplefin.fetchAccounts(accessUrl, simplefinRepo.syncLookbackDays())
   simplefinRepo.replaceCachedAccounts(accounts)
   simplefinRepo.replaceCachedTransactions(transactions)
   autoCategorizeSimplefinTransactions()
