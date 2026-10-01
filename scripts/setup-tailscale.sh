@@ -46,10 +46,12 @@ if [ "$(id -u)" = 0 ]; then
   unit_path="/etc/systemd/system/devicehub.service"
   sctl() { systemctl "$@"; }
   wanted_by="multi-user.target"
+  unit_after=" tailscaled.service"
 else
   unit_path="$HOME/.config/systemd/user/devicehub.service"
   sctl() { systemctl --user "$@"; }
   wanted_by="default.target"
+  unit_after=""
 fi
 
 uninstall() {
@@ -146,15 +148,22 @@ EOF
     launchctl bootstrap "gui/$(id -u)" "$plist_path"
     ;;
   Linux)
+    # As root, re-apply the Tailscale route every time DeviceHub starts so the
+    # ts.net address can't silently stop forwarding. Bounded and failure-
+    # tolerant so a Tailscale hiccup never blocks DeviceHub from starting.
+    unit_extra=""
+    [ "$(id -u)" = 0 ] && unit_extra="ExecStartPost=-$(command -v timeout) 30 $TS serve --bg $PORT"
     mkdir -p "$(dirname "$unit_path")"
     cat > "$unit_path" <<EOF
 [Unit]
 Description=DeviceHub web app
-After=network-online.target
+After=network-online.target$unit_after
+Wants=network-online.target
 
 [Service]
 WorkingDirectory=$REPO_DIR
 ExecStart=$NODE $REPO_DIR/dist-server/server/index.js
+$unit_extra
 Environment=PUBLIC_URL=$PUBLIC_URL
 Environment=PORT=$PORT
 Environment=PATH=$service_path
