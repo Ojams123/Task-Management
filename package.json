@@ -10,6 +10,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "build:server": "tsc -p tsconfig.server.json",
+    "build:server:lite": "node scripts/build-server-lite.cjs",
     "server": "node dist-server/server/index.js",
     "start:web": "npm run build && npm run build:server && npm run server"
   },

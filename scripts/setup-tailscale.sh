@@ -104,8 +104,11 @@ fi
 say "Installing dependencies and building (takes a minute)"
 cd "$REPO_DIR"
 npm install --no-audit --no-fund
-npm run build
-npm run build:server
+# Skip type-checking here: full tsc needs ~1.5GB+ of memory (googleapis' types
+# are huge), more than a small VPS has. vite and the lite server build produce
+# the same output without it.
+npx vite build
+node scripts/build-server-lite.cjs
 
 mkdir -p "$LOG_DIR"
 service_path="$(dirname "$NODE"):/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
