@@ -285,18 +285,26 @@ network instead of being a local-only desktop app.
 
 The server needs to run somewhere that stays on — a spare computer, a
 home server, a small VPS, or even the same machine you use daily. Your
-iPad just needs network access to it. Three practical options:
+iPad just needs network access to it. Four practical options:
 
+- **Tailscale (recommended for personal use)**: free, gives you a
+  permanent HTTPS address (`https://<computer>.<tailnet>.ts.net`) that
+  works from anywhere and never changes, and runs DeviceHub as a
+  background service that starts on boot. Only devices signed into your
+  Tailscale account can reach it. See "Always-on with Tailscale" below —
+  one script does the whole setup.
 - **Same Wi-Fi network**: use the host computer's LAN IP (e.g.
   `192.168.1.50`). Simplest, but only works while both devices are on that
   network, and Safari will complain about the lack of HTTPS for some
   features (notifications, "Add to Home Screen" still works over plain
   HTTP on a local network).
-- **Cloudflare Tunnel or ngrok (recommended)**: free, gives you a real
-  HTTPS URL reachable from anywhere (not just home Wi-Fi), and takes about
-  five minutes: install `cloudflared`, run
+- **Cloudflare quick tunnel or ngrok**: free, gives you a real HTTPS URL
+  reachable by anyone: install `cloudflared`, run
   `cloudflared tunnel --url http://localhost:4000`, and it prints a
   `https://something.trycloudflare.com` URL. Use that as `PUBLIC_URL`.
+  **The URL is temporary** — it changes every time `cloudflared` restarts
+  (reboot, sleep, closed terminal), and the old one shows "server can't be
+  found". Fine for trying things out, not for daily use.
 - **A small cloud VPS**: full control, costs a few dollars a month, works
   from anywhere, needs the most setup (a domain + TLS cert, e.g. via
   Caddy or nginx + Let's Encrypt).
@@ -334,6 +342,60 @@ Each browser/device that logs in stays signed in for 30 days.
 2. Tap the Share icon → **Add to Home Screen**.
 3. Launch DeviceHub from the home screen icon it creates — it opens
    full-screen, no browser chrome, like any other app.
+
+### Always-on with Tailscale
+
+[Tailscale](https://tailscale.com) gives each of your devices a private,
+permanent address, so DeviceHub stays at the same URL across reboots and
+is reachable from your iPad anywhere — home Wi-Fi or cellular. Only
+devices signed into your Tailscale account can reach it.
+
+On the **host computer** (macOS or Linux):
+
+1. Install Tailscale from [tailscale.com/download](https://tailscale.com/download)
+   and sign in.
+2. In the [Tailscale admin console → DNS](https://login.tailscale.com/admin/dns),
+   make sure **MagicDNS** and **HTTPS Certificates** are both enabled.
+3. Stop anything you started by hand — `npm run start:web` and any
+   `cloudflared` tunnel (Ctrl+C in their terminals).
+4. From the repo folder, run:
+
+   ```bash
+   ./scripts/setup-tailscale.sh
+   ```
+
+   It builds the app, installs a background service (launchd on macOS,
+   systemd on Linux) that starts DeviceHub automatically and restarts it if
+   it crashes, and runs `tailscale serve` so
+   `https://<computer>.<tailnet>.ts.net` points at it. It prints your
+   permanent address at the end. Your existing data in `~/.devicehub`
+   (passcode, connected accounts, everything) is kept.
+
+On the **iPad/iPhone**:
+
+1. Install the **Tailscale** app from the App Store and sign in with the
+   same account. Leave it connected (the VPN toggle on).
+2. Open the printed address in Safari, then **Share → Add to Home Screen**
+   (delete any old DeviceHub icon pointing at a trycloudflare.com URL).
+
+If you'd connected Google, Spotify, Strava, Microsoft, or LinkedIn under an
+old URL, update each one's redirect URI to
+`https://<computer>.<tailnet>.ts.net/api/<service>/callback`.
+
+Handy commands:
+
+- After `git pull`ing new code, re-run `./scripts/setup-tailscale.sh` to
+  rebuild and restart.
+- Server log: `~/.devicehub/server.log`.
+- Remove the service and the Tailscale route:
+  `./scripts/setup-tailscale.sh uninstall` (your data stays).
+- macOS: the service starts when you log in, so turn on automatic login or
+  stay logged in, and in **System Settings → Energy** (or **Battery**) set
+  the Mac to not sleep while plugged in. Linux: it starts at boot.
+- Windows: the script doesn't cover Windows. Install Tailscale, run
+  `tailscale serve --bg 4000`, and start the server with `PUBLIC_URL` set
+  to your `https://<computer>.<tailnet>.ts.net` address (e.g. via Task
+  Scheduler at log on).
 
 ### What's different from the desktop app
 
